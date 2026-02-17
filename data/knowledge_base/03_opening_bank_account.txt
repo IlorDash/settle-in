@@ -1,0 +1,96 @@
+OPENING A BANK ACCOUNT IN SERBIA AS A FOREIGNER
+
+OVERVIEW
+Foreign citizens can open bank accounts in Serbia, both for Serbian dinars (RSD) and foreign currencies (EUR, USD, CHF, GBP, and others). The process differs depending on whether you are classified as a resident or non-resident. As of January 2025, there are 20 licensed commercial banks operating in Serbia, including local, EU, Russian, American, Turkish, UAE, and Chinese banks.
+
+RESIDENT VS NON-RESIDENT STATUS
+Under the Law on Foreign Exchange Operations ("Official Gazette of RS" Nos. 62/2006, 31/2011, 119/2012, 139/2014, and 30/2018):
+- Non-resident: A foreign citizen in the first year of their stay in Serbia.
+- Resident: A foreign citizen who, on the basis of a residence permit or work visa, has stayed in Serbia for more than one year.
+
+After one year, you acquire resident status and must notify the bank. The bank will close your non-resident account and open a resident account.
+
+OPENING A NON-RESIDENT PERSONAL ACCOUNT
+
+Required documents:
+- Valid passport (original for verification, photocopy for the bank)
+- Proof of registered address in Serbia (White Card / Beli karton or rental agreement)
+- Completed bank application forms (provided by the bank)
+
+The process:
+1. Visit a bank branch in person. At present, fully remote account opening by the individual is not possible at most banks, though some allow an authorized representative (attorney with power of attorney) to complete the process on your behalf.
+2. The bank conducts KYC (Know Your Customer) verification.
+3. Processing time varies: some banks complete the procedure the same day, others may take several days.
+4. Once approved, you receive account details, a debit card (Visa, MasterCard, or DinaCard), and access to online/mobile banking.
+
+OPENING A RESIDENT PERSONAL ACCOUNT
+
+Once you have been in Serbia for more than one year with a valid residence permit, you transition to resident status. The process is similar to opening a non-resident account, but with additional documentation:
+- Valid passport
+- Temporary or permanent residence permit (biometric card)
+- Proof of address
+- Tax Identification Number (PIB) — may be required by some banks
+
+POPULAR BANKS FOR FOREIGNERS
+
+Raiffeisen Banka:
+- Part of Raiffeisen Bank International group
+- Accounts in RSD and multiple foreign currencies
+- Online banking available in Serbian and English
+- No minimum balance requirement
+- Account opening may take 2 to 4 weeks
+- Account signatory must visit Serbia in person
+
+OTP Banka:
+- Largest ATM network in Serbia (294 ATMs, 155 branches)
+- Praktik package: RSD and foreign currency accounts, MasterCard Gold debit card, DinaCard
+- Monthly maintenance: ~400 RSD (~3 EUR), waived if spending exceeds 15,000 RSD/month
+- Klasik package: basic option with MasterCard Standard, ~300 RSD/month maintenance
+
+Banca Intesa:
+- One of the largest banks in Serbia
+- Full range of personal banking services
+- Commission-free bill payments available
+
+Other banks: Erste Bank, UniCredit (now OTP), Mobi Banka (fully mobile banking), AIK Banka, NLB Banka, Poštanska Štedionica
+
+FEES AND COSTS
+- Account opening: Usually free of charge (some premium banks like Raiffeisen may charge up to EUR 1,000 for corporate accounts)
+- Monthly maintenance: Typically 5-10 EUR for RSD accounts; foreign currency account maintenance is often free
+- International transfers: Fees vary by bank — compare before choosing
+- Card issuance: Usually included in the account package
+- Serbia is becoming part of SEPA from 2025, which will simplify EUR transfers
+
+BANKING SERVICES AVAILABLE
+- Online banking (most banks offer English language support)
+- Mobile banking applications
+- Debit cards (Visa, MasterCard, DinaCard accepted locally)
+- International SWIFT transfers
+- Standing orders for automatic bill payments
+- Multi-currency accounts (RSD, EUR, USD, CHF, GBP, etc.)
+
+IMPORTANT NOTES
+- Banks in Serbia are regulated by the National Bank of Serbia (NBS), established in 1884.
+- Deposits in Serbian banks are insured (deposit guarantee scheme).
+- Banks must comply with anti-money laundering regulations but cannot refuse service on discriminatory grounds (citizenship, gender, religion). If refused, the bank must provide reasons in writing.
+- Some banks have limited reasons for opening non-resident accounts (e.g., specific business purposes).
+- A Tax Identification Number (PIB) may be required by certain banks — especially for freelancers or business owners.
+- Having a local bank account is essential for: receiving salary, paying utility bills, paying taxes, and daily transactions.
+- The IPS (Instant Payment System) enables instant transfers between Serbian bank accounts.
+
+BILL PAYMENTS THROUGH BANK ACCOUNTS
+Once you have a bank account, you can set up:
+- Standing orders for recurring utility payments (EPS electricity, Infostan, internet)
+- e-Banking payments using payment slips (nalog za uplatu)
+- IPS QR code payments for instant settlement
+
+LEGAL BASIS
+Law on Foreign Exchange Operations ("Official Gazette of RS" Nos. 62/2006, 31/2011, 119/2012, 139/2014, and 30/2018)
+Law on Payment Services ("Official Gazette of RS" Nos. 139/2014 and 44/2018)
+Law on Prevention of Money Laundering and Terrorism Financing
+
+USEFUL LINKS
+- National Bank of Serbia: nbs.rs
+- Welcome to Serbia — Banking info: welcometoserbia.gov.rs/opening-bank-accounts-for-residents-and-non-residents
+
+Source: Welcome to Serbia portal (welcometoserbia.gov.rs), National Bank of Serbia (nbs.rs), Wise.com, Zunic Law
