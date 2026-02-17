@@ -43,10 +43,12 @@ def build_rag_chain(retriever: VectorStoreRetriever):
         openai_api_key=settings.openai_api_key,
     )
 
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", SYSTEM_PROMPT),
-        ("human", "{input}"),
-    ])
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", SYSTEM_PROMPT),
+            ("human", "{input}"),
+        ]
+    )
 
     return (
         {"context": retriever | _format_documents, "input": RunnablePassthrough()}

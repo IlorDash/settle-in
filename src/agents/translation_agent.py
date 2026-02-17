@@ -28,10 +28,12 @@ def build_translation_chain():
         openai_api_key=settings.openai_api_key,
     )
 
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", SYSTEM_PROMPT),
-        ("human", "{input}"),
-    ])
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", SYSTEM_PROMPT),
+            ("human", "{input}"),
+        ]
+    )
 
     return prompt | llm | StrOutputParser()
 

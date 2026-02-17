@@ -44,8 +44,7 @@ def load_settings() -> Settings:
     openai_api_key = os.getenv("OPENAI_API_KEY")
     if not openai_api_key:
         raise ValueError(
-            "OPENAI_API_KEY is not set. "
-            "Add your OpenAI API key to the .env file."
+            "OPENAI_API_KEY is not set. Add your OpenAI API key to the .env file."
         )
 
     return Settings(

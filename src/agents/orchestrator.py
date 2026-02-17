@@ -46,10 +46,12 @@ def _build_classifier_chain():
         openai_api_key=settings.openai_api_key,
     )
 
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", CLASSIFICATION_PROMPT),
-        ("human", "{input}"),
-    ])
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", CLASSIFICATION_PROMPT),
+            ("human", "{input}"),
+        ]
+    )
 
     return prompt | llm | StrOutputParser()
 
