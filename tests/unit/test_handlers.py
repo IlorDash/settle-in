@@ -1,3 +1,5 @@
+from unittest.mock import AsyncMock
+
 from src.bot.handlers import handle_message, help_command, start_command
 
 
@@ -34,19 +36,33 @@ async def test_help_command_includes_usage_examples(mock_update, mock_context):
     assert "Example" in reply_text or "example" in reply_text
 
 
-async def test_handle_message_responds_to_user(mock_update, mock_context):
+async def test_handle_message_sends_rag_answer(mock_update, mock_context):
     mock_update.message.text = "How do I get a work permit?"
 
     await handle_message(mock_update, mock_context)
 
-    mock_update.message.reply_text.assert_called_once()
+    mock_update.message.reply_text.assert_called_once_with(
+        "Test answer from RAG."
+    )
 
 
-async def test_handle_message_echoes_user_text(mock_update, mock_context):
-    user_message = "Hello, I need help with visa"
-    mock_update.message.text = user_message
+async def test_handle_message_passes_user_text_to_rag(
+    mock_update, mock_context, mock_rag_chain
+):
+    mock_update.message.text = "What is a White Card?"
+
+    await handle_message(mock_update, mock_context)
+
+    mock_rag_chain.ainvoke.assert_called_once_with("What is a White Card?")
+
+
+async def test_handle_message_replies_error_on_rag_failure(
+    mock_update, mock_context, mock_rag_chain
+):
+    mock_rag_chain.ainvoke = AsyncMock(side_effect=RuntimeError("LLM timeout"))
+    mock_update.message.text = "test question"
 
     await handle_message(mock_update, mock_context)
 
     reply_text = mock_update.message.reply_text.call_args[0][0]
-    assert user_message in reply_text
+    assert "something went wrong" in reply_text

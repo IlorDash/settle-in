@@ -2,8 +2,10 @@ import logging
 
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 
+from src.agents.rag_agent import build_rag_chain
 from src.bot.handlers import handle_message, help_command, start_command
 from src.config import settings
+from src.knowledge.vectorstore import get_retriever, load_vectorstore
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -13,12 +15,21 @@ logger = logging.getLogger(__name__)
 
 
 def create_application():
-    """Build the bot application and register all handlers.
+    """Build the bot application, initialize the RAG chain, and register handlers.
+
+    Loads the vector store from disk, builds the RAG chain, and stores it
+    in bot_data so handlers can access it via context.bot_data["rag_chain"].
 
     Returns:
         Configured Application ready to be started.
     """
     app = ApplicationBuilder().token(settings.telegram_bot_token).build()
+
+    vectorstore = load_vectorstore()
+    retriever = get_retriever(vectorstore)
+    rag_chain = build_rag_chain(retriever)
+    app.bot_data["rag_chain"] = rag_chain
+    logger.info("RAG chain initialized and stored in bot_data.")
 
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("help", help_command))

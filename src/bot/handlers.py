@@ -1,5 +1,11 @@
+import logging
+
 from telegram import Update
 from telegram.ext import ContextTypes
+
+from src.agents.rag_agent import ask
+
+logger = logging.getLogger(__name__)
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -30,9 +36,16 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle any non-command text message. Placeholder that echoes user input."""
+    """Handle any non-command text message. Sends the query through the RAG chain."""
     user_text = update.message.text
-    await update.message.reply_text(
-        f'I received your message: "{user_text}"\n\n'
-        "(AI agents are not connected yet — coming in Phase 2!)"
-    )
+    rag_chain = context.bot_data["rag_chain"]
+
+    try:
+        answer = await ask(rag_chain, user_text)
+        await update.message.reply_text(answer)
+    except Exception:
+        logger.exception("RAG chain failed for query: %s", user_text)
+        await update.message.reply_text(
+            "Sorry, something went wrong while processing your question. "
+            "Please try again later."
+        )
