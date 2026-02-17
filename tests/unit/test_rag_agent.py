@@ -23,10 +23,3 @@ async def test_ask_returns_answer_from_chain():
     mock_chain.ainvoke.assert_called_once_with("test question")
 
 
-async def test_ask_passes_query_as_string():
-    mock_chain = MagicMock()
-    mock_chain.ainvoke = AsyncMock(return_value="Apply at the embassy.")
-
-    await ask(mock_chain, "How to get a visa?")
-
-    mock_chain.ainvoke.assert_called_once_with("How to get a visa?")

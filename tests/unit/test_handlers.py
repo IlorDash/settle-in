@@ -11,6 +11,7 @@ from src.bot.handlers import (
     help_command,
     start_command,
 )
+from src.bot.middleware import RateLimiter
 
 
 async def test_start_command_sends_welcome_message(mock_update, mock_context):
@@ -66,18 +67,6 @@ async def test_handle_message_passes_user_text_to_orchestrator(
     mock_orchestrator.ainvoke.assert_called_once_with(
         {"user_message": "What is a White Card?"}
     )
-
-
-async def test_handle_message_replies_error_on_orchestrator_failure(
-    mock_update, mock_context, mock_orchestrator
-):
-    mock_orchestrator.ainvoke = AsyncMock(side_effect=RuntimeError("LLM timeout"))
-    mock_update.message.text = "test question"
-
-    await handle_message(mock_update, mock_context)
-
-    reply_text = mock_update.message.reply_text.call_args[0][0]
-    assert "something went wrong" in reply_text
 
 
 async def test_handle_message_rejects_empty_text(
@@ -157,3 +146,37 @@ async def test_handle_message_replies_generic_error_on_unexpected_failure(
     await handle_message(mock_update, mock_context)
 
     mock_update.message.reply_text.assert_called_once_with(ERROR_GENERIC)
+
+
+async def test_handle_message_rejects_when_rate_limited(
+    mock_update, mock_orchestrator
+):
+    rate_limiter = RateLimiter(max_messages=1, window_seconds=60)
+    context = MagicMock()
+    context.bot_data = {
+        "orchestrator": mock_orchestrator,
+        "rate_limiter": rate_limiter,
+    }
+    mock_update.message.text = "first question"
+
+    await handle_message(mock_update, context)
+    mock_update.message.reply_text.reset_mock()
+
+    mock_update.message.text = "second question"
+    await handle_message(mock_update, context)
+
+    reply_text = mock_update.message.reply_text.call_args[0][0]
+    assert "too quickly" in reply_text
+    assert mock_orchestrator.ainvoke.call_count == 1
+
+
+async def test_handle_message_strips_whitespace_before_sending(
+    mock_update, mock_context, mock_orchestrator
+):
+    mock_update.message.text = "   What is a White Card?   "
+
+    await handle_message(mock_update, mock_context)
+
+    mock_orchestrator.ainvoke.assert_called_once_with(
+        {"user_message": "What is a White Card?"}
+    )

@@ -22,23 +22,6 @@ async def test_process_message_returns_agent_response():
     assert result == "The White Card is a registration document."
 
 
-async def test_process_message_passes_user_message():
-    mock_orchestrator = MagicMock()
-    mock_orchestrator.ainvoke = AsyncMock(
-        return_value={
-            "user_message": "Translate: hello",
-            "intent": INTENT_TRANSLATION,
-            "agent_response": "Zdravo",
-        }
-    )
-
-    await process_message(mock_orchestrator, "Translate: hello")
-
-    mock_orchestrator.ainvoke.assert_called_once_with(
-        {"user_message": "Translate: hello"}
-    )
-
-
 async def test_process_message_returns_translation_response():
     mock_orchestrator = MagicMock()
     mock_orchestrator.ainvoke = AsyncMock(
