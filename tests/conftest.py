@@ -32,14 +32,20 @@ def mock_update(mock_user, mock_chat):
 
 
 @pytest.fixture
-def mock_rag_chain():
-    chain = MagicMock()
-    chain.ainvoke = AsyncMock(return_value="Test answer from RAG.")
-    return chain
+def mock_orchestrator():
+    orchestrator = MagicMock()
+    orchestrator.ainvoke = AsyncMock(
+        return_value={
+            "user_message": "test",
+            "intent": "knowledge_question",
+            "agent_response": "Test answer from orchestrator.",
+        }
+    )
+    return orchestrator
 
 
 @pytest.fixture
-def mock_context(mock_rag_chain):
+def mock_context(mock_orchestrator):
     context = MagicMock()
-    context.bot_data = {"rag_chain": mock_rag_chain}
+    context.bot_data = {"orchestrator": mock_orchestrator}
     return context

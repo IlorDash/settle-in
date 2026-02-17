@@ -3,7 +3,7 @@ import logging
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from src.agents.rag_agent import ask
+from src.agents.orchestrator import process_message
 
 logger = logging.getLogger(__name__)
 
@@ -36,15 +36,18 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle any non-command text message. Sends the query through the RAG chain."""
+    """Handle any non-command text message.
+
+    Routes through the LangGraph orchestrator.
+    """
     user_text = update.message.text
-    rag_chain = context.bot_data["rag_chain"]
+    orchestrator = context.bot_data["orchestrator"]
 
     try:
-        answer = await ask(rag_chain, user_text)
+        answer = await process_message(orchestrator, user_text)
         await update.message.reply_text(answer)
     except Exception:
-        logger.exception("RAG chain failed for query: %s", user_text)
+        logger.exception("Orchestrator failed for query: %s", user_text)
         await update.message.reply_text(
             "Sorry, something went wrong while processing your question. "
             "Please try again later."

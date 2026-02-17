@@ -36,30 +36,32 @@ async def test_help_command_includes_usage_examples(mock_update, mock_context):
     assert "Example" in reply_text or "example" in reply_text
 
 
-async def test_handle_message_sends_rag_answer(mock_update, mock_context):
+async def test_handle_message_sends_orchestrator_response(mock_update, mock_context):
     mock_update.message.text = "How do I get a work permit?"
 
     await handle_message(mock_update, mock_context)
 
     mock_update.message.reply_text.assert_called_once_with(
-        "Test answer from RAG."
+        "Test answer from orchestrator."
     )
 
 
-async def test_handle_message_passes_user_text_to_rag(
-    mock_update, mock_context, mock_rag_chain
+async def test_handle_message_passes_user_text_to_orchestrator(
+    mock_update, mock_context, mock_orchestrator
 ):
     mock_update.message.text = "What is a White Card?"
 
     await handle_message(mock_update, mock_context)
 
-    mock_rag_chain.ainvoke.assert_called_once_with("What is a White Card?")
+    mock_orchestrator.ainvoke.assert_called_once_with(
+        {"user_message": "What is a White Card?"}
+    )
 
 
-async def test_handle_message_replies_error_on_rag_failure(
-    mock_update, mock_context, mock_rag_chain
+async def test_handle_message_replies_error_on_orchestrator_failure(
+    mock_update, mock_context, mock_orchestrator
 ):
-    mock_rag_chain.ainvoke = AsyncMock(side_effect=RuntimeError("LLM timeout"))
+    mock_orchestrator.ainvoke = AsyncMock(side_effect=RuntimeError("LLM timeout"))
     mock_update.message.text = "test question"
 
     await handle_message(mock_update, mock_context)

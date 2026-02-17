@@ -2,7 +2,9 @@ import logging
 
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 
+from src.agents.orchestrator import build_orchestrator
 from src.agents.rag_agent import build_rag_chain
+from src.agents.translation_agent import build_translation_chain
 from src.bot.handlers import handle_message, help_command, start_command
 from src.config import settings
 from src.knowledge.vectorstore import get_retriever, load_vectorstore
@@ -15,10 +17,11 @@ logger = logging.getLogger(__name__)
 
 
 def create_application():
-    """Build the bot application, initialize the RAG chain, and register handlers.
+    """Build the bot application, initialize the orchestrator, and register handlers.
 
-    Loads the vector store from disk, builds the RAG chain, and stores it
-    in bot_data so handlers can access it via context.bot_data["rag_chain"].
+    Loads the vector store, builds RAG and translation chains, compiles them
+    into a LangGraph orchestrator, and stores it in bot_data so handlers
+    can access it via context.bot_data["orchestrator"].
 
     Returns:
         Configured Application ready to be started.
@@ -28,8 +31,10 @@ def create_application():
     vectorstore = load_vectorstore()
     retriever = get_retriever(vectorstore)
     rag_chain = build_rag_chain(retriever)
-    app.bot_data["rag_chain"] = rag_chain
-    logger.info("RAG chain initialized and stored in bot_data.")
+    translation_chain = build_translation_chain()
+    orchestrator = build_orchestrator(rag_chain, translation_chain)
+    app.bot_data["orchestrator"] = orchestrator
+    logger.info("Orchestrator initialized with RAG and translation agents.")
 
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("help", help_command))
