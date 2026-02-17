@@ -16,6 +16,7 @@ class Settings:
         chroma_persist_dir: Path where ChromaDB persists data to disk.
         bot_mode: "polling" for local dev, "webhook" for production.
         webhook_url: Public HTTPS URL for webhook mode.
+        port: Port number for the webhook server (default 8443).
     """
 
     telegram_bot_token: str
@@ -23,6 +24,7 @@ class Settings:
     chroma_persist_dir: str
     bot_mode: str
     webhook_url: str
+    port: int
 
 
 def load_settings() -> Settings:
@@ -53,6 +55,7 @@ def load_settings() -> Settings:
         chroma_persist_dir=os.getenv("CHROMA_PERSIST_DIR", "./data/chroma_db"),
         bot_mode=os.getenv("BOT_MODE", "polling"),
         webhook_url=os.getenv("WEBHOOK_URL", ""),
+        port=int(os.getenv("PORT", "8443")),
     )
 
 
