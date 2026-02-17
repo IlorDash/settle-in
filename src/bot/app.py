@@ -6,6 +6,7 @@ from src.agents.orchestrator import build_orchestrator
 from src.agents.rag_agent import build_rag_chain
 from src.agents.translation_agent import build_translation_chain
 from src.bot.handlers import handle_message, help_command, start_command
+from src.bot.middleware import RateLimiter
 from src.config import settings
 from src.knowledge.vectorstore import get_retriever, load_vectorstore
 
@@ -34,6 +35,7 @@ def create_application():
     translation_chain = build_translation_chain()
     orchestrator = build_orchestrator(rag_chain, translation_chain)
     app.bot_data["orchestrator"] = orchestrator
+    app.bot_data["rate_limiter"] = RateLimiter()
     logger.info("Orchestrator initialized with RAG and translation agents.")
 
     app.add_handler(CommandHandler("start", start_command))

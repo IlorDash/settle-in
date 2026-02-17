@@ -3,6 +3,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from telegram import Chat, Message, Update, User
 
+from src.bot.middleware import RateLimiter
+
 
 @pytest.fixture
 def mock_user():
@@ -47,5 +49,8 @@ def mock_orchestrator():
 @pytest.fixture
 def mock_context(mock_orchestrator):
     context = MagicMock()
-    context.bot_data = {"orchestrator": mock_orchestrator}
+    context.bot_data = {
+        "orchestrator": mock_orchestrator,
+        "rate_limiter": RateLimiter(),
+    }
     return context
