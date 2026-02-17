@@ -57,7 +57,19 @@ def main() -> None:
     app = create_application()
 
     if settings.bot_mode == "webhook":
-        raise NotImplementedError("Webhook mode will be added in Phase 5.")
+        logger.info(
+            "Bot is starting webhook on 0.0.0.0:%s ... "
+            "Telegram will POST updates to %s",
+            settings.port,
+            settings.webhook_url,
+        )
+        app.run_webhook(
+            listen="0.0.0.0",
+            port=settings.port,
+            url_path="/webhook",
+            webhook_url=settings.webhook_url,
+        )
+        return
 
     logger.info("Bot is polling for updates... Press Ctrl+C to stop.")
     app.run_polling()
