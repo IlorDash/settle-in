@@ -1,0 +1,120 @@
+UTILITY BILLS AND PAYMENTS IN SERBIA — GUIDE FOR FOREIGNERS
+
+OVERVIEW
+Living in Serbia means dealing with several regular utility bills. The main ones are electricity (EPS), communal services including heating and water (Infostan in Belgrade, Informatika in Novi Sad), internet/phone, and building maintenance. This guide explains what each bill covers, how to read them, and how to pay.
+
+ELECTRICITY — EPS (ELEKTROPRIVREDA SRBIJE)
+EPS is the sole electricity provider in Serbia. Every household has an EPS account.
+
+What the bill includes:
+- Electricity consumption measured in kWh
+- Charges may vary by tariff zone (day/night rates for dual-tariff meters)
+- Monthly fixed connection fee
+
+Typical costs:
+- Summer months (no electric heating): 3,000-3,500 RSD (25-30 EUR)
+- Winter months (with electric heating): 15,000-18,000 RSD (130-155 EUR)
+- Serbia has among the cheapest electricity prices in Europe
+
+How to manage your EPS account:
+- Register on the EPS portal "Uvid u račun" (Bill overview) at eps.rs to receive e-bills
+- Download the EPS mobile app (iOS and Android) to view consumption, pay bills, and check history
+- Switching to electronic bills gives a discount of 50 RSD on the next bill
+- You can view payment history for the past 3 years online
+- Prepayment option: pay in advance for the next month to receive a small discount
+
+INFOSTAN (BELGRADE) — COMMUNAL SERVICES
+JKP "Infostan tehnologije" is the unified billing company for communal services in Belgrade, operating since 1977. It collects payments for multiple utility providers on a single bill.
+
+What the Infostan bill includes:
+- Heating (JKP "Beogradske elektrane"): charged at approximately 119 RSD per square meter per month. Heating is charged year-round (not only during the heating season).
+- Water supply and sewage (JKP "Beogradski vodovod"): based on consumption
+- Garbage collection (JKP "Gradska čistoća"): approximately 300 RSD per month
+- Building maintenance (JP "Gradsko Stambeno"): 17.12 RSD/m² with elevator, 10.72 RSD/m² without elevator
+- Building cleaning: approximately 218 RSD per apartment
+- Common electricity for the building (EPS Distribucija)
+- Bio-energy and other small ecological fees
+
+Discount: Pay before the 15th of the month to receive approximately 5-10% discount on the next bill.
+
+INFORMATIKA (NOVI SAD) — COMMUNAL SERVICES
+In Novi Sad, JKP "Informatika" performs a similar unified billing function.
+- Office: 3 Car Lazar Blvd., 21102 Novi Sad
+- Contact Centre: 0800 222 021
+- Late payments incur interest calculated per the National Bank of Serbia rate.
+- Enforced collection may be initiated for unpaid bills after a warning letter.
+
+INTERNET AND PHONE
+Major providers:
+- MTS (Telekom Srbija): largest provider, offers fiber optic, ADSL, mobile, and TV packages
+- Yettel (formerly Telenor): mobile and internet services
+- A1 (formerly Vip Mobile): mobile and home internet
+- SBB (Serbia Broadband): cable internet and TV
+
+SIM card: You can purchase a SIM card without documents, but activation and full use require a valid passport. Visit the operator's office to link the card to your passport.
+
+BUILDING MAINTENANCE (ODRŽAVANJE ZGRADE)
+- A separate fee for common areas, elevator maintenance, and building cleaning
+- Charged per square meter of your apartment
+- Usually collected through the Infostan/Informatika bill or separately by the building management (skupština stanara)
+
+HOW TO PAY UTILITY BILLS
+
+Method 1: Post Office (Pošta)
+- Bring the paper bill (nalog za uplatu) to any post office
+- Pay in cash (RSD only)
+- Lowest commission fees (starting from 65 RSD per payment)
+- Available at all post offices across Serbia
+
+Method 2: Exchange Offices (Menjačnica)
+- Many exchange offices (such as Exclusive Change) accept bill payments
+- Commission: typically 0.60%, minimum 65 RSD
+- Available evenings and weekends at many locations
+
+Method 3: Bank — Standing Order
+- Set up automatic monthly payments (trajni nalog) through your bank
+- Available at Erste Bank, OTP Bank, Vojvođanska Banka, NLB Banka, Poštanska Štedionica, and others
+- Banca Intesa offers commission-free bill payments
+
+Method 4: Online / e-Banking
+- Pay through your bank's online banking platform
+- Use the payment slip details from the bill (recipient account number, reference number, amount)
+- IPS QR code payments available for instant settlement
+
+Method 5: eSanduče (Electronic Mailbox)
+- A government electronic service for receiving and paying bills online
+- Consolidates Infostan and MTS bills
+- Pay via Visa, MasterCard, Dina, Maestro, or American Express cards
+- Access through mobile app or web portal
+
+Method 6: EPS Portal / App
+- Pay electricity bills directly on the EPS website or mobile app
+- Supports IPS Scan payments and card payments (Dina, Visa, MasterCard)
+
+UNDERSTANDING A SERBIAN UTILITY BILL (NALOG ZA UPLATU)
+A typical Serbian payment slip contains:
+- Platilac (Payer): your name and address
+- Svrha plaćanja (Payment purpose): description of what you are paying for
+- Primalac (Recipient): the utility company name and address
+- Šifra plaćanja (Payment code): a 3-digit code (e.g., 289 for utility payments)
+- Valuta (Currency): RSD
+- Iznos (Amount): the amount to pay
+- Račun primaoca (Recipient account): the bank account number to pay to
+- Poziv na broj (Reference number): your unique customer/account number — this is critical for the payment to be attributed to your account
+
+TIPS FOR FOREIGNERS
+- Always keep the reference number (poziv na broj) from your bills — it identifies your account.
+- Set up e-bills where possible to avoid missing paper bills that may arrive late.
+- If you move apartments, notify utility companies to transfer or close accounts.
+- Utility contracts are usually in the landlord's name. Clarify with your landlord how bills are handled.
+- Check with your landlord whether utilities are included in rent or paid separately.
+- In winter, electricity costs rise significantly if you have electric heating.
+
+USEFUL LINKS
+- EPS (electricity): eps.rs
+- Infostan (Belgrade utilities): infostan.rs
+- Informatika (Novi Sad utilities): nsinfo.co.rs
+- Serbian Post Office (bill payments): posta.rs
+- eSanduče: esanduce.rs
+
+Source: EPS (eps.rs), Infostan (infostan.rs), City Expert blog (cityexpert.rs), Serbian Post (posta.rs)

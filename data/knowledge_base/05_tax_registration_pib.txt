@@ -1,0 +1,93 @@
+TAX REGISTRATION AND TAX IDENTIFICATION NUMBER (PIB) IN SERBIA
+
+OVERVIEW
+The Tax Identification Number (PIB — Poreski Identifikacioni Broj) is a unique 9-digit number assigned by the Tax Administration of the Republic of Serbia (Poreska uprava) to individuals and legal entities for tax purposes. It is required for virtually all financial and legal transactions in Serbia, including employment, banking, property ownership, and business activity.
+
+WHO NEEDS A PIB?
+- All individuals subject to tax obligations in Serbia (employees, freelancers, property owners)
+- All legal entities registered in Serbia (companies, sole proprietors, non-profits)
+- Foreign citizens working or earning income in Serbia
+- Foreign companies with business activities in Serbia
+
+HOW TO OBTAIN A PIB
+
+For individuals (including foreigners):
+1. Online: Through the ePorezi (eTaxes) portal at purs.gov.rs
+2. In person: At a local Tax Administration office
+3. Required documents:
+   - Valid passport or ID card
+   - Proof of address in Serbia (residence permit or White Card)
+   - Foreigner registration number (EBS) if applicable
+4. There is no fee for PIB registration.
+
+For businesses:
+- The PIB is automatically assigned when registering a company with the Serbian Business Registers Agency (APR — Agencija za privredne registre).
+- The PIB also serves as the VAT number for businesses registered for VAT.
+
+TAX ADMINISTRATION (PORESKA UPRAVA)
+- The Tax Administration is a body within the Ministry of Finance.
+- It carries out assessment, control, and collection of public revenues.
+- Head Office: Cara Dušana 145, Belgrade-Zemun
+- Website: purs.gov.rs (Serbian and English)
+- eTaxes portal: eporezi.purs.gov.rs
+
+ePOREZI (eTAXES) PORTAL
+The ePorezi portal provides electronic tax services:
+- Submit electronically signed tax return forms
+- Monitor the status of submitted returns
+- View the balance of taxpayer accounts
+- Grant or revoke authorization for electronic services
+- Available daily from 6:00 AM to midnight
+- A TEST ENVIRONMENT is available for learning and verification
+
+INCOME TAXES FOR FOREIGNERS
+
+Employed foreigners:
+- If you are employed by a Serbian company, your employer calculates and pays income tax and social contributions on your behalf through the Individual Tax Return (PPP-PD form).
+- Tax rates: 10% income tax on salary, plus mandatory social contributions (pension: 25%, health: 10.3%)
+
+Freelancers (self-taxation):
+Since December 2022, Serbia has regulated freelancer taxation through amendments to the Law on Personal Income Tax.
+
+Who qualifies as a freelancer for tax purposes:
+- Serbian residents earning income from foreign payers (companies, entrepreneurs, or individuals abroad)
+- Foreign residents (non-residents) earning income in Serbia from foreign payers
+- Anyone earning income from a domestic natural person who does not withhold taxes
+
+Important: You do NOT need a work permit to register as a freelancer and report income under the self-taxation regime. You only need a foreigner's registration number (EBS) or a PIB.
+
+How to report freelancer income:
+1. Register on the Freelancers portal: frilenseri.purs.gov.rs
+2. Submit quarterly tax returns (PP OPO-K form):
+   - Q1: April 1-30
+   - Q2: July 1-30
+   - Q3: October 1-30
+   - Q4: January 1-30 (of the following year)
+3. The portal automatically generates a payment slip with QR code for easy payment via mobile banking.
+4. Convert foreign currency income to RSD using the National Bank of Serbia middle exchange rate on the payment date.
+
+Freelancer tax rates:
+- Income tax: 20% on the net taxable amount (after deducting normative costs)
+- Normative costs (automatic deduction): depends on income type (typically 20-50%)
+- Pension and disability insurance: 24% (mandatory)
+- Health insurance: 10.3% (mandatory, unless covered by a bilateral agreement)
+
+If you paid tax abroad on the same income, you can claim a tax credit (up to the amount of Serbian tax liability) to avoid double taxation. Serbia has double taxation avoidance agreements with over 65 countries.
+
+VISA RUN AND TAX IMPLICATIONS
+Foreigners who stay in Serbia on visa-free entry (up to 90 days in 180 days) and perform "visa runs" (exiting and re-entering the country to reset the stay period) should be aware that earning income while in Serbia may create tax obligations regardless of visa status.
+
+IMPORTANT NOTES
+- The PIB is used as the VAT number for businesses engaged in taxable transactions.
+- Verify your PIB through the Tax Administration's official verification tool.
+- If you are a sole proprietor, you must register for personal salary payments within 5 days of receiving your PIB.
+- All tax obligations can be managed electronically through the ePorezi portal.
+- Late tax payments incur interest calculated per the National Bank of Serbia rates.
+
+USEFUL LINKS
+- Tax Administration: purs.gov.rs
+- eTaxes portal: eporezi.purs.gov.rs
+- Freelancer portal: frilenseri.purs.gov.rs
+- Freelancer guide (PDF): frilenseri.purs.gov.rs/upload/media/2024/3/28/11215/Guide_for_submitting_tax_application_and_payment_of_taxes_via_web_portal.pdf
+
+Source: Tax Administration of the Republic of Serbia (purs.gov.rs), Welcome to Serbia portal (welcometoserbia.gov.rs)

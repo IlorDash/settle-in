@@ -1,0 +1,56 @@
+from unittest.mock import patch
+
+import pytest
+
+from src.config import load_settings
+
+
+@patch.dict("os.environ", {"TELEGRAM_BOT_TOKEN": "test-token", "OPENAI_API_KEY": "test-key"})
+def test_load_settings_returns_settings_with_env_vars():
+    settings = load_settings()
+
+    assert settings.telegram_bot_token == "test-token"
+    assert settings.openai_api_key == "test-key"
+
+
+@patch.dict("os.environ", {"TELEGRAM_BOT_TOKEN": "test-token", "OPENAI_API_KEY": "test-key"})
+def test_load_settings_uses_default_values():
+    settings = load_settings()
+
+    assert settings.chroma_persist_dir == "./data/chroma_db"
+    assert settings.bot_mode == "polling"
+    assert settings.webhook_url == ""
+
+
+@patch.dict(
+    "os.environ",
+    {
+        "TELEGRAM_BOT_TOKEN": "t",
+        "OPENAI_API_KEY": "k",
+        "CHROMA_PERSIST_DIR": "/custom/path",
+        "BOT_MODE": "webhook",
+        "WEBHOOK_URL": "https://example.com/webhook",
+    },
+)
+def test_load_settings_reads_custom_env_values():
+    settings = load_settings()
+
+    assert settings.chroma_persist_dir == "/custom/path"
+    assert settings.bot_mode == "webhook"
+    assert settings.webhook_url == "https://example.com/webhook"
+
+
+@patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}, clear=True)
+def test_load_settings_raises_when_telegram_token_missing():
+    with pytest.raises(ValueError) as exc_info:
+        load_settings()
+
+    assert "TELEGRAM_BOT_TOKEN" in str(exc_info.value)
+
+
+@patch.dict("os.environ", {"TELEGRAM_BOT_TOKEN": "test-token"}, clear=True)
+def test_load_settings_raises_when_openai_key_missing():
+    with pytest.raises(ValueError) as exc_info:
+        load_settings()
+
+    assert "OPENAI_API_KEY" in str(exc_info.value)

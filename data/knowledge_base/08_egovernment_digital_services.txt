@@ -1,0 +1,152 @@
+eGOVERNMENT PORTALS AND DIGITAL SERVICES IN SERBIA
+
+OVERVIEW
+Serbia has developed several digital government platforms that allow both citizens and foreigners to access administrative services online. For immigrants, these portals are essential for managing residence permits, paying taxes, accessing utility services, and handling many bureaucratic tasks remotely.
+
+eID PORTAL (ELECTRONIC IDENTIFICATION)
+Website: eid.gov.rs
+
+The eID portal is the central authentication system for accessing Serbian government e-services. To use most online government services, you must first create an account here.
+
+How to register:
+1. Go to eid.gov.rs
+2. Choose registration method:
+   - With a Serbian biometric ID card and card reader
+   - With a qualified electronic certificate
+   - With a foreign document (for foreigners with a residence permit)
+3. Set up your credentials (username, password, two-factor authentication)
+4. Once registered, you can access all connected government portals with a single login
+
+For foreigners: Registration is possible once you have a foreigner registration number (EBS) and/or a biometric residence permit card. Some services may require the biometric card with a card reader for electronic signature.
+
+eUPRAVA PORTAL (e-GOVERNMENT)
+Website: euprava.gov.rs
+
+The main e-government portal providing access to hundreds of administrative services:
+- Address registration for foreigners (White Card)
+- Scheduling appointments with government offices
+- Generating payment orders for government fees
+- Vehicle registration
+- Tax-related services
+- Document requests
+
+The eUprava portal also connects to the eSanduče (electronic mailbox) service for receiving official documents and bills electronically.
+
+WELCOME TO SERBIA PORTAL
+Website: welcometoserbia.gov.rs
+
+The official Government of Serbia portal specifically designed for foreign nationals. It provides:
+- Comprehensive information about immigration to Serbia
+- eApplication for C Visa (short-stay)
+- eApplication for D Visa (long-stay)
+- eApplication for Temporary Residence Permit (including Single Permit)
+- Interactive guide: answer questions about your situation to get personalized instructions
+- Help section with FAQs about residence, visas, and work permits
+
+Languages available: Serbian (Cyrillic and Latin), English, Russian, Chinese
+
+Key features:
+- Online application submission for residence permits
+- Document upload functionality
+- Fee payment integration
+- Application status tracking
+- eDatabox (eSanduče) for receiving official decisions and notifications
+
+eFOREIGNER PORTAL
+Website: eforeigner.welcometoserbia.gov.rs
+
+Specifically for temporary residence and Single Permit applications:
+- Submit residence applications electronically
+- Submit changes of employer or employment basis
+- Track application progress
+- Receive decisions through the eDatabox
+- Access help and FAQs
+
+Important notes:
+- Applications for minors (under 18) cannot be submitted online — must be done in person
+- If the system asks for a Visa ID during extension and you do not have one, contact support at office@ite.gov.rs to have your account reset with your EBS number
+- Once submitted, applications cannot be cancelled through the portal
+
+ePOREZI PORTAL (eTAXES)
+Website: eporezi.purs.gov.rs
+
+The Tax Administration's electronic services portal:
+- Submit tax returns electronically
+- Monitor submitted returns
+- View taxpayer account balances
+- Grant/revoke authorization for tax representatives
+- Available daily 6:00 AM to midnight
+- Test environment available for practice
+
+Access methods:
+- SmartBox 2.0.0 application (download from the portal)
+- eID account login
+- Note: Windows 10/11 updates from October 2025 may cause issues with the ePorezi 1.3.2 application — use SmartBox 2.0.0 or eID login instead
+
+FREELANCER PORTAL
+Website: frilenseri.purs.gov.rs
+
+For natural persons reporting freelance income under self-taxation:
+- Register as a freelancer
+- Submit quarterly tax returns (PP OPO-K form)
+- Automatic payment slip generation with QR code
+- Available in Serbian and English
+- Guide PDF available for detailed instructions
+
+eSANDUČE (ELECTRONIC MAILBOX)
+The eSanduče service consolidates delivery and payment of:
+- Official government decisions and notifications
+- Infostan utility bills (Belgrade)
+- MTS (Telekom) bills
+
+Features:
+- All bills available in digital format
+- Pay online via Visa, MasterCard, Dina, Maestro, American Express
+- Access via mobile app or web portal
+- Pay from anywhere, anytime — no waiting for paper invoices
+
+EPS ONLINE SERVICES
+Website: eps.rs
+
+Elektroprivreda Srbije online services:
+- "Uvid u račun" (Bill overview): register to view and pay electricity bills
+- Mobile app for iOS and Android
+- View 3-year payment history
+- Track consumption by zones and tariffs
+- Pay via IPS Scan or card payments
+- Opt for e-bills instead of paper (50 RSD discount)
+
+APR (BUSINESS REGISTERS AGENCY)
+Website: apr.gov.rs
+
+For foreigners starting a business in Serbia:
+- Company registration
+- Sole proprietor (preduzetnik) registration
+- Access to the Register of Beneficial Owners
+- Business status verification
+- Available partly in English
+
+NATIONAL BANK OF SERBIA (NBS)
+Website: nbs.rs
+
+Relevant services:
+- Exchange rate information (middle rate used for tax calculations)
+- Register of insurance companies
+- Banking sector information
+- Consumer protection in financial services
+
+PRACTICAL TIPS FOR FOREIGNERS USING eGOVERNMENT
+1. Start with eID registration as soon as you have your residence permit — it unlocks all other services.
+2. Keep your foreigner registration number (EBS) readily available — you will need it for almost every online service.
+3. Check your eSanduče regularly for official notifications and bills.
+4. Many portals support English, but some forms and notifications may only be in Serbian — use browser translation tools if needed.
+5. Save your payment reference numbers (poziv na broj) from bills — they are essential for correct payment attribution.
+6. If you encounter technical issues, contact the respective portal's support via email before visiting an office in person.
+
+USEFUL CONTACTS
+- Welcome to Serbia support: office@ite.gov.rs
+- Tax Administration: purs.gov.rs/kontakt
+- eUprava: euprava.gov.rs
+- EPS customer service: eps.rs
+
+Source: Government of the Republic of Serbia (euprava.gov.rs), Welcome to Serbia portal (welcometoserbia.gov.rs), Tax Administration (purs.gov.rs), EPS (eps.rs)
