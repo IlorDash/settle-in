@@ -1,0 +1,12 @@
+# Course project: DNN intent classifier on CLINC150.
+# Kept separate from the bot's dependencies on purpose — install these into
+# a DEDICATED virtual environment (.venv in this folder), not the bot's venv.
+
+tensorflow>=2.17       # Keras DNNs; >=2.17 supports numpy 2.x (CPU on Windows)
+scikit-learn>=1.4      # TF-IDF, label encoding, metrics (classification_report, F1)
+pandas>=2.0            # data wrangling / EDA tables
+numpy>=1.26            # arrays (TF dependency too)
+matplotlib>=3.8        # plots (loss curves, threshold sweeps)
+seaborn>=0.13          # nicer EDA charts / confusion-matrix heatmaps
+jupyter                # run the notebook
+ipykernel              # register this venv as a notebook kernel
