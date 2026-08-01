@@ -148,9 +148,7 @@ async def test_handle_message_replies_generic_error_on_unexpected_failure(
     mock_update.message.reply_text.assert_called_once_with(ERROR_GENERIC)
 
 
-async def test_handle_message_rejects_when_rate_limited(
-    mock_update, mock_orchestrator
-):
+async def test_handle_message_rejects_when_rate_limited(mock_update, mock_orchestrator):
     rate_limiter = RateLimiter(max_messages=1, window_seconds=60)
     context = MagicMock()
     context.bot_data = {

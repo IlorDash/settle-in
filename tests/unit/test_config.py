@@ -5,7 +5,9 @@ import pytest
 from src.config import load_settings
 
 
-@patch.dict("os.environ", {"TELEGRAM_BOT_TOKEN": "test-token", "OPENAI_API_KEY": "test-key"})
+@patch.dict(
+    "os.environ", {"TELEGRAM_BOT_TOKEN": "test-token", "OPENAI_API_KEY": "test-key"}
+)
 def test_load_settings_returns_settings_with_env_vars():
     settings = load_settings()
 
@@ -13,7 +15,9 @@ def test_load_settings_returns_settings_with_env_vars():
     assert settings.openai_api_key == "test-key"
 
 
-@patch.dict("os.environ", {"TELEGRAM_BOT_TOKEN": "test-token", "OPENAI_API_KEY": "test-key"})
+@patch.dict(
+    "os.environ", {"TELEGRAM_BOT_TOKEN": "test-token", "OPENAI_API_KEY": "test-key"}
+)
 def test_load_settings_uses_default_values():
     settings = load_settings()
 

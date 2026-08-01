@@ -24,27 +24,31 @@ BATCH_SIZE = 30
 # The training data must match that language mix or TF-IDF misses real input.
 INTENT_PROMPTS = {
     "knowledge_question": (
-        "Generate {n} short, varied questions a Russian-speaking immigrant in Serbia would "
-        "ask about living there: residency (боравак), the white card (бели картон), opening a "
-        "bank account, health insurance, taxes and PIB, utility bills, the visa regime, and "
-        "e-government services. Write approx half of them in Russian (the way real users ask), "
-        "and half in English. One question per line, no numbering, no quotes."
+        "Generate {n} short, varied questions a Russian-speaking immigrant in "
+        "Serbia would ask about living there: residency (боравак), the white "
+        "card (бели картон), opening a bank account, health insurance, taxes "
+        "and PIB, utility bills, the visa regime, and e-government services. "
+        "Write approx half of them in Russian (the way real users ask), and "
+        "half in English. One question per line, no numbering, no quotes."
     ),
     "translation": (
-        "Generate {n} short, varied translation requests a Russian-speaking immigrant in Serbia "
-        "would send. IMPORTANT: make about HALF of them just a pasted Serbian sentence "
-        "with NO instruction at all -- the user simply forwards text they want understood "
-        "(a chat message, an SMS, an official notice, or a casual sentence). For the other "
-        "half, use short instructions like 'Как будет по-сербски ...', 'Переведи на русский ...', "
-        "'Проверь: ...', 'Что значит ...', usually followed by a short phrase. Vary the length "
-        "and topic (personal, work, scheduling, official). Mix in a few English requests. "
-        "One request per line, no numbering, no quotes."
+        "Generate {n} short, varied translation requests a Russian-speaking "
+        "immigrant in Serbia would send. IMPORTANT: make about HALF of them "
+        "just a pasted Serbian sentence with NO instruction at all -- the "
+        "user simply forwards text they want understood (a chat message, an "
+        "SMS, an official notice, or a casual sentence). For the other half, "
+        "use short instructions like 'Как будет по-сербски ...', 'Переведи "
+        "на русский ...', 'Проверь: ...', 'Что значит ...', usually followed "
+        "by a short phrase. Vary the length and topic (personal, work, "
+        "scheduling, official). Mix in a few English requests. One request "
+        "per line, no numbering, no quotes."
     ),
     "out_of_scope": (
-        "Generate {n} short, varied OFF-TOPIC messages, unrelated to living in Serbia or to "
-        "translation: weather, sport, cooking recipes, math, jokes, tech support, movies and "
-        "music, personal chit-chat, and other countries. Write MOST of them in Russian, with "
-        "some in English and Serbian. One message per line, no numbering, no quotes."
+        "Generate {n} short, varied OFF-TOPIC messages, unrelated to living "
+        "in Serbia or to translation: weather, sport, cooking recipes, math, "
+        "jokes, tech support, movies and music, personal chit-chat, and "
+        "other countries. Write MOST of them in Russian, with some in "
+        "English and Serbian. One message per line, no numbering, no quotes."
     ),
 }
 
@@ -88,7 +92,9 @@ def main() -> None:
         writer = csv.writer(f)
         writer.writerow(["text", "intent"])
         for intent, template in INTENT_PROMPTS.items():
-            examples = generate_for_intent(llm, template, EXAMPLES_PER_INTENT, BATCH_SIZE)
+            examples = generate_for_intent(
+                llm, template, EXAMPLES_PER_INTENT, BATCH_SIZE
+            )
             for text in examples:
                 writer.writerow([text, intent])
             print(f"{intent}: {len(examples)} examples")

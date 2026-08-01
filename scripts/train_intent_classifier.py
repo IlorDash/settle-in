@@ -47,10 +47,15 @@ def main() -> None:
     print(f"train={len(X_train)}  val={len(X_val)}  test={len(X_test)}")
 
     # One pipeline: TF-IDF -> small MLP (one hidden layer of 64 units).
-    model = Pipeline([
-        ("tfidf", TfidfVectorizer(min_df=2)),
-        ("mlp", MLPClassifier(hidden_layer_sizes=(64,), max_iter=400, random_state=42)),
-    ])
+    model = Pipeline(
+        [
+            ("tfidf", TfidfVectorizer(min_df=2)),
+            (
+                "mlp",
+                MLPClassifier(hidden_layer_sizes=(64,), max_iter=400, random_state=42),
+            ),
+        ]
+    )
     model.fit(X_train, y_train)
 
     print(f"validation accuracy: {accuracy_score(y_val, model.predict(X_val)):.4f}")

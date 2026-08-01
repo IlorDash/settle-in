@@ -21,5 +21,3 @@ async def test_ask_returns_answer_from_chain():
 
     assert result == "test answer"
     mock_chain.ainvoke.assert_called_once_with("test question")
-
-
