@@ -1,451 +1,751 @@
 text,intent
-What are the requirements for obtaining a residency permit in Serbia?,knowledge_question
-How do I set up health insurance as a foreign resident in Serbia?,knowledge_question
-Are there any language barriers when dealing with government services in Serbia?,knowledge_question
-Can I bring my family to Serbia under my residency permit?,knowledge_question
-Are there specific rights and responsibilities for immigrants regarding housing?,knowledge_question
-Are there any specific taxes I should be aware of as an immigrant?,knowledge_question
-What should I do if my residency permit is denied in Serbia?,knowledge_question
-Are there any specific requirements for health insurance for immigrants?,knowledge_question
-How do I navigate the process of buying a car as a foreign resident?,knowledge_question
-What is the visa regime for different nationalities?,knowledge_question
-What are the most common types of health insurance available for immigrants?,knowledge_question
-What should I know about the cost of living in different Serbian cities?,knowledge_question
-What types of health insurance are available for immigrants?,knowledge_question
-What types of visas can I apply for if I want to stay longer in Serbia?,knowledge_question
-Is it mandatory to register with the police as an immigrant?,knowledge_question
-How do I register my residence in Serbia?,knowledge_question
-Do I have to renew my residency permit annually?,knowledge_question
-Can I open a bank account in Serbia as a foreigner?,knowledge_question
-How does the visa regime differ for various nationalities in Serbia?,knowledge_question
-Can I transfer my existing health insurance coverage to Serbia?,knowledge_question
-What are the main challenges immigrants face when settling in Serbia?,knowledge_question
-How can I access my personal documents through e-government services?,knowledge_question
-Are there specific financial documents required for starting a business in Serbia?,knowledge_question
-What happens if I do not pay my utility bills on time?,knowledge_question
-What are the implications of not having a white card in Serbia?,knowledge_question
-How does the health insurance system work for immigrants in Serbia?,knowledge_question
-How long does it take to receive a residency permit after application?,knowledge_question
-Can I switch my visa type while living in Serbia?,knowledge_question
-Can I apply for a residency permit while on a tourist visa?,knowledge_question
-What e-government services are available for residents in Serbia?,knowledge_question
-Can I work in Serbia with a residency permit from another country?,knowledge_question
-Is there a language barrier when accessing government services?,knowledge_question
-Are there any fees associated with e-government services?,knowledge_question
-How can I access legal assistance for immigration matters?,knowledge_question
-Where can I get assistance in understanding Serbian laws and regulations?,knowledge_question
-What are the common utility bills I need to pay as a resident in Serbia?,knowledge_question
-What documents do I need to open a bank account here?,knowledge_question
-Are there any taxes on income earned outside of Serbia?,knowledge_question
-What types of residency permits are available for long-term stays in Serbia?,knowledge_question
-Can I use my foreign health insurance in Serbia?,knowledge_question
-Is it mandatory to have private health insurance in Serbia?,knowledge_question
-Are there any language requirements for the residency permit application?,knowledge_question
-What are the benefits of having a Serbian bank account?,knowledge_question
-Are there any specific banks that cater to foreigners in Serbia?,knowledge_question
-How do I report income to the Serbian tax authorities?,knowledge_question
-What should I know about the visa regime for family reunification in Serbia?,knowledge_question
-What should I know about the two-year residency permit renewal?,knowledge_question
-What are the requirements for bringing family members to Serbia?,knowledge_question
-What happens if I overstay my visa in Serbia?,knowledge_question
-How can I extend my visa while living in Serbia?,knowledge_question
-How can I get assistance with the immigration process in Serbia?,knowledge_question
-Is it mandatory to have a local bank account as an immigrant?,knowledge_question
-How do I pay my utility bills in Serbia?,knowledge_question
-What should I do if my residency permit is about to expire?,knowledge_question
-How do I register for utility services in my apartment?,knowledge_question
-How do I report issues with my utility services?,knowledge_question
-Are there tax obligations for foreigners working in Serbia?,knowledge_question
-Do I need health insurance to apply for a residency permit?,knowledge_question
-Are there expat groups or organizations that provide support in Serbia?,knowledge_question
-How long does it take to receive a white card after application?,knowledge_question
-What type of visa do I need for long-term residency?,knowledge_question
-How do I navigate the health insurance system as an immigrant?,knowledge_question
-Are there any community centers that assist immigrants?,knowledge_question
-What is the process for changing my residency status?,knowledge_question
-What are the common payment methods for bills and services in Serbia?,knowledge_question
-Is there a fee for obtaining residency permits and other documents?,knowledge_question
-What are the steps to apply for a residency permit in Serbia?,knowledge_question
-Is health insurance mandatory for residents in Serbia?,knowledge_question
-How long does it take to receive the white card after submitting my application?,knowledge_question
-Is it possible to extend my visa while living in Serbia?,knowledge_question
-Do I need a local address to open a bank account in Serbia?,knowledge_question
-How do I apply for a PIB (Tax Identification Number) in Serbia?,knowledge_question
-How do I access e-government services in Serbia?,knowledge_question
-What types of visas are available for long-term stays in Serbia?,knowledge_question
-How do I stay informed about changes in the visa regime in Serbia?,knowledge_question
-What documents do I need to provide for opening a bank account?,knowledge_question
-How can I set up and manage utility services in my home?,knowledge_question
-Can I extend my visa while living in Serbia?,knowledge_question
-What is the purpose of the white card and how do I get one?,knowledge_question
-How does the local employment market look for immigrants?,knowledge_question
-Is there a specific requirement for commercial health insurance?,knowledge_question
-What cultural differences should I be aware of when living in Serbia?,knowledge_question
-What documents do I need to open a bank account in Serbia?,knowledge_question
-How long does it take to process a residency application in Serbia?,knowledge_question
-How can I find job opportunities in Serbia as an immigrant?,knowledge_question
-What are the tax obligations for immigrants working in Serbia?,knowledge_question
-How can I obtain a PIB (Tax Identification Number) in Serbia?,knowledge_question
-What is the process to get a temporary work visa?,knowledge_question
-What kind of health insurance is mandatory for residents in Serbia?,knowledge_question
-What support networks exist for immigrants in Serbia?,knowledge_question
-What resources are available for immigrants to understand local laws?,knowledge_question
-What utility bills should I expect to pay as a resident?,knowledge_question
-How do e-government services simplify bureaucratic procedures?,knowledge_question
-What utilities are usually included in monthly bills?,knowledge_question
-How do I pay my utility bills online in Serbia?,knowledge_question
-Can I change my address online with e-government services?,knowledge_question
-Can I work while holding a temporary residency permit?,knowledge_question
-Can I pay my residency permit fees online?,knowledge_question
-How can I find a local language course to learn Serbian?,knowledge_question
-What should I do if my residency permit expires?,knowledge_question
-"What is the white card, and how do I obtain one?",knowledge_question
-How do I set up utility bills in my name?,knowledge_question
-How can I access my health insurance information online?,knowledge_question
-What are the consequences of not paying taxes in Serbia?,knowledge_question
-How does the tax system work for expatriates living in Serbia?,knowledge_question
-Can I work in Serbia with a tourist visa?,knowledge_question
-How are pensions handled for immigrants working in Serbia?,knowledge_question
-How do I obtain a PIB (tax identification number) in Serbia?,knowledge_question
-Can I access Serbian e-government services in English?,knowledge_question
-How do I handle utility bill payments if I’m away from Serbia?,knowledge_question
-How do I register for e-government services in Serbia?,knowledge_question
-"Is it possible to obtain citizenship in Serbia, and what is the process?",knowledge_question
-How do I apply for health insurance in Serbia?,knowledge_question
-What are the benefits of permanent residency in Serbia?,knowledge_question
-What is the process for applying for citizenship in Serbia?,knowledge_question
-Can I travel within the Schengen Area with a Serbian visa?,knowledge_question
-What should I know about Serbian customs and traditions?,knowledge_question
-Can I use e-government services in English?,knowledge_question
-What is the process to register for e-government services in Serbia?,knowledge_question
-What is the main government website for e-government services?,knowledge_question
-What should I do if I lose my residency permit or white card?,knowledge_question
-How do I find a reliable translation service in Serbia?,knowledge_question
-Is there a difference in tax rates for residents and non-residents?,knowledge_question
-What documents are required for opening a bank account in Serbia?,knowledge_question
-Are there any tax benefits for immigrants in Serbia?,knowledge_question
-How do I report a change of address or personal information?,knowledge_question
-What is the tax system like for immigrants in Serbia?,knowledge_question
-What is the process for renewing my residency permit in Serbia?,knowledge_question
-How do I obtain a PIB (Tax Identification Number)?,knowledge_question
-What cultural integration programs are offered for newcomers?,knowledge_question
-Do I need a white card to open a bank account?,knowledge_question
-How long is the residency permit valid for?,knowledge_question
-What are the best practices for dealing with the local bureaucracy?,knowledge_question
-Can I open a bank account as a tourist?,knowledge_question
-How do I find information about local utility providers?,knowledge_question
-What languages are available on the e-government platform?,knowledge_question
-What social services are available for immigrants in Serbia?,knowledge_question
-What resources are available for understanding my rights as an immigrant?,knowledge_question
-What are the tax obligations for foreigners living in Serbia?,knowledge_question
-What is the process for registering my address with local authorities?,knowledge_question
-What are the implications of not having a PIB in Serbia?,knowledge_question
-What payment methods can I use for local taxes?,knowledge_question
-What e-government services are available for residents?,knowledge_question
-How often do I need to renew my health insurance in Serbia?,knowledge_question
-What are the steps to obtain a residency permit in Serbia?,knowledge_question
-How do I apply for family reunification in Serbia?,knowledge_question
-What is the process for obtaining a white card?,knowledge_question
-How do I report an address change to local authorities in Serbia?,knowledge_question
-How do I find information about local community resources for immigrants?,knowledge_question
+Как часто нужно обновлять боравак?,knowledge_question
+What is the procedure for getting a Serbian driver's license?,knowledge_question
+What is the process for getting health insurance as a foreigner?,knowledge_question
+Can I open a bank account as a foreigner in Serbia?,knowledge_question
+What is the visa regime for Russian citizens in Serbia?,knowledge_question
+What are the requirements for obtaining a work permit in Serbia?,knowledge_question
+"Что делать, если у меня нет медицинской страховки?",knowledge_question
+Что такое налог на имущество в Сербии?,knowledge_question
+Where can I find expat communities in Serbia?,knowledge_question
+Can I open a bank account without a permanent residency?,knowledge_question
+Можно ли получить белый картон без постоянного места жительства?,knowledge_question
+What documents are needed to open a bank account?,knowledge_question
+What documents do I need to obtain the белый картон?,knowledge_question
+Is health insurance mandatory for foreigners living in Serbia?,knowledge_question
 What is a PIB and how do I obtain one?,knowledge_question
-"Can you help me translate ""dobro veče"" to English?",translation
-"What is the Serbian equivalent of ""happy""?",translation
-Please translate this sentence to Serbian,translation
-"What does ""ljubav"" mean in English?",translation
-"Translate ""I love you"" to Serbian",translation
-"How do I say ""water"" in Serbian?",translation
-"How do you say ""yes"" in English?",translation
-"Translate ""hello"" to Serbian",translation
-"What is the Serbian translation of ""I love you""?",translation
-"How do I say ""water"" in English?",translation
-"Translate ""school"" to English",translation
-"Translate ""family"" to Serbian",translation
-"Can you tell me how to say ""see you later"" in Serbian?",translation
-"What is the meaning of ""sunce"" in English?",translation
-"Can you help me with the Serbian translation of ""friendship""?",translation
-"How do you say ""thank you"" in English?",translation
-"What does ""zdravlje"" mean in English?",translation
-"Can you translate ""I love you"" into Serbian?",translation
-"Translate ""where is the bathroom?"" to Serbian",translation
-"What is the English equivalent of ""vreme""?",translation
-"How do you say ""thank you very much"" in Serbian?",translation
-"What is the translation of ""happy birthday"" in Serbian?",translation
-"What does ""prijatelj"" mean in English?",translation
-"What is the English word for ""srce""?",translation
-"Translate ""let's go"" into Serbian, please",translation
-"Can you help me translate ""how are you?"" to English?",translation
-"What does ""kako si?"" mean in English?",translation
-"Could you translate ""beautiful"" to Serbian?",translation
-"What is the Serbian translation of ""thank you""?",translation
-"Can you translate ""See you tomorrow"" to Serbian?",translation
-"What is the Serbian translation for ""school""?",translation
-"What is the Serbian word for ""book""?",translation
-"Please provide the translation for ""music"" in Serbian",translation
-Please translate this text to Serbian for me,translation
-"How do I express ""please"" in Serbian?",translation
-"How do I say ""goodbye"" in Serbian?",translation
-"How do I say ""congratulations"" in English?",translation
-"What does ""срећан рођендан"" mean in English?",translation
-"Translate ""I am tired"" into Serbian",translation
-"Can you translate ""thank you"" into English?",translation
-"What does ""srećan rođendan"" mean?",translation
-"How do I express ""I'm happy"" in Serbian?",translation
-"What does ""hvala"" mean in English?",translation
-"What does ""papir"" mean in English?",translation
-"What is the English translation of ""mir""?",translation
-"How do I say ""good night"" in Serbian?",translation
-"Translate ""Ljubav"" into English",translation
-"How do I say ""please help me"" in Serbian?",translation
-"What does ""srećan put"" mean in English?",translation
-"Translate ""thank you very much"" into Serbian",translation
-"What does ""lepota"" mean in English?",translation
-"Translate ""please"" to Serbian",translation
-"Please help me translate ""dobar dan"" to English",translation
-"Translate ""happy birthday"" into Serbian",translation
-"What does ""dobro jutro"" mean in English?",translation
-"Can you translate ""I'm hungry"" into Serbian?",translation
-"How do you say ""happy birthday"" in English?",translation
-"Translate ""beautiful"" to English",translation
-"How do I say ""friend"" in Serbian?",translation
-"How do you say ""goodbye"" in Serbian?",translation
-"What is the Serbian equivalent of ""see you later""?",translation
-"What is the Serbian word for ""friend""?",translation
-"What is the English translation of ""lepota""?",translation
-"Please translate ""good morning"" to Serbian",translation
-"How do I say ""beautiful"" in English?",translation
-"How do I say ""I miss you"" in Serbian?",translation
-"Can you tell me what "" ljubav"" means in English?",translation
-"What is the Serbian word for ""city""?",translation
-"What does ""sreća"" mean in English?",translation
-"Translate ""beautiful"" into Serbian, please",translation
-"Translate ""kako si?"" into English",translation
-"Translate ""family"" to Serbian, please",translation
-"Translate ""freedom"" into Serbian, please",translation
-"How do I say ""cat"" in English?",translation
-"Can you tell me how to say ""thank you very much"" in Serbian?",translation
-"Can you translate ""love"" to Serbian?",translation
-"How do I say ""hello"" in English?",translation
-"Can you tell me how to say ""I am lost"" in Serbian?",translation
-"Translate ""friendship"" into Serbian",translation
-"What does ""srećan rođendan"" mean in English?",translation
-"Please translate ""thank you"" to Serbian",translation
-"Can you translate ""friend"" into Serbian?",translation
-"How do I express ""I'm sorry"" in Serbian?",translation
-"What is the English equivalent of ""srećan rođendan""?",translation
-"Can you translate ""good night"" to Serbian?",translation
-"How do you say ""goodbye"" in English?",translation
-"What is the English word for ""sloboda""?",translation
-"Can you help me with the translation of ""nice to meet you"" to Serbian?",translation
-"What is the English translation of ""книга""?",translation
-"What is the English translation for ""prijatelj""?",translation
-Can you convert this expression to English?,translation
-"How would I say ""I love you"" in Serbian?",translation
-"How do I express ""see you later"" in English?",translation
-"Please help me translate ""sretan rođendan"" to English",translation
-"Translate ""book"" into English",translation
-Can you convert this phrase to English?,translation
-"Translate ""freedom"" into Serbian",translation
-"What is the Serbian word for ""family""?",translation
-"What does ""lepo"" mean?",translation
-"Can you tell me how to say ""I am tired"" in Serbian?",translation
-"What does ""hello"" mean in Serbian?",translation
-"How do I say ""thank you"" in English?",translation
-"What is the Serbian version of ""good night""?",translation
-"How can I say ""where is the bathroom?"" in Serbian?",translation
-"Can you help me translate ""How are you?"" to Serbian?",translation
-"What does ""добрее вече"" mean in English?",translation
-"Translate ""goodbye"" into Serbian",translation
-"Translate ""beautiful"" to Serbian",translation
-"Please translate ""hvala"" into English",translation
-"How do you say ""good morning"" in English?",translation
-"Please translate ""proleće"" to English",translation
-"What does ""sveže"" mean?",translation
-"What does ""zdravlje"" mean?",translation
-"What does ""pas"" mean in English?",translation
-"What is the English translation of ""dobro jutro""?",translation
-"What is the Serbian equivalent of ""happiness""?",translation
-"What does ""kuća"" mean in English?",translation
-"Translate ""work"" to Serbian, please",translation
-"Translate ""friends"" to Serbian, please",translation
-"How would I say ""happy to help"" in Serbian?",translation
-"Please translate ""dobro veče"" into English",translation
-"How do you say ""food"" in Serbian?",translation
-"How do I say ""please"" in Serbian?",translation
-"What is the English translation of ""kako si""?",translation
-"What is the English translation for ""domaći zadatak""?",translation
-"Please translate ""vidimo se sutra"" to English",translation
-"What does ""zima"" mean in English?",translation
-"Please translate ""peace"" to English",translation
-"What does ""dosta"" mean in English?",translation
-Can you convert this phrase into English?,translation
-"How do I say ""friendship"" in English?",translation
-"What does ""zabava"" mean in English?",translation
-"How do you say ""happy birthday"" in Serbian?",translation
-"Please translate ""adventure"" to English",translation
-"Translate ""good morning"" to Serbian",translation
-"How do you say ""music"" in Serbian?",translation
-"How do you say ""let's go"" in Serbian?",translation
-"How do you say ""dance"" in Serbian?",translation
-"What does ""kako si"" mean in English?",translation
-"What is the English translation of ""učitelj""?",translation
-"How do you say ""happy"" in Serbian?",translation
-"Can you translate ""school"" to Serbian?",translation
-"Translate ""school"" to Serbian for me",translation
-"Translate ""I am tired"" to Serbian",translation
-Please translate this to English,translation
-"Can you help me translate ""family"" to Serbian?",translation
-"How do I say ""I love you"" in Serbian?",translation
-"Please translate ""school"" to English",translation
-"Translate ""see you later"" to Serbian",translation
-"What is the English word for ""mama""?",translation
-What’s the weather like in the Sahara Desert?,out_of_scope
-What's your favorite vacation spot in the world?,out_of_scope
-What movies are worth watching this weekend?,out_of_scope
-Why did the chicken cross the road? To get to the other side!,out_of_scope
-Is it going to rain this weekend in London?,out_of_scope
-How do I make a chocolate soufflé from scratch?,out_of_scope
-What’s a common dish in Thailand?,out_of_scope
+"Как узнать, какие коммунальные услуги включены в счет?",knowledge_question
+Где я могу получить информацию о коммунальных счетах?,knowledge_question
+How do I change my address on the white card?,knowledge_question
+Как я могу получить временный боравак в Сербии?,knowledge_question
+Как узнать свой налоговый номер?,knowledge_question
+Как я могу оформить медицинскую страховку в Сербии?,knowledge_question
+What are the options for learning Serbian while living here?,knowledge_question
+Как долго обрабатывается заявка на боравак?,knowledge_question
+How do I pay my utility bills online?,knowledge_question
+Как я могу получить белый картон после приезда в Сербию?,knowledge_question
+Какой налог я должен платить как иммигрант?,knowledge_question
+Какой налог я должен платить в Сербии?,knowledge_question
+How do I report a change of address to the authorities?,knowledge_question
+Как зарегистрировать свой PIB?,knowledge_question
+What are the tax rates for foreign residents in Serbia?,knowledge_question
+Могу ли я получить доступ к интернет-услугам правительства?,knowledge_question
+Какова виза-режим для граждан России в Сербии?,knowledge_question
+What utilities am I responsible for paying in Serbia?,knowledge_question
+"Какое время мне нужно, чтобы получить визу?",knowledge_question
+What are the legal requirements for renting an apartment in Serbia?,knowledge_question
+Когда нужно подавать заявление на белый картон?,knowledge_question
+"Как оплачиваются коммунальные услуги, если у меня нет сербского счета?",knowledge_question
+Как получить доступ к государственным медицинским услугам?,knowledge_question
+Какой минимальный баланс нужен для открытия счета в банке?,knowledge_question
+Do I need to register my address with the local authorities?,knowledge_question
+Как правильно оплачивать коммунальные услуги в Сербии?,knowledge_question
+Что такое визовый режим для граждан России?,knowledge_question
+Как я могу получить доступ к e-government services на сербском языке?,knowledge_question
+What methods can I use to pay my utility bills in Serbia?,knowledge_question
+What do I do if I lose my white card?,knowledge_question
+Are there any special considerations for pensioners moving to Serbia?,knowledge_question
+What is the visa regime for Russians in Serbia?,knowledge_question
+"Как узнать, какие документы нужны для восстановления боравка?",knowledge_question
+What should I do if I change my address in Serbia?,knowledge_question
+Are there any restrictions on my work while I have a temporary visa?,knowledge_question
+Каковы сроки выплаты коммунальных услуг?,knowledge_question
+Какие медицинские страховки принимаются в Сербии?,knowledge_question
+What is the process to update my address in the system?,knowledge_question
+How can I change my residency address?,knowledge_question
+How can I register my children in a Serbian school?,knowledge_question
+What is the process for obtaining health insurance in Serbia?,knowledge_question
+How often do I need to renew my residency?,knowledge_question
+Где я могу получить консультацию по визовым вопросам?,knowledge_question
+How long does it take to process residency applications in Serbia?,knowledge_question
+Is it possible to transfer money from Serbia to Russia easily?,knowledge_question
+Как правильно заполнить форму для здравоохранения?,knowledge_question
+Are there specific banks that cater to foreigners?,knowledge_question
+Can I use my health insurance from Russia in Serbia?,knowledge_question
+Как проверить статус своего налогового номера?,knowledge_question
+Как зарегистрировать свой адрес проживания?,knowledge_question
+Как мне получить временный боравак в Сербии?,knowledge_question
+Are there penalties for not paying taxes in Serbia?,knowledge_question
+What are the taxes I need to pay as a resident?,knowledge_question
+Is there a specific PIB for immigrants?,knowledge_question
+Do I need to pay taxes on my income from abroad?,knowledge_question
+Сколько стоят коммунальные услуги в Сербии?,knowledge_question
+What do I need to know about utility bill payments?,knowledge_question
+What utility bills should I expect to pay monthly?,knowledge_question
+Are there any tax exemptions for immigrants in Serbia?,knowledge_question
+Can I use my foreign bank account in Serbia?,knowledge_question
+Как организовать медицинскую страховку в Сербии?,knowledge_question
+Как долго рассматривают заявление на визу?,knowledge_question
+Как получить доступ к медицинским услугам?,knowledge_question
+What documents do I need to register for residency in Serbia?,knowledge_question
+Мне нужен белый картон для работы в Сербии?,knowledge_question
+What is the procedure for renewing my residency permit?,knowledge_question
+Как подать заявку на e-government услуги?,knowledge_question
+Как я могу получить свой PIB?,knowledge_question
+Где можно получить информацию о визовом режиме?,knowledge_question
+Can I pay my taxes online in Serbia?,knowledge_question
+Are there any discounts for utility bills for residents?,knowledge_question
+Как узнать о своих налоговых обязательствах как иностранца?,knowledge_question
+Can I open a bank account online as a foreigner?,knowledge_question
+How often do I need to renew my health insurance?,knowledge_question
+What types of health insurance are available for immigrants in Serbia?,knowledge_question
+Do I need to pay taxes if I have a temporary residence?,knowledge_question
+What documents do I need to open a bank account in Serbia?,knowledge_question
+Как проверить статус своего заявления на боравак?,knowledge_question
+Can I use my Russian bank account in Serbia?,knowledge_question
+"Как узнать, какие коммунальные услуги мне необходимо оплачивать?",knowledge_question
+What are the requirements for renewing my residency permit?,knowledge_question
+Какой срок действия визы для граждан России?,knowledge_question
+Как долго я могу оставаться в Сербии с белым картоном?,knowledge_question
+Где я могу открыть банковский счет в Сербии?,knowledge_question
+Как происходит подача налоговой декларации?,knowledge_question
+What is the process to pay taxes in Serbia?,knowledge_question
+Can I work while my residency application is being processed?,knowledge_question
+Is it easy to open a bank account as a non-resident?,knowledge_question
+Can I open a bank account without a Serbian ID?,knowledge_question
+"Как узнать, какие налоги я должен платить?",knowledge_question
+Какой срок оплаты коммунальных услуг?,knowledge_question
+How can I find a translator for e-government services?,knowledge_question
+What utilities should I set up after moving in?,knowledge_question
+What types of health insurance are available for foreigners?,knowledge_question
+What is PIB and why do I need it?,knowledge_question
+Can I work while on a temporary residence permit?,knowledge_question
+What steps should I take if I want to start a business in Serbia?,knowledge_question
+What should I do if I lose my residency card?,knowledge_question
+"Что делать, если я потерял белый картон?",knowledge_question
+How can I apply for the white card?,knowledge_question
+Is there a specific visa regime for Russian citizens?,knowledge_question
+Как контролировать свои коммунальные платежи онлайн?,knowledge_question
+Как мне получить справку о доходах для банка?,knowledge_question
+Как выглядит процесс получения белого картона для семьи?,knowledge_question
+Where can I get assistance for filling out forms?,knowledge_question
+Есть ли в Сербии возможность онлайн-записи к врачу?,knowledge_question
+Do I need a Serbian bank account to receive my salary?,knowledge_question
+What is the process to change my address on the white card?,knowledge_question
+Как оформить медицинскую страховку в Сербии?,knowledge_question
+Можно ли получить медицинскую помощь без местной страховки?,knowledge_question
+Can I access my tax information online in Serbia?,knowledge_question
+"Как открыть бизнес в Сербии, если я иностранный гражданин?",knowledge_question
+What is the current visa regime for Russian citizens in Serbia?,knowledge_question
+Как подать налоговую декларацию в Сербии для иностранцев?,knowledge_question
+Как справиться с налоговыми обязательствами как иностранный работник?,knowledge_question
+Как мне изменить адрес в регистрационных документах?,knowledge_question
+Как подать заявление на продление визы?,knowledge_question
+Как проходит процесс получения разрешения на временный боравак?,knowledge_question
+Are there any special tax exemptions for immigrants?,knowledge_question
+Каков порядок получения медицинской страховки?,knowledge_question
+Каковы налоговые ставки для иммигрантов и что такое PIB?,knowledge_question
+Как оформить медицинскую страховку для иностранца?,knowledge_question
+Are there any specific visa requirements for Russian citizens?,knowledge_question
+Can I open a bank account in Serbia as a foreigner?,knowledge_question
+What is the process for renewing my residency permit?,knowledge_question
+Как зарегистрировать место жительства в Сербии?,knowledge_question
+Can I use my foreign driver's license in Serbia?,knowledge_question
+What are the residency requirements for my family members?,knowledge_question
+What is the tax system like for immigrants in Serbia?,knowledge_question
+Is there a minimum balance required to open a bank account?,knowledge_question
+Как долго мне нужно оставаться в Сербии для получения гражданства?,knowledge_question
+What are the steps to register as a resident in Serbia?,knowledge_question
+What services does the e-government portal offer for residents?,knowledge_question
+What is the process of obtaining health insurance in Serbia?,knowledge_question
+Is there an online platform for checking residency status?,knowledge_question
+Сколько времени занимает процесс получения белого картона?,knowledge_question
+Как узнать свои права и обязанности по налогам?,knowledge_question
+Are there any specific e-government platforms I should be aware of?,knowledge_question
+What is the process for renewing my residency?,knowledge_question
+Как открыть банковский счет в Сербии?,knowledge_question
+"Как быть, если у меня временный боравак?",knowledge_question
+"Что надо сделать, чтобы зарегистрировать бизнес в Сербии?",knowledge_question
+Как получить доступ к медицинским услугам для иностранцев?,knowledge_question
+How often do I need to pay utility bills?,knowledge_question
+Как зарегистрироваться на сайте государственных услуг?,knowledge_question
+Как правильно заполнить налоговую декларацию?,knowledge_question
+Как получить временный боравак в Сербии?,knowledge_question
+Как я могу найти жилье в Сербии?,knowledge_question
+What are the benefits of using e-government services in Serbia?,knowledge_question
+Где найти информацию о местных налогах на имущество?,knowledge_question
+"Куда обращаться, если у меня возникли проблемы с белым картоном?",knowledge_question
+What are the steps to register my address with the authorities?,knowledge_question
+Как я могу получить помощь в оформлении документов?,knowledge_question
+Как я могу подать заявление на постоянный боравак?,knowledge_question
+What documents do I need to apply for the white card?,knowledge_question
+Как я могу получить боравак в Сербии?,knowledge_question
+Какую страховку лучше выбрать для семьи?,knowledge_question
+Можно ли продлить белый картон онлайн?,knowledge_question
+"Могу ли я работать, имея белый картон?",knowledge_question
+Can I transfer money internationally from my Serbian bank account?,knowledge_question
+Where can I find e-government services for immigrants?,knowledge_question
+Is it necessary to have a local phone number to register?,knowledge_question
+What are the benefits of having a PIB?,knowledge_question
+Как оплачивать счета за электроэнергию и воду?,knowledge_question
+What information do I need for the white card application?,knowledge_question
+Как подать заявку на медицинскую страховку?,knowledge_question
+Are there any specific documents needed for residency?,knowledge_question
+Какой номер PIB нужно указывать при регистрации бизнеса?,knowledge_question
+Do I need a translator for the residency application?,knowledge_question
+Как оплачивать коммунальные услуги в Сербии?,knowledge_question
+Как долго длится процесс получения белого картона?,knowledge_question
+Как перевести деньги из России в Сербию?,knowledge_question
+What type of health insurance do I need as an immigrant?,knowledge_question
+Где я могу найти информацию о налогах для иностранцев?,knowledge_question
+Как оплатить коммунальные услуги в Сербии?,knowledge_question
+Есть ли возможность получения долгосрочного боравка?,knowledge_question
+Как открыть банковский счет в Сербии как иностранный гражданин?,knowledge_question
+Как долго я могу находиться в Сербии с белым картоном?,knowledge_question
+What documents do I need to register my address and get the white card?,knowledge_question
+Как оплачивать коммунальные услуги через интернет?,knowledge_question
+Is there an online portal for managing tax payments in Serbia?,knowledge_question
+Can I work while on a temporary residency?,knowledge_question
+Где я могу узнать свой PIB?,knowledge_question
+What are the tax obligations for foreign residents in Serbia?,knowledge_question
+What are the fees for opening a bank account in Serbia?,knowledge_question
+"Как открыть счет в банке, если у меня нет постоянного адреса?",knowledge_question
+What is the tax rate for foreign residents in Serbia?,knowledge_question
+Как подать заявление на услуги через портал электронного правительства?,knowledge_question
+Как мне получить доступ к услугам электронного правительства?,knowledge_question
+Can I register my business online in Serbia?,knowledge_question
+Как оплачивать коммунальные услуги?,knowledge_question
+Are there any specific tax benefits for immigrants?,knowledge_question
+Что такое белый картон и как его получить?,knowledge_question
+Сколько времени занимает рассмотрение заявления на боравак?,knowledge_question
+What are the steps to renew my residency permit?,knowledge_question
+Can I use online services for e-government in Serbia?,knowledge_question
+"Как оформить бели картон, если я только что приехал в страну?",knowledge_question
+Is it possible to receive pension benefits while living in Serbia?,knowledge_question
+What is the PIB and how do I get one?,knowledge_question
+What are the penalties for not paying taxes in Serbia?,knowledge_question
+Сколько стоит получение белого картона?,knowledge_question
+What are the steps to register for e-government services?,knowledge_question
+Is it possible to apply for citizenship after a certain period of residency?,knowledge_question
+Do I need a specific visa to work in Serbia?,knowledge_question
+Как я могу оплачивать коммунальные услуги?,knowledge_question
+Are there any additional fees when opening a bank account?,knowledge_question
+Are utility bills paid monthly or quarterly in Serbia?,knowledge_question
+How do I change my registered address for residency purposes?,knowledge_question
+What should I do if I lose my white card?,knowledge_question
+Are there any specific e-government services for immigrants?,knowledge_question
+How is my PIB number assigned and where can I find it?,knowledge_question
+Как я могу получить налоговый идентификационный номер (PIB)?,knowledge_question
+Как узнать о своих налоговых обязательствах?,knowledge_question
+What forms of identification do I need for utility services?,knowledge_question
+Какие преимущества дает наличие белого картона?,knowledge_question
+Нужна ли мне страховка для получения боравка?,knowledge_question
+Are there any fees for e-government services?,knowledge_question
+Как можно проверить статус своего боравка?,knowledge_question
+Как мне получить доступ к медицине для иностранцев?,knowledge_question
+What e-government services are available for immigrants in Serbia?,knowledge_question
+What documents do I need for the white card in Serbia?,knowledge_question
+How do I renew my residency after it expires?,knowledge_question
+Как открыть банковский счет как иностранный гражданин?,knowledge_question
+Can I have a joint bank account with a Serbian citizen?,knowledge_question
+What are the utility bill payment methods available for residents?,knowledge_question
+Как часто нужно обновлять белый картон?,knowledge_question
+Are there any language support services for immigrants?,knowledge_question
+Какие услуги предоставляет электронное правительство в Сербии?,knowledge_question
+Можно ли получить медицинскую помощь без страховки?,knowledge_question
+Can I use a foreign bank account for my transactions?,knowledge_question
+How do I get health insurance in Serbia?,knowledge_question
+Как зарегистрировать бизнес в Сербии?,knowledge_question
+Какую валюту я могу использовать в банках Сербии?,knowledge_question
+Which health insurance provider is recommended for newcomers?,knowledge_question
+Как я могу платить налоги и где взять PIB?,knowledge_question
+"Как будет по-сербски ""Мне нужно помочь с документами.""?",translation
+Mogu li dobiti još jedan računi?,translation
+Когда будет следующее собрание?,translation
+"Что значит ""Hvala puno""?",translation
+"Как будет по-сербски ""Мне нужно время, чтобы обдумать это""?",translation
+Da li možete da mi pomognete?,translation
+"Проверь: ""Nisam mogao da nađem ključ",translation
+"Переведи на русский: ""Moj telefon ne radi",translation
+Treba mi tvoja pomoć,translation
+"Как будет по-сербски ""Какой будет следующий шаг""?",translation
+"Наравно, не брините",translation
+"Я нашел квартиру, вот сообщение: ""Stan je na Banjici",translation
+"Как будет по-сербски ""с днем рождения""?",translation
+Српска компанија ми је понудила посао,translation
+"Как будет по-сербски ""Спасибо за вашу помощь""?",translation
+"Šta znači ""Hvala ti na svemu""?",translation
+"Проверь: ""Тиме сами се бавите",translation
+"Что значит ""Molim vas dajte mi još vremena""?",translation
+Када ће бити следећа састанак?,translation
+Данас сам био у граду,translation
+Проверь: Утре idemo na sastanak u 10,translation
+"Что значит ""Sve najbolje""?",translation
+"Что значит ""Završio sam posao""?",translation
+Не заборави да донесеш документе,translation
+"Переведи на русский: ""Nisam siguran šta da radim",translation
+"Как будет по-сербски ""где находится станция?",translation
+Треба ми ваша помоћ,translation
+"Проверь: ""Tražim stan u centru",translation
+"Как будет по-сербски ""How much does this cost?",translation
+"Как будет по-сербски ""пожалуйста, помогите мне найти работу""?",translation
+"Проверь: ""Da li je to tačno""?",translation
+"Как будет по-сербски ""где находится больница""?",translation
+Переведи на русский: Завтра я уезжаю в Белград,translation
+"Как будет по-сербски ""Когда будет ответ?",translation
+Переведи на русский: Я жду ответ от банка,translation
+Не могу да дођем данас,translation
+Когда можем встретиться для обсуждения?,translation
+"Molim vas, dajte mi kontakt informacije",translation
+"Что значит ""Nadam se da razumete""?",translation
+Večeras imam sastanak sa kolegama,translation
+"Переведи на русский: ""Vidimo se u ponedeljak",translation
+"Как будет по-сербски ""Это очень важно для меня""?",translation
+"Проверь: ""Ovo je moj prvi put u Beogradu",translation
+"Как будет по-сербски ""Я хочу поехать в Белград""?",translation
+"Как будет по-сербски ""Сегодня очень жарко""?",translation
+"Can you help me translate: ""Please send me the details",translation
+"Проверь: ""Ovo je važan dokument",translation
+"Переведи на русский: ""Trebam tvoju pomoć",translation
+"Что значит ""Molim te, pomoći mi""?",translation
+"Переведи на русский: ""Надам се да ћемо се видети поново",translation
+"Переведи на русский: ""Nadam se da se vidimo uskoro",translation
+Тиме сам завршио свој посао,translation
+"Как сказать по-сербски ""I’m looking for a job""?",translation
+"Проверь: ""Poslao sam ti e-mail",translation
+"Молим те, помози ми око тога",translation
+"Что значит ""поздрав""?",translation
+"Можешь перевести на русский: ""Увидимся завтра""?",translation
+"Проверь: ""Treba mi račun za platu",translation
+"Переведи на русский: ""Можеш ли ми помоћи с документима?",translation
+"Как будет по-сербски ""Мне нужно поменять адрес""?",translation
+"Что значит ""Tvoj prijatelj je ovde""?",translation
+"Translate: ""I will call you later",translation
+"Как будет по-сербски ""It's important to me""?",translation
+"Что значит ""Ovo je tvoj prvi put ovde?",translation
+"Переведи на русский: ""Sve je u redu",translation
+Ресторан се налази поред библиотеке,translation
+"Как будет по-сербски ""где ближайшая аптека?",translation
+"Здраво, како си?",translation
+Zovi me kada stigneš,translation
+"Переведи на русский: ""Moj brat je u Beogradu",translation
+"Можешь перевести на русский: ""Uveče idem na trening",translation
+"Что значит ""Sviđa mi se""?",translation
+"Привет, как дела?",translation
+"Как будет по-сербски ""Where is the bus station""?",translation
+"Проверь: ""Treba mi vaučer za popust",translation
+"Как будет по-сербски ""Please call me""?",translation
+"Как будет по-сербски ""Где находится ближайшая аптека?",translation
+"Как будет по-сербски ""я не понимаю""?",translation
+"Translate to Serbian: ""I have an appointment at 5 PM",translation
+I had a great time at the party last night,translation
+"Что значит ""Srećan put""?",translation
+Проверь: Treba mi više informacija o toj ponudi,translation
+"Что значит ""Sviđa mi se ova pesma""?",translation
+"Как будет по-сербски ""Когда будет следующая встреча""?",translation
+"Проверь: ""Imam sastanak u petak",translation
+"Переведи на русский: ""Скоро ће бити готово",translation
+"What does ""Сазнаћеш касније"" mean?",translation
+"What does ""Vratiću se brzo"" mean?",translation
+Ово је веома лепа плоча,translation
+"Как сказать по-сербски ""Can I pay by card?",translation
+"Что значит ""Vidimo se sutra""?",translation
+Sutra imamo važan sastanak,translation
+"Translate: ""Can you help me with this document?",translation
+"Translate: ""I'm interested in learning Serbian",translation
+"Переведи на русский: ""Idem na sastanak u 10",translation
+Треба ми помоћ у раду,translation
+"Как будет по-сербски ""Где находится ближайший магазин""?",translation
+"Что значит ""Gde si bio""?",translation
+"Переведи на русский: ""Ta informacija nije tačna",translation
+"Как будет по-сербски ""Вы можете говорить медленнее""?",translation
+Večeram sa prijateljima sutra,translation
+Переведи на русский: У меня есть вопрос по документам,translation
+"Molim vas, dajte mi informacije o radu",translation
+"Как будет по-сербски ""Это моя первая неделя""?",translation
+"Проверь: ""Это важно для работы",translation
+У понедељак имам састанак са шефом,translation
+Переведи на русский: Я собираюсь поехать на выходные,translation
+Данас сам отишао у тржни центар,translation
+Ponekad idem u teretanu,translation
+"Можешь перевести на русский: ""Dogovorimo se za sledeći ponedeljak",translation
+"Что значит ""Све је у реду""?",translation
+"Переведи на русский: ""Imam sastanak kasnije",translation
+"What does ""Izvinjavam se"" mean?",translation
+"Что значит ""Ovo je važno""?",translation
+"Переведи на русский: ""Kako da stignem do grada?",translation
+"На русском: ""Večeras imamo rođendan",translation
+"Как будет по-сербски ""Спасибо за помощь""?",translation
+"Дobar dan, kako ste?",translation
+Sledeći sastanak je zakazan za utorak,translation
+Я не понимаю этот текст,translation
+"Переведи на русский: ""Gde je najbliža prodavnica?",translation
+Данас је леп дан за шетњу,translation
+"Можешь перевести ""Буду ждать вашего ответа"" на русский?",translation
+Переведи на русский: Спасибо за поддержку,translation
+"Как будет по-сербски ""I am tired""?",translation
+I need help with my application,translation
+Jutros sam otišao u banku,translation
+"Переведи на русский: ""Poslaću ti sve informacije",translation
+"Проверь: ""Ovo je moj prvi put ovde",translation
+"Я получил уведомление: ""Termini za vakcinaciju su zakazani",translation
+Završio sam projekt na vreme,translation
+"Проверь: ""Završila sam školu",translation
+"Переведи на русский: ""Kako da dođem do centra grada?",translation
+Пошли ми адресу,translation
+"Что значит ""Не могу да се сврстим у категорију""?",translation
+"Что значит ""Kako si danas""?",translation
+"На русском: ""Da li je ovo blizu?",translation
+"Проверь: ""Moj pas se zove Max",translation
+Свиђа ми се ваша услуга,translation
+Проверь: Radim na novom projektu,translation
+Želim da rezervišem sto za večeru,translation
+"Переведи на русский: ""Možemo li se sastati sutra?",translation
+"Переведи на русский: ""Tvoj pas je jako sladak",translation
+Поздравите вашу породицу,translation
+"Проверь: ""Можем встретиться завтра?",translation
+"Проверь: ""Наравно, желим да будем там",translation
+Can you help me with my documents?,translation
+"Проверь: ""Hvala na pomoći",translation
+Никада нисам био овде раније,translation
+"Molim te, pošalji mi podatke",translation
+Čekam te ispred kafane,translation
+"Как будет по-сербски ""Мне нужно поговорить с вами""?",translation
+"Переведи на русский: ""Završio sam sve zadatke",translation
+Imam sastanak u 14:00,translation
+"Как будет по-сербски ""Do you speak English""?",translation
+"Можешь перевести на русский: ""Znamo se dugo",translation
+"Как будет по-сербски ""Мне нужна помощь с документами""?",translation
+"Проверь: ""Я буду там через 20 минут",translation
+"Пожалуйста, переведи на русский ""Я ценю твою помощь",translation
+"Переведи на русский: ""Hajde da se vidimo",translation
+Čuo sam da je dobar restoran ovde,translation
+Проверь: Moram da uzmem lekove danas,translation
+"Как будет по-сербски ""I need a doctor""?",translation
+"Проверь: ""Moram da idem kod lekara",translation
+"What does ""Nema problema"" mean in Russian?",translation
+"Как будет по-сербски ""Я буду на работе в понедельник""?",translation
+"Что значит ""Nema problema""?",translation
+"Что значит ""Узми времена за себе""?",translation
+"Zdravo, kako se to kaže na ruskom?",translation
+"Переведи на русский: ""Razgovaraću sa njom sutra",translation
+Проверь: Trebalo bi da popunim formular do petka,translation
+"Проверь: ""Hvala ti puno",translation
+"Как будет по-сербски ""I love this city""?",translation
+Kad možemo da se nađemo?,translation
+"Как будет по-сербски ""Собеседование назначено на понедельник""?",translation
+Ваши плате је каснило,translation
+"Can you translate: ""I’m looking for a job in the city",translation
+Ove nedelje imamo nekoliko obaveza,translation
+Данас сам био на састанку,translation
+"Переведи на русский: ""Moram da idem kod doktora sutra",translation
+"Переведи на русский: ""Gde je najbliža apoteka?",translation
+Проверь: Ovo je bio moj prvi put u Beogradu,translation
+"Как будет по-сербски ""Where is the nearest bus station?",translation
+Voleo bih da pričamo o poslovnoj ponudi,translation
+"Проверь: ""Sutra idem u grad",translation
+Можем ли мы обсудить этот вопрос?,translation
+"Проверь: ""Moj pas je bolestan",translation
+Možeš li mi pomoći?,translation
+"Текст: ""Večeras izlazimo, pridruži nam se!",translation
+"Как будет по-сербски ""я хочу заказать еду""?",translation
+Dokle ideš?,translation
+"Как будет по-сербски ""Я переехал в Сербию""?",translation
+"Как будет по-сербски ""У меня есть встреча в 3 часа""?",translation
+"Шта значи ""Danas je divan dan""?",translation
+"I need help translating: ""Let’s meet at the café at 5 PM",translation
+"Can you translate: ""I have an appointment tomorrow at 10 AM""?",translation
+"Как будет по-сербски ""Я не понимаю, что вы хотите сказать""?",translation
+"Как будет по-сербски ""Я не понимаю""?",translation
+"Проверь: ""Sve je u redu, vidimo se sutra",translation
+"Что значит ""Jasno mi je""?",translation
+"Как будет по-сербски ""I need to reschedule our meeting""?",translation
+"Что значит ""Da li si slobodan danas?",translation
+Не заборавите на састанак,translation
+"Что значит ""Je l' može ovo biti bolja opcija?",translation
+"Проверь: ""Moja porodica dolazi sledeće nedelje",translation
+Juče sam video starog prijatelja,translation
+"Что значит ""среда""?",translation
+Nemam vremena sada,translation
+"Как будет по-сербски ""привет, как дела?",translation
+"Как будет по-сербски ""Мне нужно поговорить с менеджером""?",translation
+"Что значит ""досадно""?",translation
+"Текст: ""Čitam knjigu koju si mi preporučio",translation
+"Что значит ""Dobar dan""?",translation
+"Как будет по-сербски ""Завтра у меня встреча""?",translation
+"Что значит ""Пробаћемо поново касније""?",translation
+Проверь: Četvrtak je slobodan dan za mene,translation
+"Как будет по-сербски ""I am looking for a job""?",translation
+"Как будет по-сербски ""еду в магазин""?",translation
+"What does ""Hvala na razumevanju"" mean?",translation
+"Можешь перевести на русский: ""Želim da se izvinim",translation
+"Проверь: ""Я думаю, что это хорошая идея",translation
+Переведи на русский: Мы встречаемся в четыре,translation
+"Как будет по-сербски ""Я не могу сегодня прийти на работу""?",translation
+"Как будет по-сербски ""Я хочу купить билет""?",translation
+Переведи на русский: Мы обсудим это на следующей встрече,translation
+"Как будет по-сербски ""услуга"" в контексте бизнеса?",translation
+"Translate to Russian: ""Trebam pomoć sa papirom",translation
+"Как будет по-сербски ""Это интересно""?",translation
+"Как будет по-сербски ""Это очень важно""?",translation
+Danas je predivan dan za šetnju,translation
+"Как будет по-сербски ""это очень важно""?",translation
+"Что значит ""Sve je u redu""?",translation
+Da li imaš vremena u nedelju?,translation
+"Translate: ""Do you speak English?",translation
+Треба ми нова карта,translation
+Uveče ću biti slobodan,translation
+"Как будет по-сербски ""My family is coming to visit""?",translation
+"Can you translate ""I'm looking for a job""?",translation
+"Как будет по-сербски ""Я хочу изучать сербский язык""?",translation
+"Как будет по-сербски ""это очень интересно""?",translation
+"Что значит ""Nadam se da ćemo se videti""?",translation
+"Как будет по-сербски ""можешь мне помочь?",translation
+"Translate to Russian: ""I will call you later",translation
+"Как будет по-сербски ""У меня нет времени""?",translation
+"Как скажешь ""это важно"" по-сербски?",translation
+"Как будет по-сербски ""Я ищу работу""?",translation
+"Что значит ""Hvala vam puno""?",translation
+Нађи ми телефонски број,translation
+Да ли можете да ми помогнете?,translation
+"Mogu li dobiti račun, molim vas?",translation
+"Сегодня испекла пирог, получился очень вкусным!",out_of_scope
+Какой твой самый любимый способ расслабиться?,out_of_scope
+Есть ли у тебя любимый праздник?,out_of_scope
+Почему медведи не летают?,out_of_scope
+Нравится ли вам читать книги о путешествиях?,out_of_scope
+Что ты думаешь о стариых фильмах?,out_of_scope
+Do you prefer coffee or tea in the morning?,out_of_scope
+What’s an interesting place you’ve visited recently?,out_of_scope
+Какая у тебя самая необычная коллекция?,out_of_scope
+Da li voliš da putuješ?,out_of_scope
+Какой ваш любимый фильм о приключениях?,out_of_scope
+Did you hear about the latest tech gadget?,out_of_scope
+What’s the last thing that made you laugh?,out_of_scope
+I can never decide between coffee or tea in the morning,out_of_scope
+Какой вид спорта тебе больше всего нравится?,out_of_scope
+Что ты думаешь о современных технологиях?,out_of_scope
+Вы когда-нибудь готовили блюдо из другой культуры?,out_of_scope
+Какую книгу вы сейчас читаете?,out_of_scope
+I love exploring new technology,out_of_scope
+Have you ever tried to learn a musical instrument?,out_of_scope
+What’s one skill you wish you could learn instantly?,out_of_scope
+What’s the best piece of advice you’ve ever received?,out_of_scope
+Do you like visiting museums?,out_of_scope
+Kakav je tvoj omiljeni način zabave?,out_of_scope
+Do you prefer reading fiction or non-fiction?,out_of_scope
+What’s the most interesting place you’ve visited?,out_of_scope
+Какой самый смешной анекдот ты знаешь?,out_of_scope
+Какое у тебя любимое блюдо из детства?,out_of_scope
+Чем ты любишь заниматься в свободное время?,out_of_scope
+Ты когда-нибудь пробовал готовить итальянскую кухню?,out_of_scope
+Какой самый запоминающийся момент в твоей жизни?,out_of_scope
+Do you play any musical instruments?,out_of_scope
+Ты когда-нибудь играл на музыкальном инструменте?,out_of_scope
+Have you seen any good podcasts lately?,out_of_scope
+Сколько часов ты обычно спavaш?,out_of_scope
+"Если бы у тебя была одна суперсила, что бы это было?",out_of_scope
+Какая музыка поднимает вам настроение?,out_of_scope
+Спишь ли ты с окном открытым?,out_of_scope
+Кем ты хотел быть в детстве?,out_of_scope
+"Надеюсь, у тебя отличное настроение сегодня!",out_of_scope
+Have you ever visited a volcano?,out_of_scope
+Какую музыку ты слушаешь в последнее время?,out_of_scope
+Какой твой самый запоминающийся праздник?,out_of_scope
+What book have you read recently that you loved?,out_of_scope
+Did you ever try baking a cake with avocado?,out_of_scope
+"If you could travel anywhere in the world, where would it be?",out_of_scope
+Have you ever tried making homemade pasta?,out_of_scope
+Why don't scientists trust atoms? Because they make up everything!,out_of_scope
+Можно ли использовать пасту для зубов в качестве крема для бритья?,out_of_scope
+Можешь посоветовать хорошую книгу для чтения?,out_of_scope
+Какой у вас был самый смешной случай на работе?,out_of_scope
+Ты любишь проводить время на свежем воздухе?,out_of_scope
+What's your go-to strategy for solving puzzles?,out_of_scope
+"Петар (Petar) всегда шутит, что лучшее утро — это утро с кофе",out_of_scope
+Завтра собираюсь встретиться с друзьями на пикник,out_of_scope
+Какой у тебя самый незабываемый отпуск?,out_of_scope
+Did you ever try making homemade pasta?,out_of_scope
+Have you seen the latest sci-fi movie?,out_of_scope
+Есть ли у тебя любимая цитата?,out_of_scope
+Ты любишь рисовать или заниматься творчеством?,out_of_scope
+"Если бы ты мог изменить что-то в мире, что бы это было?",out_of_scope
+На какую тему ты бы написал книгу?,out_of_scope
+What do you think about the idea of time travel?,out_of_scope
+What's your favorite childhood memory?,out_of_scope
+Did you hear about the new space telescope?,out_of_scope
+Have you ever seen a double rainbow?,out_of_scope
+"Вечером смотрела фильм про космос, очень понравился",out_of_scope
+Какой твой самый странный сон?,out_of_scope
+What’s your favorite way to relax after a busy day?,out_of_scope
+What’s your favorite board game?,out_of_scope
+Do you prefer coffee or tea?,out_of_scope
+"Знаешь ли ты, как готовить борщ?",out_of_scope
+Какой у вас любимый десерт?,out_of_scope
+What’s your biggest pet peeve?,out_of_scope
+What’s one skill you’d love to learn one day?,out_of_scope
+Какой твой любимый вид искусства?,out_of_scope
+Сколько времени ты проводишь в интернете?,out_of_scope
+Have you ever tried meditation?,out_of_scope
+I’ve started learning a new language,out_of_scope
+Did you hear about the new smartphone release?,out_of_scope
+I need some tips on starting a garden,out_of_scope
+Are there any podcasts you enjoy listening to?,out_of_scope
+Do you enjoy trying new foods from different cultures?,out_of_scope
+Как часто вы занимаетесь спортом?,out_of_scope
+Какой вкус мороженого ты любишь больше всего?,out_of_scope
+На какие выставки ты планируешь сходить в этом месяце?,out_of_scope
+What do you think about the latest smartphone features?,out_of_scope
+Have you ever been to a concert?,out_of_scope
+What technology are you most excited about right now?,out_of_scope
+Почему у людей разные предпочтения в еде?,out_of_scope
+Играешь ли ты на музыкальном инструменте?,out_of_scope
+Ты когда-нибудь пытался вести дневник?,out_of_scope
+У тебя есть хобби?,out_of_scope
+Do you prefer cats or dogs as pets?,out_of_scope
+Ваши любимые места для прогулок?,out_of_scope
+What’s your opinion on virtual reality games?,out_of_scope
+Have you ever tried a digital detox?,out_of_scope
+Какой у вас любимый цвет?,out_of_scope
+Как вы относитесь к настольным играм?,out_of_scope
+Do you have a favorite board game?,out_of_scope
+What's a hobby you've always wanted to try?,out_of_scope
+Какой у тебя любимый сезон?,out_of_scope
+What’s the last TV show you binge-watched?,out_of_scope
+Что ты думаешь о последнем апдейте этой игры?,out_of_scope
+How do you usually celebrate your birthday?,out_of_scope
+Какой ваш любимый фрукт?,out_of_scope
+Что для тебя было самым удивительным в этом году?,out_of_scope
+Никогда не надоедает слушать хорошую музыку,out_of_scope
+What’s your favorite way to spend a weekend?,out_of_scope
+Did you ever try making a smoothie with avocados?,out_of_scope
+Научишься ли ты играть на музыкальном инструменте?,out_of_scope
+Кто ваш любимый автор?,out_of_scope
+What’s the most interesting hobby you’ve picked up recently?,out_of_scope
+Did you watch the latest season of that series?,out_of_scope
+Какой твой любимый способ расслабления?,out_of_scope
+Have you ever tried meditating?,out_of_scope
+Ты любишь рисовать или заниматься рукоделием?,out_of_scope
+"Знаешь, у меня есть коллекция открыток",out_of_scope
+Я обожаю смотреть документалки о природе,out_of_scope
+"Совсем забыла сказать, что купила новый горшок для цветов!",out_of_scope
+Have you ever participated in a talent show?,out_of_scope
+Have you ever participated in a marathon?,out_of_scope
+"Может, стоит попробовать новый рецепт этого уикенда?",out_of_scope
+Как вы относитесь к искусству?,out_of_scope
+I just learned how to juggle!,out_of_scope
+Have you read any interesting books lately?,out_of_scope
+Сколько языков ты хотел бы знать?,out_of_scope
+What hobby would you pick up if you had more free time?,out_of_scope
+What’s the most interesting book you’ve read lately?,out_of_scope
+I can't believe how fast this year is going!,out_of_scope
+Do you enjoy hiking or prefer relaxing indoors?,out_of_scope
+What’s the best piece of advice you've ever received?,out_of_scope
+Какой фильм вы смотрели в последний раз?,out_of_scope
+Kakav je tvoj omiljeni način opuštanja?,out_of_scope
+Что тебе больше всего нравится в твоем городе?,out_of_scope
+Kako se zove tvoj omiljeni serijski junak?,out_of_scope
+Какой у тебя самый любимый мультфильм?,out_of_scope
+На какие темы тебе нравится беседовать?,out_of_scope
+Какой фильм вы бы порекомендовали?,out_of_scope
+Почему кошки такие загадочные?,out_of_scope
+What’s the last game you played?,out_of_scope
+I just finished reading a great book!,out_of_scope
+"Какую музыку ты слушаешь, когда тебе грустно?",out_of_scope
+Какое ваше любимое время года?,out_of_scope
+Тебе нравится рисовать?,out_of_scope
+What’s the best advice you’ve ever received?,out_of_scope
+Какое ваше любимое блюдо на завтрак?,out_of_scope
+Сколько у тебя домашних животных?,out_of_scope
+Когда вы в последний раз были на концерте?,out_of_scope
+Какой самый странный сон тебе когда-либо снился?,out_of_scope
+Какой ваш самый любимый праздник в году?,out_of_scope
+Какой самый необычный напиток вы пробовали?,out_of_scope
+Сколько времени ты потратил на изучение нового языка?,out_of_scope
+Как вы относитесь к кроссвордам?,out_of_scope
+What’s your favorite book?,out_of_scope
+Do you think time travel would ever be possible?,out_of_scope
+What kind of art do you find most inspiring?,out_of_scope
+Какой сегодня солнечный день!,out_of_scope
+"Вы знаете, сколько существует языков в мире?",out_of_scope
+What would you do if you won a million dollars?,out_of_scope
+I recently read a fascinating article on black holes,out_of_scope
+Какую книгу ты читаешь сейчас?,out_of_scope
+Какой самый трудный предмет был в школе для вас?,out_of_scope
+What’s your go-to comfort food?,out_of_scope
+What do you think of virtual reality?,out_of_scope
+I really enjoy hiking and being in nature,out_of_scope
+Какой фильм ты смотрел недавно и он тебе понравился?,out_of_scope
+"I started learning a new language, it’s challenging but fun!",out_of_scope
+"Знаешь, я люблю кошек!",out_of_scope
+Какой у вас самый любимый десерт?,out_of_scope
+What’s your go-to snack for movie night?,out_of_scope
+Ты предпочитаешь читать книги или смотреть фильмы?,out_of_scope
+Как ты относишься к настольным играм?,out_of_scope
+How many languages can you speak?,out_of_scope
+Kako si danas? Imaš li kakvih planova za vikend?,out_of_scope
+What’s the strangest food combination you enjoy?,out_of_scope
+"Спорт — это здорово, но иногда нужно просто отдохнуть",out_of_scope
+Какой у тебя любимый праздник?,out_of_scope
+I once tried to build a robot. It didn’t go well!,out_of_scope
+How do you stay productive while working from home?,out_of_scope
+What’s your favorite childhood cartoon?,out_of_scope
+Как ты относишься к медитации и йоге?,out_of_scope
+Какой у тебя любимый цвет?,out_of_scope
+Какой самый странный сон тебе снился?,out_of_scope
 What’s your favorite childhood memory?,out_of_scope
-Can you help me plan a vacation to Italy?,out_of_scope
-What’s a fun game to play with friends during a party?,out_of_scope
-Can you suggest a good book to read this summer?,out_of_scope
-What’s the tallest mountain in the world?,out_of_scope
-What’s the capital of Brazil?,out_of_scope
-What’s your favorite song from the 80s?,out_of_scope
-How do I calculate the area of a circle?,out_of_scope
-What’s the best way to make sourdough bread?,out_of_scope
-How can I improve my gaming skills?,out_of_scope
-I’m trying to solve the equation 2x + 5 = 15; can you help?,out_of_scope
-What’s the weather like in Antarctica right now?,out_of_scope
-What are the latest updates on the NFL playoffs?,out_of_scope
-I need help understanding the Pythagorean theorem for my math class,out_of_scope
-What’s the meaning of life?,out_of_scope
-Do you believe in aliens and UFOs?,out_of_scope
-How does one make homemade bread without a mixer?,out_of_scope
-What’s a good movie for a rainy day?,out_of_scope
-Any tips for making homemade pasta?,out_of_scope
-What’s a good way to improve my drawing skills?,out_of_scope
-Can you list some classic rock bands?,out_of_scope
-What’s the best way to train for a marathon?,out_of_scope
-"Do you know the lyrics to the song ""Wonderwall""?",out_of_scope
-Can you give me tips for growing indoor plants?,out_of_scope
-What's the temperature in Antarctica this time of year?,out_of_scope
-"Can you give me a summary of the plot of ""Inception""?",out_of_scope
-I need a recipe for a vegan lasagna,out_of_scope
-Which Marvel movie should I watch tonight?,out_of_scope
-I’m interested in the history of chocolate; can you share some?,out_of_scope
-What’s the best way to cook rice without it sticking?,out_of_scope
-What’s the latest news in space exploration?,out_of_scope
-What’s the forecast for next week’s weather in Miami?,out_of_scope
-What are the must-see attractions in Japan for a first-time visitor?,out_of_scope
-How do you feel about artificial intelligence taking over jobs?,out_of_scope
-"How do you say ""hello"" in Japanese?",out_of_scope
-How do I calculate the area of a triangle?,out_of_scope
-Can you suggest a good travel itinerary for Australia?,out_of_scope
-"Who is your favorite music artist, and why?",out_of_scope
-Can you tell me about the best football players in history?,out_of_scope
-What's the history behind the Eiffel Tower?,out_of_scope
-Can you help me fix my Wi-Fi connection?,out_of_scope
-How can I improve my photography skills?,out_of_scope
-Can you give me a recipe for a traditional Italian lasagna?,out_of_scope
-Who do you think will win the next World Cup?,out_of_scope
-What’s the process for getting a driver’s license in France?,out_of_scope
-How do I make a simple playlist on my phone?,out_of_scope
-Can you suggest a cool gadget for home automation?,out_of_scope
-Can you suggest a fun board game for adults?,out_of_scope
-What are the best exercises to build muscle at home?,out_of_scope
-What’s a good movie to watch on a rainy day?,out_of_scope
-Can you recommend a good recipe for vegan lasagna?,out_of_scope
-Who do you think will win the Super Bowl this year?,out_of_scope
-Do you know how to make a good curry?,out_of_scope
-Tell me a knock-knock joke!,out_of_scope
-I heard a funny joke about cats. Want to hear it?,out_of_scope
-What’s the latest news on the major soccer leagues in Europe?,out_of_scope
-What's the best way to train for a marathon?,out_of_scope
-Can you help me with finding gluten-free recipes?,out_of_scope
-How do you bake a cake from scratch?,out_of_scope
-What’s your favorite type of music to listen to?,out_of_scope
-Can you explain the rules of chess to me?,out_of_scope
-What’s the difference between a crocodile and an alligator?,out_of_scope
-What's the capital of Australia?,out_of_scope
-What’s the capital of Australia?,out_of_scope
-How do I troubleshoot a slow computer?,out_of_scope
-Can you tell me a riddle?,out_of_scope
-Can you recommend a classic book to read?,out_of_scope
-What’s the latest score in the Premier League match?,out_of_scope
-What’s a good exercise routine for beginners?,out_of_scope
-Do you have a recipe for a spicy chili?,out_of_scope
-What’s the weather like in Tokyo right now?,out_of_scope
-What’s your favorite hobby outside of work?,out_of_scope
-What’s a good show to binge-watch on Netflix right now?,out_of_scope
-What’s your opinion on social media?,out_of_scope
-Can you tell me about the best pizza places in New York?,out_of_scope
-Did you see the latest episode of that popular TV show?,out_of_scope
-What’s the most popular tourist attraction in France?,out_of_scope
-What’s the most popular sport in Brazil?,out_of_scope
-I need help with calculating the area of a circle,out_of_scope
-How can I make my own soap at home?,out_of_scope
-How can I fix my Wi-Fi connection at home?,out_of_scope
-What’s the funniest joke you know?,out_of_scope
-Is there a good restaurant in Tokyo for sushi lovers?,out_of_scope
-Do you know any good jokes about math?,out_of_scope
-Can you suggest some fun activities to do in Paris?,out_of_scope
-Do you have any recommendations for a good thriller movie?,out_of_scope
-What’s your favorite ice cream flavor?,out_of_scope
-Have you seen the latest superhero movie?,out_of_scope
-Can you suggest a good sci-fi movie to watch this weekend?,out_of_scope
-Can you recommend a good sci-fi book to read?,out_of_scope
-What’s the best way to learn a new language?,out_of_scope
-What’s some new music you recommend for a road trip?,out_of_scope
-My phone keeps freezing; how do I fix that?,out_of_scope
-How do I troubleshoot my WiFi connection at home?,out_of_scope
-What’s your favorite song from the 90s?,out_of_scope
-Can you share a fun fact about penguins?,out_of_scope
-Which team won the World Series last year?,out_of_scope
-Which city has the best pizza in the world?,out_of_scope
-I'm having trouble with my Wi-Fi connection at home; any tips?,out_of_scope
-What’s the best way to cook a perfect steak?,out_of_scope
-Can you suggest a good recipe for chocolate chip cookies?,out_of_scope
-What are the latest statistics on world population growth?,out_of_scope
-Can you tell me a funny joke to lighten the mood?,out_of_scope
-Do you think aliens exist?,out_of_scope
-Can you recommend a good fantasy novel to read?,out_of_scope
-Can you explain how to play chess to a beginner?,out_of_scope
-Who was the lead actor in that famous 90s movie?,out_of_scope
-Can you help me find a good workout routine?,out_of_scope
-Can you share a funny story about your day?,out_of_scope
-What's the best way to make a classic Italian lasagna?,out_of_scope
-How do you make a paper airplane that actually flies well?,out_of_scope
-I need help with a math problem: what's 25 times 34?,out_of_scope
-Do you know any good jokes?,out_of_scope
-Do you know any interesting facts about Australia?,out_of_scope
-I need a good pun for a birthday card!,out_of_scope
-How does the currency in Japan compare with the US dollar?,out_of_scope
-Can you tell me a fun fact about penguins?,out_of_scope
-What’s your favorite movie of all time?,out_of_scope
-What’s the latest news in the football world?,out_of_scope
-Is it going to rain tomorrow in New York?,out_of_scope
-Why do cats purr?,out_of_scope
-What's the weather like in Siberia?,out_of_scope
-Do you know any good riddles for kids?,out_of_scope
-Can you recommend a good recipe for chocolate cake?,out_of_scope
-"What’s the best movie of 2022, in your opinion?",out_of_scope
-What do you think about electric cars?,out_of_scope
-How do I fix my laptop when it won’t connect to Wi-Fi?,out_of_scope
-How do I solve this math problem: 2x + 3 = 11?,out_of_scope
-What's the most bizarre food you've ever tried?,out_of_scope
-What are the top three tourist attractions in Japan?,out_of_scope
-I need tips for growing tomatoes in my backyard,out_of_scope
-What are some good exercises for building core strength?,out_of_scope
-What’s the best way to prepare a steak?,out_of_scope
-Why do birds migrate south for the winter?,out_of_scope
-Can you tell me about the best beaches in Italy?,out_of_scope
-What’s the difference between a comet and an asteroid?,out_of_scope
-What’s your opinion on the latest season of that TV show?,out_of_scope
-What’s the strangest dream you’ve ever had?,out_of_scope
-Can you explain how to fix a slow computer?,out_of_scope
-What's the difference between an alligator and a crocodile?,out_of_scope
-How do I make homemade pasta from scratch?,out_of_scope
-Do you think the weather next week will be good for a picnic?,out_of_scope
-What are the latest trends in smartphone technology?,out_of_scope
+What do you enjoy doing on weekends?,out_of_scope
+What's the best recipe for a chocolate cake?,out_of_scope
+"If you could visit any planet, which one would you choose?",out_of_scope
+Как ты проводишь свободное время?,out_of_scope
+Какое ваше любимое место для отдыха на природе?,out_of_scope
+Какой у вас любимый вид спорта?,out_of_scope
+Как вы обычно проводите выходные?,out_of_scope
+Какой твой любимый цвет?,out_of_scope
+What's the best advice you've ever received?,out_of_scope
+Ваши любимые десерты?,out_of_scope
+What’s the most interesting place you’ve ever visited?,out_of_scope
+Что ты думаешь о виртуальной реальности?,out_of_scope
+Ti voliš životinje? Kakve?,out_of_scope
+Какой твой любимый праздник?,out_of_scope
+Какой у вас любимый способ расслабления?,out_of_scope
+What’s something you’ve always wanted to learn?,out_of_scope
+Have you tried that new puzzle game?,out_of_scope
+Did you know octopuses have three hearts?,out_of_scope
+Do you prefer dogs or cats?,out_of_scope
+У тебя есть домашние животные?,out_of_scope
+Как ты предпочитаешь проводить выходные?,out_of_scope
+What’s a hobby you’ve always wanted to pick up?,out_of_scope
+"Какой изобретение, по твоему мнению, изменило мир?",out_of_scope
+Do you prefer tea or coffee?,out_of_scope
+I just discovered a new board game that I love!,out_of_scope
+What’s your favorite childhood memory related to nature?,out_of_scope
+Какой фильм ты посоветуешь посмотреть в дождливый день?,out_of_scope
+What’s your idea of a perfect day?,out_of_scope
+What’s your favorite way to relax?,out_of_scope
+Have you ever tried gardening? It's quite therapeutic,out_of_scope
+Планируете ли вы поездку в другую страну в этом году?,out_of_scope
+"Do you have a pet? If so, what kind?",out_of_scope
+What’s your dream vacation destination?,out_of_scope
+Did you ever try making your own pasta?,out_of_scope
+Šta misliš o poslednjem fudbalskom prvenstvu?,out_of_scope
+What hobbies do you have besides work?,out_of_scope
+What’s your favorite way to relax after a long day?,out_of_scope
+Ты когда-нибудь пробовал бungee jumping?,out_of_scope
+"Какой самый странный факт, который ты знаешь?",out_of_scope
+Какой у вас любимый праздник?,out_of_scope
+What’s one thing you can’t live without?,out_of_scope
+Sećam se kada sam prvi put probao sushi,out_of_scope
+Есть ли у вас домашние животные?,out_of_scope
+Ne znam šta da radim za vikend,out_of_scope
+Какой у тебя стаж в изучении иностранных языков?,out_of_scope
+Do you think AI will ever surpass human intelligence?,out_of_scope
+Какой ваш самый запоминающийся отпуск?,out_of_scope
+"Помнишь, как мы катались на роликах в парке?",out_of_scope
+У вас есть любимая спортивная команда?,out_of_scope
+Лето - это время для приключений!,out_of_scope
+Какой самый запоминающийся момент у тебя был в детстве?,out_of_scope
+Мои кошки всегда находят самые странные места для сна,out_of_scope
+What was the last thing that made you laugh out loud?,out_of_scope
+Какой у тебя любимый сезон и почему?,out_of_scope
+What's your go-to playlist for a road trip?,out_of_scope
+What’s a skill you’d like to learn this year?,out_of_scope
+Какой твой самый неудобный момент на публике?,out_of_scope
+"Скоро Новый год, какие у тебя планы?",out_of_scope
+"У меня нет зелёного пальца, но я люблю растения",out_of_scope
+Da li voliš da ideš u bioskop?,out_of_scope
+Ever been to a really great beach?,out_of_scope
+What types of art do you enjoy?,out_of_scope
+How do you stay motivated in your daily life?,out_of_scope
+Какой у тебя самый запоминающийся момент из отпуска?,out_of_scope
+"If you could visit any planet, which one would it be?",out_of_scope
