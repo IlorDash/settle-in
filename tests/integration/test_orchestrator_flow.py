@@ -2,65 +2,68 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.agents.orchestrator import (
     INTENT_KNOWLEDGE_QUESTION,
+    INTENT_OUT_OF_SCOPE,
     INTENT_TRANSLATION,
+    OUT_OF_SCOPE_MESSAGE,
     build_orchestrator,
     process_message,
 )
 
 
-@patch("src.agents.orchestrator._build_classifier_chain")
-async def test_knowledge_question_routes_to_rag_agent(mock_build_classifier):
-    mock_classifier = MagicMock()
-    mock_classifier.ainvoke = AsyncMock(return_value=INTENT_KNOWLEDGE_QUESTION)
-    mock_build_classifier.return_value = mock_classifier
+def _chains():
+    """A mock RAG chain and translation chain with distinct responses."""
+    rag = MagicMock()
+    rag.ainvoke = AsyncMock(return_value="rag answer")
+    translation = MagicMock()
+    translation.ainvoke = AsyncMock(return_value="translation answer")
+    return rag, translation
 
-    mock_rag_chain = MagicMock()
-    mock_rag_chain.ainvoke = AsyncMock(return_value="The White Card is required.")
 
-    mock_translation_chain = MagicMock()
-    mock_translation_chain.ainvoke = AsyncMock(return_value="should not be called")
-
-    orchestrator = build_orchestrator(mock_rag_chain, mock_translation_chain)
+@patch("src.agents.orchestrator.load_classifier", MagicMock())
+@patch("src.agents.orchestrator.classify")
+async def test_confident_knowledge_routes_to_rag(mock_classify):
+    mock_classify.return_value = (INTENT_KNOWLEDGE_QUESTION, 0.99)
+    rag, translation = _chains()
+    orchestrator = build_orchestrator(rag, translation)
     result = await process_message(orchestrator, "What is a White Card?")
+    assert result == "rag answer"
+    translation.ainvoke.assert_not_called()
 
-    assert result == "The White Card is required."
-    mock_rag_chain.ainvoke.assert_called_once()
-    mock_translation_chain.ainvoke.assert_not_called()
+
+@patch("src.agents.orchestrator.load_classifier", MagicMock())
+@patch("src.agents.orchestrator.classify")
+async def test_confident_translation_routes_to_translation(mock_classify):
+    mock_classify.return_value = (INTENT_TRANSLATION, 0.99)
+    rag, translation = _chains()
+    orchestrator = build_orchestrator(rag, translation)
+    result = await process_message(orchestrator, "Как будет спасибо по-сербски")
+    assert result == "translation answer"
+    rag.ainvoke.assert_not_called()
+
+
+@patch("src.agents.orchestrator.load_classifier", MagicMock())
+@patch("src.agents.orchestrator.classify")
+async def test_confident_out_of_scope_is_rejected(mock_classify):
+    mock_classify.return_value = (INTENT_OUT_OF_SCOPE, 0.99)
+    rag, translation = _chains()
+    orchestrator = build_orchestrator(rag, translation)
+    result = await process_message(orchestrator, "tell me a joke")
+    assert result == OUT_OF_SCOPE_MESSAGE
+    rag.ainvoke.assert_not_called()
+    translation.ainvoke.assert_not_called()
 
 
 @patch("src.agents.orchestrator._build_classifier_chain")
-async def test_translation_request_routes_to_translation_agent(mock_build_classifier):
-    mock_classifier = MagicMock()
-    mock_classifier.ainvoke = AsyncMock(return_value=INTENT_TRANSLATION)
-    mock_build_classifier.return_value = mock_classifier
-
-    mock_rag_chain = MagicMock()
-    mock_rag_chain.ainvoke = AsyncMock(return_value="should not be called")
-
-    mock_translation_chain = MagicMock()
-    mock_translation_chain.ainvoke = AsyncMock(return_value="Dobro jutro")
-
-    orchestrator = build_orchestrator(mock_rag_chain, mock_translation_chain)
-    result = await process_message(orchestrator, "Translate: Good morning")
-
-    assert result == "Dobro jutro"
-    mock_translation_chain.ainvoke.assert_called_once()
-    mock_rag_chain.ainvoke.assert_not_called()
-
-
-@patch("src.agents.orchestrator._build_classifier_chain")
-async def test_unknown_intent_defaults_to_rag_agent(mock_build_classifier):
-    mock_classifier = MagicMock()
-    mock_classifier.ainvoke = AsyncMock(return_value="something unexpected")
-    mock_build_classifier.return_value = mock_classifier
-
-    mock_rag_chain = MagicMock()
-    mock_rag_chain.ainvoke = AsyncMock(return_value="RAG fallback response.")
-
-    mock_translation_chain = MagicMock()
-
-    orchestrator = build_orchestrator(mock_rag_chain, mock_translation_chain)
-    result = await process_message(orchestrator, "Hello there")
-
-    assert result == "RAG fallback response."
-    mock_rag_chain.ainvoke.assert_called_once()
+@patch("src.agents.orchestrator.load_classifier", MagicMock())
+@patch("src.agents.orchestrator.classify")
+async def test_low_confidence_falls_back_to_the_llm(mock_classify, mock_build_chain):
+    # DNN is unsure (below threshold); the LLM fallback decides the intent.
+    mock_classify.return_value = (INTENT_OUT_OF_SCOPE, 0.2)
+    llm_chain = MagicMock()
+    llm_chain.ainvoke = AsyncMock(return_value="translation")
+    mock_build_chain.return_value = llm_chain
+    rag, translation = _chains()
+    orchestrator = build_orchestrator(rag, translation)
+    result = await process_message(orchestrator, "ambiguous message")
+    assert result == "translation answer"
+    llm_chain.ainvoke.assert_awaited_once()
