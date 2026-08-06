@@ -26,11 +26,13 @@ OUT_OF_SCOPE_MESSAGE = (
 
 CLASSIFICATION_PROMPT = (
     "You are a message classifier for an immigrant assistance bot in Serbia. "
-    "Classify the user's message into one of two categories:\n\n"
+    "Classify the user's message into one of three categories:\n\n"
     f"- {INTENT_KNOWLEDGE_QUESTION}: Questions about living in Serbia, "
     "immigration procedures, documents, laws, banks, taxes, healthcare, etc.\n"
-    f"- {INTENT_TRANSLATION}: Requests to translate text between Serbian and English, "
-    "or questions about how to say something in Serbian/English.\n\n"
+    f"- {INTENT_TRANSLATION}: Requests to translate between Serbian, English, and "
+    "Russian, or a pasted foreign sentence to translate.\n"
+    f"- {INTENT_OUT_OF_SCOPE}: Anything else, including a single word or short "
+    "fragment with no clear request.\n\n"
     "Respond with ONLY the category name, nothing else."
 )
 
@@ -94,6 +96,8 @@ def build_orchestrator(rag_chain, translation_chain):
         llm_intent = result.strip().lower()
         if INTENT_TRANSLATION in llm_intent:
             return {"intent": INTENT_TRANSLATION}
+        if INTENT_OUT_OF_SCOPE in llm_intent:
+            return {"intent": INTENT_OUT_OF_SCOPE}
         return {"intent": INTENT_KNOWLEDGE_QUESTION}
 
     async def handle_knowledge_question(state: OrchestratorState) -> dict:

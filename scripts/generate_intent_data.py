@@ -43,13 +43,23 @@ INTENT_PROMPTS = {
         "scheduling, official). Mix in a few English requests. One request "
         "per line, no numbering, no quotes."
     ),
-    "out_of_scope": (
-        "Generate {n} short, varied OFF-TOPIC messages, unrelated to living "
-        "in Serbia or to translation: weather, sport, cooking recipes, math, "
-        "jokes, tech support, movies and music, personal chit-chat, and "
-        "other countries. Write MOST of them in Russian, with some in "
-        "English and Serbian. One message per line, no numbering, no quotes."
-    ),
+    "out_of_scope": [
+        (
+            0.8,
+            "Generate {n} varied OFF-TOPIC messages, unrelated to living in "
+            "Serbia or to translation: weather, sport, cooking recipes, math, "
+            "jokes, tech support, movies and music, personal chit-chat, and "
+            "other countries. Write part in Russian, part in English, part in "
+            "Serbian. One message per line, no numbering, no quotes.",
+        ),
+        (
+            0.2,
+            "Generate {n} OFF-TOPIC messages that are EACH just a single word "
+            "or a two-word fragment with no request (in Russian, Serbian, or "
+            "English) - a lone noun, a name, or a random pair of words. One "
+            "message per line, no numbering, no quotes.",
+        ),
+    ],
 }
 
 
@@ -79,6 +89,21 @@ def generate_for_intent(llm, prompt_template, total, batch):
     return list(seen)[:total]
 
 
+def generate_intent_examples(llm, spec, total, batch):
+    """Generate examples for one intent.
+
+    `spec` is a single prompt string, or a list of (share, prompt) tuples whose
+    shares split `total` -- so proportions are controlled here in code, not by
+    asking the LLM to self-proportion (which it does not do reliably).
+    """
+    if isinstance(spec, str):
+        return generate_for_intent(llm, spec, total, batch)
+    examples = []
+    for share, prompt in spec:
+        examples += generate_for_intent(llm, prompt, round(share * total), batch)
+    return examples
+
+
 def main() -> None:
     """Generate examples for every intent and write them to a CSV."""
     llm = ChatOpenAI(
@@ -92,7 +117,7 @@ def main() -> None:
         writer = csv.writer(f)
         writer.writerow(["text", "intent"])
         for intent, template in INTENT_PROMPTS.items():
-            examples = generate_for_intent(
+            examples = generate_intent_examples(
                 llm, template, EXAMPLES_PER_INTENT, BATCH_SIZE
             )
             for text in examples:
