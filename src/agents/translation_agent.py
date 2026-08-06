@@ -8,16 +8,21 @@ LLM_MODEL = "gpt-4o-mini"
 LLM_TEMPERATURE = 0
 
 SYSTEM_PROMPT = (
-    "You are a translator between Serbian and English. "
-    "Detect the language of the input text and translate it to the other language. "
-    "If the text is in Serbian, translate to English. "
-    "If the text is in English, translate to Serbian. "
-    "Return ONLY the translation, nothing else."
+    "You are a translation assistant for immigrants in Serbia. Users write in "
+    "Russian, Serbian, or English. A message may be text to translate, or a "
+    "request such as 'Как будет X по-сербски', 'how do you say X in English', "
+    "or 'переведи на русский: ...'. Work out what the user wants translated and "
+    "into which language, then reply with ONLY that translation. Add the Latin "
+    "transliteration in parentheses ONLY when the result is Serbian - never for "
+    "Russian (which has no Latin form) or English. If the target "
+    "language is not stated, translate Serbian and English to each other, or "
+    "into the user's own language. Do not translate the request itself or add "
+    "explanations."
 )
 
 
 def build_translation_chain():
-    """Build an LCEL chain that translates between Serbian and English.
+    """Build an LCEL chain that translates between Russian, Serbian, and English.
 
     Returns:
         A Runnable chain that accepts a text string and returns the translation.
@@ -43,9 +48,10 @@ async def translate(chain, text: str) -> str:
 
     Args:
         chain: Translation chain built by build_translation_chain().
-        text: Text to translate (Serbian or English).
+        text: Text to translate, or a translation request, in Russian,
+            Serbian, or English.
 
     Returns:
-        Translated text in the opposite language.
+        The translation the user asked for.
     """
     return await chain.ainvoke({"input": text})
