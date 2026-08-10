@@ -2,10 +2,15 @@ import logging
 
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 
-from src.agents.orchestrator import build_orchestrator
+from src.agents.orchestrator import build_orchestrator, build_preference_tidier
 from src.agents.rag_agent import build_rag_chain
 from src.agents.translation_agent import build_translation_chain
-from src.bot.handlers import handle_message, help_command, start_command
+from src.bot.handlers import (
+    handle_message,
+    help_command,
+    pref_command,
+    start_command,
+)
 from src.bot.middleware import RateLimiter
 from src.config import settings
 from src.knowledge.loader import chunk_documents, load_documents
@@ -42,11 +47,13 @@ def create_application():
     translation_chain = build_translation_chain()
     orchestrator = build_orchestrator(rag_chain, translation_chain)
     app.bot_data["orchestrator"] = orchestrator
+    app.bot_data["preference_tidier"] = build_preference_tidier()
     app.bot_data["rate_limiter"] = RateLimiter()
     logger.info("Orchestrator initialized with RAG and translation agents.")
 
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("pref", pref_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     logger.info("Bot handlers registered successfully.")

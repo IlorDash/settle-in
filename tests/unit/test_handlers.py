@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from openai import APIConnectionError, APITimeoutError, RateLimitError
 
@@ -9,6 +9,7 @@ from src.bot.handlers import (
     ERROR_TIMEOUT,
     handle_message,
     help_command,
+    pref_command,
     start_command,
 )
 from src.bot.middleware import RateLimiter
@@ -47,6 +48,144 @@ async def test_help_command_includes_usage_examples(mock_update, mock_context):
     assert "Example" in reply_text or "example" in reply_text
 
 
+async def test_help_command_lists_pref_command(mock_update, mock_context):
+    await help_command(mock_update, mock_context)
+
+    reply_text = mock_update.message.reply_text.call_args[0][0]
+    assert "/pref" in reply_text
+
+
+@patch("src.bot.handlers.get_preferences", return_value=["Reply in Cyrillic."])
+async def test_pref_command_no_args_shows_saved_preferences(
+    mock_get, mock_update, mock_context
+):
+    mock_context.args = []
+
+    await pref_command(mock_update, mock_context)
+
+    reply_text = mock_update.message.reply_text.call_args[0][0]
+    assert "Reply in Cyrillic." in reply_text
+
+
+@patch("src.bot.handlers.get_preferences", return_value=[])
+async def test_pref_command_no_args_and_none_saved_shows_usage(
+    mock_get, mock_update, mock_context
+):
+    mock_context.args = []
+
+    await pref_command(mock_update, mock_context)
+
+    reply_text = mock_update.message.reply_text.call_args[0][0]
+    assert "no saved preferences" in reply_text
+    assert "/pref add" in reply_text
+
+
+@patch("src.bot.handlers.add_preference", return_value=["Write in Cyrillic"])
+async def test_pref_command_add_saves_the_rule(mock_add, mock_update, mock_context):
+    mock_context.args = ["add", "Write", "in", "Cyrillic"]
+
+    await pref_command(mock_update, mock_context)
+
+    mock_add.assert_called_once()
+    saved_rule = mock_add.call_args.args[2]
+    assert saved_rule == "Write in Cyrillic"
+    reply_text = mock_update.message.reply_text.call_args[0][0]
+    assert "Saved" in reply_text
+
+
+@patch("src.bot.handlers.add_preference")
+async def test_pref_command_add_without_a_rule_asks_for_one(
+    mock_add, mock_update, mock_context
+):
+    mock_context.args = ["add"]
+
+    await pref_command(mock_update, mock_context)
+
+    mock_add.assert_not_called()
+    reply_text = mock_update.message.reply_text.call_args[0][0]
+    assert "rule" in reply_text.lower()
+
+
+@patch("src.bot.handlers.clear_preferences")
+async def test_pref_command_clear_removes_preferences(
+    mock_clear, mock_update, mock_context
+):
+    mock_context.args = ["clear"]
+
+    await pref_command(mock_update, mock_context)
+
+    mock_clear.assert_called_once()
+    reply_text = mock_update.message.reply_text.call_args[0][0]
+    assert "Cleared" in reply_text
+
+
+async def test_pref_command_unknown_action_shows_usage(mock_update, mock_context):
+    mock_context.args = ["wobble"]
+
+    await pref_command(mock_update, mock_context)
+
+    reply_text = mock_update.message.reply_text.call_args[0][0]
+    assert "/pref add" in reply_text
+
+
+@patch("src.bot.handlers.remove_preference", return_value=["Keep it short."])
+@patch("src.bot.handlers.get_preferences", return_value=["A rule.", "Keep it short."])
+async def test_pref_command_remove_deletes_by_number(
+    mock_get, mock_remove, mock_update, mock_context
+):
+    mock_context.args = ["remove", "1"]
+
+    await pref_command(mock_update, mock_context)
+
+    # The 1-based number is converted to a 0-based index for the helper.
+    assert mock_remove.call_args.args[2] == 0
+    reply_text = mock_update.message.reply_text.call_args[0][0]
+    assert "Removed" in reply_text
+
+
+@patch("src.bot.handlers.remove_preference")
+@patch("src.bot.handlers.get_preferences", return_value=["A rule."])
+async def test_pref_command_remove_without_a_number_asks(
+    mock_get, mock_remove, mock_update, mock_context
+):
+    mock_context.args = ["remove"]
+
+    await pref_command(mock_update, mock_context)
+
+    mock_remove.assert_not_called()
+    reply_text = mock_update.message.reply_text.call_args[0][0]
+    assert "number" in reply_text.lower()
+
+
+@patch("src.bot.handlers.remove_preference")
+@patch("src.bot.handlers.get_preferences", return_value=["A rule."])
+async def test_pref_command_remove_out_of_range_reports_it(
+    mock_get, mock_remove, mock_update, mock_context
+):
+    mock_context.args = ["remove", "9"]
+
+    await pref_command(mock_update, mock_context)
+
+    mock_remove.assert_not_called()
+    reply_text = mock_update.message.reply_text.call_args[0][0]
+    assert "no preference number 9" in reply_text.lower()
+
+
+@patch(
+    "src.bot.handlers.tidy_preferences",
+    new=AsyncMock(return_value=["Merged rule."]),
+)
+async def test_pref_command_tidy_merges_and_shows_result(mock_update, mock_context):
+    mock_context.args = ["tidy"]
+    mock_context.bot_data["preference_tidier"] = MagicMock()
+
+    await pref_command(mock_update, mock_context)
+
+    reply_text = mock_update.message.reply_text.call_args[0][0]
+    assert "Tidied" in reply_text
+    assert "Merged rule." in reply_text
+
+
 async def test_handle_message_sends_orchestrator_response(mock_update, mock_context):
     mock_update.message.text = "How do I get a work permit?"
 
@@ -64,9 +203,20 @@ async def test_handle_message_passes_user_text_to_orchestrator(
 
     await handle_message(mock_update, mock_context)
 
-    mock_orchestrator.ainvoke.assert_called_once_with(
-        {"user_message": "What is a White Card?"}
-    )
+    mock_orchestrator.ainvoke.assert_called_once()
+    sent = mock_orchestrator.ainvoke.call_args.args[0]["messages"][-1].content
+    assert sent == "What is a White Card?"
+
+
+async def test_handle_message_uses_chat_id_as_thread(
+    mock_update, mock_context, mock_orchestrator
+):
+    mock_update.message.text = "What is a White Card?"
+
+    await handle_message(mock_update, mock_context)
+
+    config = mock_orchestrator.ainvoke.call_args.kwargs["config"]
+    assert config["configurable"]["thread_id"] == str(mock_update.message.chat_id)
 
 
 async def test_handle_message_rejects_empty_text(
@@ -175,6 +325,6 @@ async def test_handle_message_strips_whitespace_before_sending(
 
     await handle_message(mock_update, mock_context)
 
-    mock_orchestrator.ainvoke.assert_called_once_with(
-        {"user_message": "What is a White Card?"}
-    )
+    mock_orchestrator.ainvoke.assert_called_once()
+    sent = mock_orchestrator.ainvoke.call_args.args[0]["messages"][-1].content
+    assert sent == "What is a White Card?"
