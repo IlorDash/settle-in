@@ -100,14 +100,16 @@ def test_preferences_directive_returns_placeholder_when_preferences_none():
 
 def test_preferences_directive_lists_stored_instructions():
     # Stored instructions are rendered as a bulleted directive the
-    # translation agent's prompt can follow.
+    # translation agent's prompt can follow, headed by a rule that lets an
+    # explicit request in the current message override a standing preference.
     preferences = {"instructions": ["Reply in Cyrillic.", "Keep answers short."]}
 
     directive = _preferences_directive(preferences)
 
     assert directive == (
         "Apply these standing user preferences to every reply, whatever the "
-        "target language:\n"
+        "target language. If the current message explicitly asks for something "
+        "different, that request wins for this reply:\n"
         "- Reply in Cyrillic.\n"
         "- Keep answers short."
     )

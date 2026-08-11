@@ -4,7 +4,9 @@ from langchain_openai import ChatOpenAI
 
 from src.config import settings
 
-LLM_MODEL = "gpt-4o-mini"
+# In live tests gpt-4o translated into Serbian more accurately and followed
+# standing preferences better than the smaller models.
+LLM_MODEL = "gpt-4o"
 LLM_TEMPERATURE = 0
 
 SYSTEM_PROMPT = (

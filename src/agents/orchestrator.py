@@ -184,6 +184,11 @@ def _preferences_directive(preferences: dict) -> str:
     language, because a language-scoped rule in the list (e.g. "Write Serbian
     in Cyrillic") otherwise biases the model into treating the whole set as
     Serbian-only.
+
+    The closing clause keeps a one-off request ahead of a standing rule. The
+    directive is a system message placed right before the user's turn, so it
+    outranks and outweighs the request itself; without an explicit exception a
+    stored "in Cyrillic" silently overrides someone asking for Latin now.
     """
     instructions = (preferences or {}).get("instructions") or []
     if not instructions:
@@ -191,7 +196,8 @@ def _preferences_directive(preferences: dict) -> str:
     lines = "\n".join(f"- {instruction}" for instruction in instructions)
     return (
         "Apply these standing user preferences to every reply, whatever the "
-        "target language:\n" + lines
+        "target language. If the current message explicitly asks for something "
+        "different, that request wins for this reply:\n" + lines
     )
 
 
