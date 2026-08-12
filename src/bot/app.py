@@ -29,6 +29,11 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO,
 )
+# httpx logs every request URL at INFO, and Telegram puts the bot token in
+# the URL path - so INFO here would copy the token into the deployment logs
+# on every single call. WARNING keeps the failures and drops the tokens.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
 logger = logging.getLogger(__name__)
 
 
