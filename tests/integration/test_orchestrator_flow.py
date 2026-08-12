@@ -34,7 +34,7 @@ async def test_confident_knowledge_routes_to_rag(mock_classify):
     rag, translation = _chains()
     orchestrator = build_orchestrator(rag, translation)
     result = await process_message(orchestrator, "What is a White Card?")
-    assert result == "rag answer"
+    assert result.response == "rag answer"
     translation.ainvoke.assert_not_called()
 
 
@@ -45,7 +45,7 @@ async def test_confident_translation_routes_to_translation(mock_classify):
     rag, translation = _chains()
     orchestrator = build_orchestrator(rag, translation)
     result = await process_message(orchestrator, "Как будет спасибо по-сербски")
-    assert result == "translation answer"
+    assert result.response == "translation answer"
     rag.ainvoke.assert_not_called()
 
 
@@ -56,7 +56,7 @@ async def test_confident_out_of_scope_is_rejected(mock_classify):
     rag, translation = _chains()
     orchestrator = build_orchestrator(rag, translation)
     result = await process_message(orchestrator, "tell me a joke")
-    assert result == OUT_OF_SCOPE_MESSAGE
+    assert result.response == OUT_OF_SCOPE_MESSAGE
     rag.ainvoke.assert_not_called()
     translation.ainvoke.assert_not_called()
 
@@ -73,7 +73,7 @@ async def test_low_confidence_falls_back_to_the_llm(mock_classify, mock_build_ch
     rag, translation = _chains()
     orchestrator = build_orchestrator(rag, translation)
     result = await process_message(orchestrator, "ambiguous message")
-    assert result == "translation answer"
+    assert result.response == "translation answer"
     llm_chain.ainvoke.assert_awaited_once()
 
 
@@ -94,7 +94,7 @@ async def test_followup_escalates_to_context_aware_llm(mock_classify, mock_build
     await process_message(orchestrator, "Переведи привет", thread_id=thread_id)
     result = await process_message(orchestrator, "А латиницей?", thread_id=thread_id)
 
-    assert result == "translation answer"
+    assert result.response == "translation answer"
     # The LLM classifier was consulted with the earlier turns as context.
     payload = llm_chain.ainvoke.call_args.args[0]
     assert len(payload["history"]) == 2

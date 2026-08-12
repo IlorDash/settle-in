@@ -93,8 +93,8 @@ async def main() -> None:
 
         intent, confidence = classify(classifier, message)
         print(f"[dnn intent={intent} confidence={confidence:.2f}]")
-        response = await process_message(orchestrator, message)
-        print(f"bot> {response}")
+        result = await process_message(orchestrator, message)
+        print(f"bot [routed={result.intent}]> {result.response}")
 
 
 if __name__ == "__main__":

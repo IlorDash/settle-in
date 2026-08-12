@@ -1,11 +1,20 @@
 import logging
 
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
+from telegram.ext import (
+    ApplicationBuilder,
+    CallbackQueryHandler,
+    CommandHandler,
+    MessageHandler,
+    filters,
+)
 
 from src.agents.orchestrator import build_orchestrator, build_preference_tidier
 from src.agents.rag_agent import build_rag_chain
 from src.agents.translation_agent import build_translation_chain
 from src.bot.handlers import (
+    CALLBACK_PREFIX,
+    error_handler,
+    feedback_callback,
     handle_message,
     help_command,
     pref_command,
@@ -54,7 +63,13 @@ def create_application():
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("pref", pref_command))
+    # The pattern keeps this handler off any inline keyboard added later.
+    app.add_handler(
+        CallbackQueryHandler(feedback_callback, pattern=f"^{CALLBACK_PREFIX}:")
+    )
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    # Last line of defence: catches anything the handlers above let through.
+    app.add_error_handler(error_handler)
 
     logger.info("Bot handlers registered successfully.")
     return app

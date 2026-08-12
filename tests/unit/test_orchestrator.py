@@ -27,7 +27,8 @@ async def test_process_message_returns_agent_response():
 
     result = await process_message(mock_orchestrator, "What is a White Card?")
 
-    assert result == "The White Card is a registration document."
+    assert result.response == "The White Card is a registration document."
+    assert result.intent == INTENT_KNOWLEDGE_QUESTION
 
 
 async def test_process_message_returns_translation_response():
@@ -42,7 +43,8 @@ async def test_process_message_returns_translation_response():
 
     result = await process_message(mock_orchestrator, "Dobro jutro")
 
-    assert result == "Good morning"
+    assert result.response == "Good morning"
+    assert result.intent == INTENT_TRANSLATION
 
 
 def test_append_capped_messages_bounds_the_log():

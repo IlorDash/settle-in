@@ -1,12 +1,18 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from openai import APIConnectionError, APITimeoutError, RateLimitError
+from telegram import Chat, InaccessibleMessage
+from telegram.error import BadRequest, TelegramError
 
 from src.bot.handlers import (
     ERROR_CONNECTION,
     ERROR_GENERIC,
     ERROR_RATE_LIMIT,
     ERROR_TIMEOUT,
+    FEEDBACK_LOST,
+    FEEDBACK_THANKS,
+    error_handler,
+    feedback_callback,
     handle_message,
     help_command,
     pref_command,
@@ -191,9 +197,9 @@ async def test_handle_message_sends_orchestrator_response(mock_update, mock_cont
 
     await handle_message(mock_update, mock_context)
 
-    mock_update.message.reply_text.assert_called_once_with(
-        "Test answer from orchestrator."
-    )
+    mock_update.message.reply_text.assert_called_once()
+    reply_text = mock_update.message.reply_text.call_args[0][0]
+    assert reply_text == "Test answer from orchestrator."
 
 
 async def test_handle_message_passes_user_text_to_orchestrator(
@@ -328,3 +334,196 @@ async def test_handle_message_strips_whitespace_before_sending(
     mock_orchestrator.ainvoke.assert_called_once()
     sent = mock_orchestrator.ainvoke.call_args.args[0]["messages"][-1].content
     assert sent == "What is a White Card?"
+
+
+async def test_handle_message_attaches_feedback_buttons(mock_update, mock_context):
+    # A knowledge answer is rateable, so it must carry the two buttons.
+    mock_update.message.text = "What is a White Card?"
+
+    await handle_message(mock_update, mock_context)
+
+    markup = mock_update.message.reply_text.call_args.kwargs["reply_markup"]
+    assert len(markup.inline_keyboard[0]) == 2
+
+
+async def test_handle_message_replies_to_the_question(mock_update, mock_context):
+    # The reply link is what lets a later tap find the original question,
+    # so losing it would silently break feedback recording.
+    mock_update.message.text = "What is a White Card?"
+
+    await handle_message(mock_update, mock_context)
+
+    reply_to = mock_update.message.reply_text.call_args.kwargs["reply_to_message_id"]
+    assert reply_to == mock_update.message.message_id
+
+
+async def test_handle_message_omits_buttons_for_out_of_scope(
+    mock_update, mock_context, mock_orchestrator
+):
+    # Rating a rejection teaches the classifier nothing, so no buttons.
+    mock_orchestrator.ainvoke = AsyncMock(
+        return_value={"intent": "out_of_scope", "agent_response": "Out of scope."}
+    )
+    mock_update.message.text = "tell me a joke"
+
+    await handle_message(mock_update, mock_context)
+
+    assert mock_update.message.reply_text.call_args.kwargs["reply_markup"] is None
+
+
+async def test_handle_message_error_reply_has_no_buttons(
+    mock_update, mock_context, mock_orchestrator
+):
+    # Error replies go through a different reply_text call with no markup.
+    mock_orchestrator.ainvoke = AsyncMock(side_effect=APITimeoutError(request=None))
+    mock_update.message.text = "test question"
+
+    await handle_message(mock_update, mock_context)
+
+    assert mock_update.message.reply_text.call_args.kwargs == {}
+
+
+@patch("src.bot.handlers.record_feedback")
+async def test_feedback_callback_records_the_verdict(mock_record, mock_callback_update):
+    await feedback_callback(mock_callback_update, MagicMock())
+
+    assert mock_record.call_args.args == (
+        "What is a White Card?",
+        "knowledge_question",
+        "up",
+    )
+
+
+@patch("src.bot.handlers.record_feedback")
+async def test_feedback_callback_thanks_the_user(mock_record, mock_callback_update):
+    await feedback_callback(mock_callback_update, MagicMock())
+
+    mock_callback_update.callback_query.answer.assert_awaited_once_with(FEEDBACK_THANKS)
+
+
+@patch("src.bot.handlers.record_feedback")
+async def test_feedback_callback_removes_the_buttons(mock_record, mock_callback_update):
+    # Clearing the keyboard is what stops the same answer being rated twice.
+    await feedback_callback(mock_callback_update, MagicMock())
+
+    query = mock_callback_update.callback_query
+    query.edit_message_reply_markup.assert_awaited_once_with(None)
+
+
+@patch("src.bot.handlers.record_feedback")
+async def test_feedback_callback_ignores_unknown_payload(
+    mock_record, mock_callback_update
+):
+    # A button from an older deploy must be shrugged off, not unpacked.
+    mock_callback_update.callback_query.data = "something:else"
+
+    await feedback_callback(mock_callback_update, MagicMock())
+
+    mock_record.assert_not_called()
+
+
+@patch("src.bot.handlers.record_feedback")
+async def test_feedback_callback_rejects_an_unknown_verdict(
+    mock_record, mock_callback_update
+):
+    # The shape is right but the verdict is not one we issue.
+    mock_callback_update.callback_query.data = "fb:sideways:translation"
+
+    await feedback_callback(mock_callback_update, MagicMock())
+
+    mock_record.assert_not_called()
+
+
+@patch("src.bot.handlers.record_feedback")
+async def test_feedback_callback_reports_a_missing_question(
+    mock_record, mock_callback_update
+):
+    # The user deleted the question, so the reply chain no longer reaches it.
+    mock_callback_update.callback_query.message.reply_to_message = None
+
+    await feedback_callback(mock_callback_update, MagicMock())
+
+    mock_callback_update.callback_query.answer.assert_awaited_once_with(FEEDBACK_LOST)
+
+
+@patch("src.bot.handlers.record_feedback", side_effect=OSError("read-only file system"))
+async def test_feedback_callback_still_thanks_when_saving_fails(
+    mock_record, mock_callback_update
+):
+    # A full or read-only disk is our problem, not something the user sees.
+    await feedback_callback(mock_callback_update, MagicMock())
+
+    mock_callback_update.callback_query.answer.assert_awaited_once_with(FEEDBACK_THANKS)
+
+
+@patch("src.bot.handlers.record_feedback")
+async def test_feedback_callback_survives_a_stale_keyboard(
+    mock_record, mock_callback_update
+):
+    # Telegram refuses the edit on a second tap; the vote is already saved.
+    query = mock_callback_update.callback_query
+    query.edit_message_reply_markup = AsyncMock(side_effect=BadRequest("not modified"))
+
+    await feedback_callback(mock_callback_update, MagicMock())
+
+    mock_record.assert_called_once()
+
+
+@patch("src.bot.handlers.record_feedback")
+async def test_feedback_callback_handles_an_inaccessible_answer(
+    mock_record, mock_callback_update
+):
+    # Past ~48 hours Telegram sends an InaccessibleMessage, which carries no
+    # reply_to_message at all. Reading it used to raise AttributeError before
+    # the query was ever answered, leaving the button spinning.
+    inaccessible = InaccessibleMessage(chat=Chat(id=1, type="private"), message_id=5)
+    mock_callback_update.callback_query.message = inaccessible
+
+    await feedback_callback(mock_callback_update, MagicMock())
+
+    mock_callback_update.callback_query.answer.assert_awaited_once_with(FEEDBACK_LOST)
+
+
+async def test_error_handler_apologises_to_the_user(mock_update):
+    # Without this handler an unexpected crash leaves the user with silence.
+    context = MagicMock()
+    context.error = RuntimeError("boom")
+    mock_update.effective_message = mock_update.message
+
+    await error_handler(mock_update, context)
+
+    mock_update.message.reply_text.assert_awaited_once_with(ERROR_GENERIC)
+
+
+async def test_error_handler_survives_an_update_less_failure():
+    # A background failure has no update and nobody to reply to, so the
+    # handler must log and return rather than raise a second error.
+    context = MagicMock()
+    context.error = RuntimeError("boom")
+
+    await error_handler(None, context)
+
+
+async def test_error_handler_survives_an_undeliverable_apology(mock_update):
+    # The user may have blocked the bot; the log is what matters by then.
+    context = MagicMock()
+    context.error = RuntimeError("boom")
+    mock_update.effective_message = mock_update.message
+    mock_update.message.reply_text = AsyncMock(side_effect=TelegramError("blocked"))
+
+    await error_handler(mock_update, context)
+
+
+async def test_handle_message_attaches_buttons_to_translations(
+    mock_update, mock_context, mock_orchestrator
+):
+    # The other rateable intent, so the keyboard is not knowledge-only.
+    mock_orchestrator.ainvoke = AsyncMock(
+        return_value={"intent": "translation", "agent_response": "papagaj"}
+    )
+    mock_update.message.text = "Переведи попугай на сербский"
+
+    await handle_message(mock_update, mock_context)
+
+    markup = mock_update.message.reply_text.call_args.kwargs["reply_markup"]
+    assert markup.inline_keyboard[0][0].callback_data == "fb:up:translation"

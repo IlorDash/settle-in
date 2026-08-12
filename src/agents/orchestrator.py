@@ -1,5 +1,5 @@
 import re
-from typing import Annotated, Literal
+from typing import Annotated, Literal, NamedTuple
 
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.output_parsers import StrOutputParser
@@ -292,8 +292,22 @@ def _thread_config(thread_id) -> dict:
     return {"configurable": {"thread_id": str(thread_id)}}
 
 
-async def process_message(orchestrator, message: str, thread_id: str = "cli") -> str:
-    """Run a user message through the orchestrator and return the response.
+class MessageResult(NamedTuple):
+    """The outcome of processing one user message.
+
+    Attributes:
+        response: The reply to send back to the user.
+        intent: The intent the orchestrator settled on (for feedback logging).
+    """
+
+    response: str
+    intent: str
+
+
+async def process_message(
+    orchestrator, message: str, thread_id: str = "cli"
+) -> MessageResult:
+    """Run a user message through the orchestrator and return the result.
 
     Args:
         orchestrator: Compiled orchestrator graph from build_orchestrator().
@@ -303,13 +317,13 @@ async def process_message(orchestrator, message: str, thread_id: str = "cli") ->
             each chat its own history. Defaults to a single shared CLI thread.
 
     Returns:
-        The agent's response string.
+        A MessageResult with the response text and the classified intent.
     """
     result = await orchestrator.ainvoke(
         {"messages": [HumanMessage(content=message)]},
         config=_thread_config(thread_id),
     )
-    return result["agent_response"]
+    return MessageResult(response=result["agent_response"], intent=result["intent"])
 
 
 def get_preferences(orchestrator, thread_id) -> list:
