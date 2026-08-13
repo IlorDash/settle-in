@@ -9,7 +9,7 @@ Built with Python, LangChain, LangGraph, and ChromaDB.
 - **Knowledge Q&A** — ask questions about Serbian residency, work permits, banking, health insurance, tax registration, and daily procedures. Answers are sourced from a curated knowledge base using RAG (Retrieval-Augmented Generation)
 - **Translation** — translate between Serbian, English, and Russian, including request phrasings like "Как будет спасибо по-сербски"
 - **Smart routing** — a locally trained classifier picks the right agent in milliseconds, falling back to an LLM only when it is unsure, and rejecting questions outside the bot's scope
-- **Conversational memory** — each chat keeps its own history, so follow-ups like "and in Latin?" are understood
+- **Conversational memory** — each chat keeps its own history, so follow-ups like "and in Latin?" are understood, and it is stored on disk so a restart does not wipe it
 - **Standing preferences** — `/pref add Write Serbian translations in Cyrillic` saves a rule the bot applies to later answers
 - **Feedback buttons** — 👍/👎 under each answer, recorded with the predicted intent as labelled data for retraining the classifier
 - **Input protection** — message validation, per-user rate limiting, and graceful error handling for LLM timeouts and API failures, with a catch-all handler so even an unexpected crash gets a reply rather than silence
@@ -72,11 +72,12 @@ settle-in/
 │   └── train_intent_classifier.py
 ├── data/
 │   ├── knowledge_base/         # 8 text documents on Serbian procedures
-│   └── feedback.jsonl          # Collected thumbs up/down (created on first vote)
+│   ├── feedback.jsonl          # Collected thumbs up/down (created on first vote)
+│   └── checkpoints.sqlite      # Chat history and /pref rules (created on first use)
 ├── tests/
 │   ├── conftest.py             # Shared fixtures (mock Telegram, mock orchestrator)
-│   ├── unit/                   # 87 unit tests
-│   ├── integration/            # 23 integration tests
+│   ├── unit/                   # 88 unit tests
+│   ├── integration/            # 25 integration tests
 │   └── evals/                  # 10 opt-in tests that call the real OpenAI API
 ├── Dockerfile
 ├── pyproject.toml
@@ -94,6 +95,7 @@ settle-in/
 | Intent classifier | scikit-learn TF-IDF + MLP, trained locally |
 | Embeddings | OpenAI text-embedding-3-small |
 | Vector store | ChromaDB |
+| Chat memory | LangGraph checkpointer backed by SQLite (a file, not a server) |
 | Testing | pytest, pytest-asyncio, pytest-cov |
 | Linting | ruff |
 
@@ -177,6 +179,33 @@ The bot is deployed on [Railway](https://railway.app) using Docker with webhook 
 | `WEBHOOK_URL` | No | `""` | Public HTTPS URL for webhook mode |
 | `PORT` | No | `8443` | Port for the webhook server |
 | `CHROMA_PERSIST_DIR` | No | `./data/chroma_db` | Path where ChromaDB stores vector data |
+| `FEEDBACK_PATH` | No | `./data/feedback.jsonl` | File collecting thumbs up/down verdicts |
+| `CHECKPOINT_PATH` | No | `./data/checkpoints.sqlite` | File holding chat history and `/pref` rules |
+
+### Persistent storage (required on Railway)
+
+A container's filesystem is recreated on every deploy. The bot writes three
+things that must outlive it: the vector store, the collected feedback, and each
+chat's history and preferences. Without a volume, every deploy erases all three
+and the knowledge base is re-embedded from scratch, which costs money.
+
+Attach a Railway **Volume**, mount it at `/data`, and point the three path
+variables into it:
+
+```
+CHROMA_PERSIST_DIR=/data/chroma_db
+FEEDBACK_PATH=/data/feedback.jsonl
+CHECKPOINT_PATH=/data/checkpoints.sqlite
+```
+
+The last of these is a SQLite file. SQLite is an embedded database: a single
+file plus a library that already ships with Python, with no server to run and
+no port to expose. That is what keeps this within the project's "no PostgreSQL,
+no Redis" constraint while still surviving a restart.
+
+Setting these variables is not optional housekeeping. The code reads whatever
+path it is given, so leaving the defaults means the bot writes inside the
+container and the data disappears at the next deploy exactly as before.
 
 ### Polling vs Webhook
 
@@ -185,7 +214,7 @@ The bot is deployed on [Railway](https://railway.app) using Docker with webhook 
 
 ## Testing
 
-110 tests (87 unit + 23 integration) at 89% code coverage, plus 10 opt-in evals.
+113 tests (88 unit + 25 integration) at 89% code coverage, plus 10 opt-in evals.
 
 ```bash
 # Run all tests (free and offline — evals are excluded)
