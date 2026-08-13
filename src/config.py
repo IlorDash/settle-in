@@ -14,6 +14,8 @@ class Settings:
         telegram_bot_token: Bot token from BotFather.
         openai_api_key: OpenAI API key for LLM and embedding calls.
         chroma_persist_dir: Path where ChromaDB persists data to disk.
+        feedback_path: JSONL file collecting thumbs up/down verdicts.
+        checkpoint_path: SQLite file holding per-chat history and preferences.
         bot_mode: "polling" for local dev, "webhook" for production.
         webhook_url: Public HTTPS URL for webhook mode.
         port: Port number for the webhook server (default 8443).
@@ -22,6 +24,8 @@ class Settings:
     telegram_bot_token: str
     openai_api_key: str
     chroma_persist_dir: str
+    feedback_path: str
+    checkpoint_path: str
     bot_mode: str
     webhook_url: str
     port: int
@@ -53,6 +57,8 @@ def load_settings() -> Settings:
         telegram_bot_token=token,
         openai_api_key=openai_api_key,
         chroma_persist_dir=os.getenv("CHROMA_PERSIST_DIR", "./data/chroma_db"),
+        feedback_path=os.getenv("FEEDBACK_PATH", "./data/feedback.jsonl"),
+        checkpoint_path=os.getenv("CHECKPOINT_PATH", "./data/checkpoints.sqlite"),
         bot_mode=os.getenv("BOT_MODE", "polling"),
         webhook_url=os.getenv("WEBHOOK_URL", ""),
         port=int(os.getenv("PORT", "8443")),

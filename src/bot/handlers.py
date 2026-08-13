@@ -103,14 +103,14 @@ async def _pref_add(update: Update, orchestrator, chat_id, args: list[str]) -> N
             "/pref add Write Serbian translations in Cyrillic"
         )
         return
-    rules = add_preference(orchestrator, chat_id, rule)
+    rules = await add_preference(orchestrator, chat_id, rule)
     saved = "Saved. Your preferences:\n" + _numbered_list(rules)
     await update.message.reply_text(saved)
 
 
 async def _pref_remove(update: Update, orchestrator, chat_id, args: list[str]) -> None:
     """Delete one rule by its 1-based number from `/pref remove <number>`."""
-    rules = get_preferences(orchestrator, chat_id)
+    rules = await get_preferences(orchestrator, chat_id)
     if len(args) < 2 or not args[1].isdigit():
         await update.message.reply_text("Which one? Use /pref remove <number>.")
         return
@@ -118,7 +118,7 @@ async def _pref_remove(update: Update, orchestrator, chat_id, args: list[str]) -
     if number < 1 or number > len(rules):
         await update.message.reply_text(f"There is no preference number {number}.")
         return
-    remaining = remove_preference(orchestrator, chat_id, number - 1)
+    remaining = await remove_preference(orchestrator, chat_id, number - 1)
     if not remaining:
         await update.message.reply_text("Removed. You have no saved preferences now.")
         return
@@ -151,7 +151,7 @@ async def pref_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     args = context.args
 
     if not args:
-        rules = get_preferences(orchestrator, chat_id)
+        rules = await get_preferences(orchestrator, chat_id)
         if not rules:
             await update.message.reply_text(
                 "You have no saved preferences yet.\n\n" + PREF_USAGE
@@ -173,7 +173,7 @@ async def pref_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await _pref_tidy(update, context, orchestrator, chat_id)
         return
     if action == "clear":
-        clear_preferences(orchestrator, chat_id)
+        await clear_preferences(orchestrator, chat_id)
         await update.message.reply_text("Cleared. You have no saved preferences now.")
         return
 

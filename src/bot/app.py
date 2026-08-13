@@ -1,5 +1,8 @@
 import logging
+from pathlib import Path
 
+import aiosqlite
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
@@ -37,6 +40,26 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
+def _open_checkpointer() -> AsyncSqliteSaver:
+    """Point the orchestrator's memory at a SQLite file instead of RAM.
+
+    Conversation history and /pref rules live in the checkpointer, so with the
+    in-memory saver every redeploy silently erased them. SQLite is a plain
+    file, not a database server, so this stays within the project's "no
+    Postgres, no Redis" rule; put the file on a mounted volume and the state
+    outlives the container.
+
+    The connection is not awaited here: the saver connects lazily on first
+    use, which keeps this function callable from ordinary startup code.
+
+    Returns:
+        A checkpointer writing to settings.checkpoint_path.
+    """
+    Path(settings.checkpoint_path).parent.mkdir(parents=True, exist_ok=True)
+    logger.info("Checkpointer using %s", settings.checkpoint_path)
+    return AsyncSqliteSaver(aiosqlite.connect(settings.checkpoint_path))
+
+
 def create_application():
     """Build the bot application, initialize the orchestrator, and register handlers.
 
@@ -59,7 +82,9 @@ def create_application():
     retriever = get_retriever(vectorstore)
     rag_chain = build_rag_chain(retriever)
     translation_chain = build_translation_chain()
-    orchestrator = build_orchestrator(rag_chain, translation_chain)
+    orchestrator = build_orchestrator(
+        rag_chain, translation_chain, _open_checkpointer()
+    )
     app.bot_data["orchestrator"] = orchestrator
     app.bot_data["preference_tidier"] = build_preference_tidier()
     app.bot_data["rate_limiter"] = RateLimiter()

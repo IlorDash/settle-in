@@ -1,6 +1,8 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import aiosqlite
 from langchain_core.messages import HumanMessage
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 from src.agents.orchestrator import (
     INTENT_KNOWLEDGE_QUESTION,
@@ -161,44 +163,44 @@ async def test_translation_receives_stored_preference(mock_classify):
 
 
 @patch("src.agents.orchestrator.load_classifier", MagicMock())
-def test_add_preference_persists_and_returns_all_rules():
+async def test_add_preference_persists_and_returns_all_rules():
     # /pref add writes to the checkpointer; get_preferences reads it back. Two
     # different rules both survive, oldest first.
     rag, translation = _chains()
     orchestrator = build_orchestrator(rag, translation)
-    add_preference(orchestrator, "chat-add", "Write Serbian in Cyrillic.")
-    rules = add_preference(orchestrator, "chat-add", "Keep answers short.")
+    await add_preference(orchestrator, "chat-add", "Write Serbian in Cyrillic.")
+    rules = await add_preference(orchestrator, "chat-add", "Keep answers short.")
     assert rules == ["Write Serbian in Cyrillic.", "Keep answers short."]
-    assert get_preferences(orchestrator, "chat-add") == rules
+    assert await get_preferences(orchestrator, "chat-add") == rules
 
 
 @patch("src.agents.orchestrator.load_classifier", MagicMock())
-def test_add_preference_is_idempotent():
+async def test_add_preference_is_idempotent():
     # Adding the same rule twice does not duplicate it (the reducer dedupes).
     rag, translation = _chains()
     orchestrator = build_orchestrator(rag, translation)
-    add_preference(orchestrator, "chat-dup", "Write Serbian in Cyrillic.")
-    rules = add_preference(orchestrator, "chat-dup", "Write Serbian in Cyrillic.")
+    await add_preference(orchestrator, "chat-dup", "Write Serbian in Cyrillic.")
+    rules = await add_preference(orchestrator, "chat-dup", "Write Serbian in Cyrillic.")
     assert rules == ["Write Serbian in Cyrillic."]
 
 
 @patch("src.agents.orchestrator.load_classifier", MagicMock())
-def test_get_preferences_is_empty_for_an_untouched_chat():
+async def test_get_preferences_is_empty_for_an_untouched_chat():
     # A chat that never set a preference (no checkpoint yet) yields an empty
     # list rather than raising.
     rag, translation = _chains()
     orchestrator = build_orchestrator(rag, translation)
-    assert get_preferences(orchestrator, "chat-none") == []
+    assert await get_preferences(orchestrator, "chat-none") == []
 
 
 @patch("src.agents.orchestrator.load_classifier", MagicMock())
-def test_clear_preferences_empties_the_list():
+async def test_clear_preferences_empties_the_list():
     # /pref clear removes every stored rule for that chat.
     rag, translation = _chains()
     orchestrator = build_orchestrator(rag, translation)
-    add_preference(orchestrator, "chat-clear", "Write Serbian in Cyrillic.")
-    clear_preferences(orchestrator, "chat-clear")
-    assert get_preferences(orchestrator, "chat-clear") == []
+    await add_preference(orchestrator, "chat-clear", "Write Serbian in Cyrillic.")
+    await clear_preferences(orchestrator, "chat-clear")
+    assert await get_preferences(orchestrator, "chat-clear") == []
 
 
 @patch("src.agents.orchestrator.load_classifier", MagicMock())
@@ -210,7 +212,7 @@ async def test_command_set_preference_reaches_translation_agent(mock_classify):
     rag, translation = _chains()
     orchestrator = build_orchestrator(rag, translation)
     thread_id = "chat-cmd-pref"
-    add_preference(orchestrator, thread_id, "Write Serbian in Cyrillic script.")
+    await add_preference(orchestrator, thread_id, "Write Serbian in Cyrillic script.")
     await process_message(orchestrator, "как будет вилка", thread_id=thread_id)
     directive = translation.ainvoke.call_args.args[0]["preferences"]
     assert "Cyrillic" in directive
@@ -225,32 +227,32 @@ async def test_preferences_survive_across_normal_turns(mock_classify):
     rag, translation = _chains()
     orchestrator = build_orchestrator(rag, translation)
     thread_id = "chat-persist"
-    add_preference(orchestrator, thread_id, "Keep answers short.")
+    await add_preference(orchestrator, thread_id, "Keep answers short.")
     for turn in range(3):
         await process_message(orchestrator, f"question {turn}", thread_id=thread_id)
-    assert get_preferences(orchestrator, thread_id) == ["Keep answers short."]
+    assert await get_preferences(orchestrator, thread_id) == ["Keep answers short."]
 
 
 @patch("src.agents.orchestrator.load_classifier", MagicMock())
-def test_remove_preference_drops_the_rule_at_that_index():
+async def test_remove_preference_drops_the_rule_at_that_index():
     # /pref remove deletes one rule by position and keeps the rest in order.
     rag, translation = _chains()
     orchestrator = build_orchestrator(rag, translation)
     thread_id = "chat-remove"
-    add_preference(orchestrator, thread_id, "Write Serbian in Cyrillic.")
-    add_preference(orchestrator, thread_id, "Keep answers short.")
-    remaining = remove_preference(orchestrator, thread_id, 0)
+    await add_preference(orchestrator, thread_id, "Write Serbian in Cyrillic.")
+    await add_preference(orchestrator, thread_id, "Keep answers short.")
+    remaining = await remove_preference(orchestrator, thread_id, 0)
     assert remaining == ["Keep answers short."]
 
 
 @patch("src.agents.orchestrator.load_classifier", MagicMock())
-def test_remove_preference_out_of_range_is_a_noop():
+async def test_remove_preference_out_of_range_is_a_noop():
     # An index past the end leaves the stored list untouched.
     rag, translation = _chains()
     orchestrator = build_orchestrator(rag, translation)
     thread_id = "chat-remove-oob"
-    add_preference(orchestrator, thread_id, "Write Serbian in Cyrillic.")
-    remaining = remove_preference(orchestrator, thread_id, 5)
+    await add_preference(orchestrator, thread_id, "Write Serbian in Cyrillic.")
+    remaining = await remove_preference(orchestrator, thread_id, 5)
     assert remaining == ["Write Serbian in Cyrillic."]
 
 
@@ -264,14 +266,50 @@ async def test_tidy_preferences_replaces_list_with_merged_rules():
     rag, translation = _chains()
     orchestrator = build_orchestrator(rag, translation)
     thread_id = "chat-tidy"
-    add_preference(orchestrator, thread_id, "Write Serbian in Cyrillic.")
-    add_preference(orchestrator, thread_id, "Add 5 examples for each translation.")
-    add_preference(orchestrator, thread_id, "Give five example sentences per word.")
+    await add_preference(orchestrator, thread_id, "Write Serbian in Cyrillic.")
+    await add_preference(orchestrator, thread_id, "Add 5 examples per translation.")
+    await add_preference(orchestrator, thread_id, "Give five examples per word.")
 
     result = await tidy_preferences(orchestrator, tidier, thread_id)
 
     assert result == ["Write Serbian in Cyrillic.", "Give 5 example sentences."]
-    assert get_preferences(orchestrator, thread_id) == result
+    assert await get_preferences(orchestrator, thread_id) == result
+
+
+def _sqlite_orchestrator(path):
+    """Build an orchestrator whose memory is a SQLite file at `path`."""
+    rag, translation = _chains()
+    saver = AsyncSqliteSaver(aiosqlite.connect(str(path)))
+    return build_orchestrator(rag, translation, saver)
+
+
+@patch("src.agents.orchestrator.load_classifier", MagicMock())
+async def test_preferences_survive_a_restart_with_a_sqlite_checkpointer(tmp_path):
+    # The point of the disk-backed checkpointer. A second orchestrator reading
+    # the same file stands in for the process being redeployed: with the
+    # in-memory saver the rule would be gone.
+    database = tmp_path / "checkpoints.sqlite"
+    before = _sqlite_orchestrator(database)
+    await add_preference(before, "chat-restart", "Write Serbian in Cyrillic.")
+
+    after = _sqlite_orchestrator(database)
+
+    assert await get_preferences(after, "chat-restart") == [
+        "Write Serbian in Cyrillic."
+    ]
+
+
+@patch("src.agents.orchestrator.load_classifier", MagicMock())
+async def test_memory_checkpointer_starts_empty_each_time(tmp_path):
+    # The control for the test above: without a file behind it, a fresh
+    # orchestrator remembers nothing, which is the behaviour being fixed.
+    rag, translation = _chains()
+    before = build_orchestrator(rag, translation)
+    await add_preference(before, "chat-ram", "Write Serbian in Cyrillic.")
+
+    after = build_orchestrator(rag, translation)
+
+    assert await get_preferences(after, "chat-ram") == []
 
 
 @patch("src.agents.orchestrator.load_classifier", MagicMock())
@@ -283,7 +321,7 @@ async def test_tidy_preferences_skips_the_llm_for_short_lists():
     rag, translation = _chains()
     orchestrator = build_orchestrator(rag, translation)
     thread_id = "chat-tidy-short"
-    add_preference(orchestrator, thread_id, "Write Serbian in Cyrillic.")
+    await add_preference(orchestrator, thread_id, "Write Serbian in Cyrillic.")
 
     result = await tidy_preferences(orchestrator, tidier, thread_id)
 

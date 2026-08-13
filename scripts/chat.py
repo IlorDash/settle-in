@@ -46,7 +46,7 @@ async def handle_pref_command(orchestrator, tidier, message: str) -> None:
     """
     args = message.split()[1:]
     if not args:
-        _print_prefs(get_preferences(orchestrator, CLI_THREAD))
+        _print_prefs(await get_preferences(orchestrator, CLI_THREAD))
         return
     action = args[0].lower()
     if action == "add":
@@ -54,16 +54,17 @@ async def handle_pref_command(orchestrator, tidier, message: str) -> None:
         if not rule:
             print("prefs> usage: /pref add <rule>")
             return
-        _print_prefs(add_preference(orchestrator, CLI_THREAD, rule))
+        _print_prefs(await add_preference(orchestrator, CLI_THREAD, rule))
         return
     if action == "remove" and len(args) > 1 and args[1].isdigit():
-        _print_prefs(remove_preference(orchestrator, CLI_THREAD, int(args[1]) - 1))
+        index = int(args[1]) - 1
+        _print_prefs(await remove_preference(orchestrator, CLI_THREAD, index))
         return
     if action == "tidy":
         _print_prefs(await tidy_preferences(orchestrator, tidier, CLI_THREAD))
         return
     if action == "clear":
-        clear_preferences(orchestrator, CLI_THREAD)
+        await clear_preferences(orchestrator, CLI_THREAD)
         print("prefs> cleared")
         return
     print("prefs> usage: /pref [add <rule> | remove <number> | tidy | clear]")

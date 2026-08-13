@@ -22,6 +22,8 @@ def test_load_settings_uses_default_values():
     settings = load_settings()
 
     assert settings.chroma_persist_dir == "./data/chroma_db"
+    assert settings.feedback_path == "./data/feedback.jsonl"
+    assert settings.checkpoint_path == "./data/checkpoints.sqlite"
     assert settings.bot_mode == "polling"
     assert settings.webhook_url == ""
 
@@ -32,6 +34,8 @@ def test_load_settings_uses_default_values():
         "TELEGRAM_BOT_TOKEN": "t",
         "OPENAI_API_KEY": "k",
         "CHROMA_PERSIST_DIR": "/custom/path",
+        "FEEDBACK_PATH": "/mnt/volume/feedback.jsonl",
+        "CHECKPOINT_PATH": "/mnt/volume/checkpoints.sqlite",
         "BOT_MODE": "webhook",
         "WEBHOOK_URL": "https://example.com/webhook",
     },
@@ -42,6 +46,24 @@ def test_load_settings_reads_custom_env_values():
     assert settings.chroma_persist_dir == "/custom/path"
     assert settings.bot_mode == "webhook"
     assert settings.webhook_url == "https://example.com/webhook"
+
+
+@patch.dict(
+    "os.environ",
+    {
+        "TELEGRAM_BOT_TOKEN": "t",
+        "OPENAI_API_KEY": "k",
+        "FEEDBACK_PATH": "/mnt/volume/feedback.jsonl",
+        "CHECKPOINT_PATH": "/mnt/volume/checkpoints.sqlite",
+    },
+)
+def test_load_settings_reads_writable_paths_from_env():
+    # These two exist so a deployment can move everything the bot writes onto
+    # a mounted volume; hardcoding them would make the data unsavable.
+    settings = load_settings()
+
+    assert settings.feedback_path == "/mnt/volume/feedback.jsonl"
+    assert settings.checkpoint_path == "/mnt/volume/checkpoints.sqlite"
 
 
 @patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}, clear=True)

@@ -10,7 +10,11 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-FEEDBACK_PATH = Path("data/feedback.jsonl")
+from src.config import settings
+
+# Configurable so the deployment can put it on a mounted volume; left on the
+# container's own disk it is erased by the next deploy.
+FEEDBACK_PATH = Path(settings.feedback_path)
 
 VERDICT_UP = "up"
 VERDICT_DOWN = "down"

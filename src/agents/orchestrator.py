@@ -1,3 +1,4 @@
+import asyncio
 import re
 from typing import Annotated, Literal, NamedTuple
 
@@ -201,7 +202,7 @@ def _preferences_directive(preferences: dict) -> str:
     )
 
 
-def build_orchestrator(rag_chain, translation_chain):
+def build_orchestrator(rag_chain, translation_chain, checkpointer=None):
     """Build and compile the LangGraph orchestrator.
 
     Intent is classified by the local DNN classifier; low-confidence messages
@@ -212,6 +213,10 @@ def build_orchestrator(rag_chain, translation_chain):
         rag_chain: Compiled RAG chain from rag_agent.build_rag_chain().
         translation_chain: Compiled translation chain from
             translation_agent.build_translation_chain().
+        checkpointer: Where per-chat history and preferences are stored.
+            Defaults to an in-memory saver, which is what tests and the CLI
+            harness want; the deployed bot passes a disk-backed one so state
+            survives a restart.
 
     Returns:
         A compiled LangGraph that accepts OrchestratorState and returns the final state.
@@ -284,7 +289,7 @@ def build_orchestrator(rag_chain, translation_chain):
     graph.add_edge("handle_translation", END)
     graph.add_edge("handle_out_of_scope", END)
 
-    return graph.compile(checkpointer=MemorySaver())
+    return graph.compile(checkpointer=checkpointer or MemorySaver())
 
 
 def _thread_config(thread_id) -> dict:
@@ -326,12 +331,51 @@ async def process_message(
     return MessageResult(response=result["agent_response"], intent=result["intent"])
 
 
-def get_preferences(orchestrator, thread_id) -> list:
+async def _read_state(orchestrator, thread_id):
+    """Read a chat's stored state without blocking the event loop.
+
+    The graph's synchronous get_state is used rather than aget_state because
+    the two disagree: the async path raises "Ambiguous update" once a thread
+    has been written to twice outside a graph run, which is exactly what the
+    /pref helpers do. A disk-backed checkpointer refuses sync calls made from
+    the loop's own thread, so the call is handed to a worker thread instead.
+
+    Args:
+        orchestrator: Compiled orchestrator graph from build_orchestrator().
+        thread_id: The conversation id (Telegram chat_id).
+
+    Returns:
+        The graph's StateSnapshot for that conversation.
+    """
+    return await asyncio.to_thread(orchestrator.get_state, _thread_config(thread_id))
+
+
+async def _write_preferences(orchestrator, thread_id, instructions: list) -> None:
+    """Replace a chat's stored instruction list, off the event loop thread.
+
+    Args:
+        orchestrator: Compiled orchestrator graph from build_orchestrator().
+        thread_id: The conversation id (Telegram chat_id).
+        instructions: The full list to store, which the merge_preferences
+            reducer then de-duplicates and caps.
+    """
+    await asyncio.to_thread(
+        orchestrator.update_state,
+        _thread_config(thread_id),
+        {"preferences": {"instructions": instructions}},
+    )
+
+
+async def get_preferences(orchestrator, thread_id) -> list:
     """Return the standing instructions saved for one chat.
 
     Reads the persisted checkpointer state directly, without running the graph.
     A chat that has never stored a preference (or never spoken at all) yields an
     empty list.
+
+    Async, and running the read on a worker thread, because a disk-backed
+    checkpointer refuses synchronous calls made from the thread that runs the
+    event loop. See _read_state for why the sync call is kept at all.
 
     Args:
         orchestrator: Compiled orchestrator graph from build_orchestrator().
@@ -340,14 +384,14 @@ def get_preferences(orchestrator, thread_id) -> list:
     Returns:
         The list of instruction strings, oldest first.
     """
-    state = orchestrator.get_state(_thread_config(thread_id))
+    state = await _read_state(orchestrator, thread_id)
     return (state.values.get("preferences") or {}).get("instructions") or []
 
 
-def add_preference(orchestrator, thread_id, rule: str) -> list:
+async def add_preference(orchestrator, thread_id, rule: str) -> list:
     """Add one standing instruction to a chat's preferences and return them all.
 
-    Writes to the checkpointer via update_state, so the new rule lands in the
+    Writes to the checkpointer via aupdate_state, so the new rule lands in the
     same `preferences` channel handle_translation reads. The merge_preferences
     reducer de-duplicates and caps the list, so re-adding an existing rule is a
     no-op.
@@ -360,26 +404,22 @@ def add_preference(orchestrator, thread_id, rule: str) -> list:
     Returns:
         The updated list of stored instructions.
     """
-    updated = get_preferences(orchestrator, thread_id) + [rule]
-    orchestrator.update_state(
-        _thread_config(thread_id), {"preferences": {"instructions": updated}}
-    )
-    return get_preferences(orchestrator, thread_id)
+    updated = (await get_preferences(orchestrator, thread_id)) + [rule]
+    await _write_preferences(orchestrator, thread_id, updated)
+    return await get_preferences(orchestrator, thread_id)
 
 
-def clear_preferences(orchestrator, thread_id) -> None:
+async def clear_preferences(orchestrator, thread_id) -> None:
     """Remove every standing instruction stored for one chat.
 
     Args:
         orchestrator: Compiled orchestrator graph from build_orchestrator().
         thread_id: The conversation id (Telegram chat_id).
     """
-    orchestrator.update_state(
-        _thread_config(thread_id), {"preferences": {"instructions": []}}
-    )
+    await _write_preferences(orchestrator, thread_id, [])
 
 
-def remove_preference(orchestrator, thread_id, index: int) -> list:
+async def remove_preference(orchestrator, thread_id, index: int) -> list:
     """Remove the rule at a 0-based index and return the remaining rules.
 
     An out-of-range index leaves the stored list unchanged.
@@ -392,14 +432,12 @@ def remove_preference(orchestrator, thread_id, index: int) -> list:
     Returns:
         The remaining stored instructions.
     """
-    rules = get_preferences(orchestrator, thread_id)
+    rules = await get_preferences(orchestrator, thread_id)
     if index < 0 or index >= len(rules):
         return rules
     remaining = rules[:index] + rules[index + 1 :]
-    orchestrator.update_state(
-        _thread_config(thread_id), {"preferences": {"instructions": remaining}}
-    )
-    return get_preferences(orchestrator, thread_id)
+    await _write_preferences(orchestrator, thread_id, remaining)
+    return await get_preferences(orchestrator, thread_id)
 
 
 async def tidy_preferences(orchestrator, tidier, thread_id) -> list:
@@ -418,14 +456,12 @@ async def tidy_preferences(orchestrator, tidier, thread_id) -> list:
     Returns:
         The stored instructions after tidying.
     """
-    rules = get_preferences(orchestrator, thread_id)
+    rules = await get_preferences(orchestrator, thread_id)
     if len(rules) < 2:
         return rules
     current = "\n".join(f"- {rule}" for rule in rules)
     cleaned = _parse_rule_lines(await tidier.ainvoke({"current": current}))
     if not cleaned:
         return rules
-    orchestrator.update_state(
-        _thread_config(thread_id), {"preferences": {"instructions": cleaned}}
-    )
-    return get_preferences(orchestrator, thread_id)
+    await _write_preferences(orchestrator, thread_id, cleaned)
+    return await get_preferences(orchestrator, thread_id)
