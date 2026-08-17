@@ -1,6 +1,8 @@
 import logging
+from unittest.mock import MagicMock, patch
 
 import src.bot.app  # noqa: F401  (imported for its logging configuration)
+from src.bot.app import _initialize_agents, create_application
 
 
 def test_httpx_logging_is_pinned_to_warning_to_keep_the_token_out_of_logs():
@@ -14,3 +16,42 @@ def test_httpx_logging_is_pinned_to_warning_to_keep_the_token_out_of_logs():
     # "not enabled for INFO" during tests, so isEnabledFor would pass just as
     # happily with this protection removed.
     assert logging.getLogger("httpx").level == logging.WARNING
+
+
+def test_create_application_needs_no_running_event_loop():
+    # main() calls this before python-telegram-bot starts the loop, so nothing
+    # here may require one. AsyncSqliteSaver captures the running loop in its
+    # constructor, and building it here crashed the bot on startup with
+    # "RuntimeError: no running event loop" while every test stayed green.
+    #
+    # Deliberately NOT an async test: pytest-asyncio would supply the very
+    # loop whose absence is the bug, and this would pass unfixed.
+    app = create_application()
+
+    assert app.bot_data["rate_limiter"] is not None
+
+
+def test_create_application_registers_the_agent_hook():
+    # Nothing else builds the agents, so dropping the post_init registration
+    # would start a bot whose bot_data has no orchestrator, and every message
+    # would then fail with a KeyError.
+    app = create_application()
+
+    assert app.post_init is _initialize_agents
+
+
+@patch("src.bot.app.build_preference_tidier", MagicMock())
+@patch("src.bot.app.build_translation_chain", MagicMock())
+@patch("src.bot.app.build_rag_chain", MagicMock())
+@patch("src.bot.app.build_orchestrator")
+@patch("src.bot.app._open_checkpointer", MagicMock())
+@patch("src.bot.app._load_retriever", MagicMock())
+async def test_post_init_puts_the_orchestrator_in_bot_data(mock_build):
+    # The agents move into bot_data only when the post_init hook runs, so the
+    # handlers would find nothing there if it were left unregistered.
+    app = MagicMock()
+    app.bot_data = {}
+
+    await _initialize_agents(app)
+
+    assert app.bot_data["orchestrator"] is mock_build.return_value

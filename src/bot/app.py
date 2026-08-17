@@ -50,7 +50,9 @@ def _open_checkpointer() -> AsyncSqliteSaver:
     outlives the container.
 
     The connection is not awaited here: the saver connects lazily on first
-    use, which keeps this function callable from ordinary startup code.
+    use. The constructor is not that forgiving though - it calls
+    asyncio.get_running_loop(), so this may only be called once the loop is
+    running, which is why the agents are built in a post_init hook.
 
     Returns:
         A checkpointer writing to settings.checkpoint_path.
@@ -60,18 +62,8 @@ def _open_checkpointer() -> AsyncSqliteSaver:
     return AsyncSqliteSaver(aiosqlite.connect(settings.checkpoint_path))
 
 
-def create_application():
-    """Build the bot application, initialize the orchestrator, and register handlers.
-
-    Loads the vector store, builds RAG and translation chains, compiles them
-    into a LangGraph orchestrator, and stores it in bot_data so handlers
-    can access it via context.bot_data["orchestrator"].
-
-    Returns:
-        Configured Application ready to be started.
-    """
-    app = ApplicationBuilder().token(settings.telegram_bot_token).build()
-
+def _load_retriever():
+    """Return a retriever, embedding the knowledge base first if it is empty."""
     vectorstore = load_vectorstore()
     if vectorstore._collection.count() == 0:
         logger.info("Vector store is empty — building from knowledge base...")
@@ -79,16 +71,48 @@ def create_application():
         chunks = chunk_documents(documents)
         vectorstore = build_vectorstore(chunks)
         logger.info("Vector store built with %d chunks.", len(chunks))
-    retriever = get_retriever(vectorstore)
-    rag_chain = build_rag_chain(retriever)
-    translation_chain = build_translation_chain()
+    return get_retriever(vectorstore)
+
+
+async def _initialize_agents(app) -> None:
+    """Build the agents and put them in bot_data, once the loop is running.
+
+    Registered as python-telegram-bot's `post_init` hook, which runs after
+    `initialize()` and before the first update is fetched. It has to be here
+    rather than in create_application() because `AsyncSqliteSaver` captures
+    the running event loop in its constructor, and at the time
+    create_application() is called no loop exists yet.
+
+    Args:
+        app: The Application being started, whose bot_data receives the agents.
+    """
     orchestrator = build_orchestrator(
-        rag_chain, translation_chain, _open_checkpointer()
+        build_rag_chain(_load_retriever()),
+        build_translation_chain(),
+        _open_checkpointer(),
     )
     app.bot_data["orchestrator"] = orchestrator
     app.bot_data["preference_tidier"] = build_preference_tidier()
-    app.bot_data["rate_limiter"] = RateLimiter()
     logger.info("Orchestrator initialized with RAG and translation agents.")
+
+
+def create_application():
+    """Build the bot application and register its handlers.
+
+    Deliberately free of anything needing a running event loop: `main()` calls
+    this before python-telegram-bot starts one. The agents are built later by
+    the `_initialize_agents` post_init hook.
+
+    Returns:
+        Configured Application ready to be started.
+    """
+    app = (
+        ApplicationBuilder()
+        .token(settings.telegram_bot_token)
+        .post_init(_initialize_agents)
+        .build()
+    )
+    app.bot_data["rate_limiter"] = RateLimiter()
 
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("help", help_command))
