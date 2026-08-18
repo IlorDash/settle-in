@@ -10,11 +10,13 @@ from src.agents.orchestrator import (
     INTENT_TRANSLATION,
     MAX_HISTORY_MESSAGES,
     OUT_OF_SCOPE_MESSAGE,
+    Exchange,
     add_preference,
     build_orchestrator,
     clear_preferences,
     get_preferences,
     process_message,
+    record_exchange,
     remove_preference,
     tidy_preferences,
 )
@@ -274,6 +276,45 @@ async def test_tidy_preferences_replaces_list_with_merged_rules():
 
     assert result == ["Write Serbian in Cyrillic.", "Give 5 example sentences."]
     assert await get_preferences(orchestrator, thread_id) == result
+
+
+@patch("src.agents.orchestrator.load_classifier", MagicMock())
+@patch("src.agents.orchestrator.classify")
+async def test_a_recorded_exchange_is_remembered_as_history(mock_classify):
+    # A document is answered outside the graph, so the turn is written to the
+    # checkpointer by hand; the next text message must see it as context.
+    mock_classify.return_value = (INTENT_TRANSLATION, 0.99)
+    rag, translation = _chains()
+    orchestrator = build_orchestrator(rag, translation)
+    thread_id = "chat-doc"
+    await record_exchange(
+        orchestrator, thread_id, Exchange("[a photo]", "It is an electricity bill.")
+    )
+
+    await process_message(orchestrator, "и когда платить?", thread_id=thread_id)
+
+    history = translation.ainvoke.call_args.args[0]["history"]
+    assert [message.content for message in history] == [
+        "[a photo]",
+        "It is an electricity bill.",
+    ]
+
+
+@patch("src.agents.orchestrator.load_classifier", MagicMock())
+@patch("src.agents.orchestrator.classify")
+async def test_a_recorded_exchange_does_not_skip_classification(mock_classify):
+    # update_state writes "as" whichever node LangGraph infers ran last. If it
+    # picked classify_intent, the next run would resume after it and route on a
+    # stale intent, so the guard is that classification still happens.
+    mock_classify.return_value = (INTENT_KNOWLEDGE_QUESTION, 0.99)
+    rag, translation = _chains()
+    orchestrator = build_orchestrator(rag, translation)
+    thread_id = "chat-doc-classify"
+    await record_exchange(orchestrator, thread_id, Exchange("[a photo]", "A bill."))
+
+    await process_message(orchestrator, "how do I pay it?", thread_id=thread_id)
+
+    mock_classify.assert_called_once()
 
 
 def _sqlite_orchestrator(path):

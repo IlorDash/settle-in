@@ -309,6 +309,19 @@ class MessageResult(NamedTuple):
     intent: str
 
 
+class Exchange(NamedTuple):
+    """One turn of conversation, as it should be remembered.
+
+    Attributes:
+        question: What the user asked, in text. A photo has no text of its
+            own, so the caller supplies a short stand-in describing it.
+        answer: The reply the bot sent back.
+    """
+
+    question: str
+    answer: str
+
+
 async def process_message(
     orchestrator, message: str, thread_id: str = "cli"
 ) -> MessageResult:
@@ -329,6 +342,33 @@ async def process_message(
         config=_thread_config(thread_id),
     )
     return MessageResult(response=result["agent_response"], intent=result["intent"])
+
+
+async def record_exchange(orchestrator, thread_id, exchange: Exchange) -> None:
+    """Append a turn to a chat's history without running the graph.
+
+    The document agent is reached straight from its handler rather than
+    through the graph, because an image cannot be routed by a text intent
+    classifier. Writing the turn here keeps the conversation whole anyway, so
+    a later text follow-up ("what was that deadline?") still has the context.
+    Only the text is stored - the photo itself never enters the checkpointer,
+    where a base64 image would bloat every saved checkpoint.
+
+    Args:
+        orchestrator: Compiled orchestrator graph from build_orchestrator().
+        thread_id: The conversation id (Telegram chat_id).
+        exchange: The user's turn and the bot's reply, as text.
+    """
+    await asyncio.to_thread(
+        orchestrator.update_state,
+        _thread_config(thread_id),
+        {
+            "messages": [
+                HumanMessage(content=exchange.question),
+                AIMessage(content=exchange.answer),
+            ]
+        },
+    )
 
 
 async def _read_state(orchestrator, thread_id):
@@ -386,6 +426,23 @@ async def get_preferences(orchestrator, thread_id) -> list:
     """
     state = await _read_state(orchestrator, thread_id)
     return (state.values.get("preferences") or {}).get("instructions") or []
+
+
+async def preferences_directive(orchestrator, thread_id) -> str:
+    """Render a chat's standing rules as a directive for an agent.
+
+    The graph's nodes build this for themselves; this is the way in for an
+    agent called outside the graph, such as the document agent.
+
+    Args:
+        orchestrator: Compiled orchestrator graph from build_orchestrator().
+        thread_id: The conversation id (Telegram chat_id).
+
+    Returns:
+        The directive text to hand the agent as its `preferences` input.
+    """
+    instructions = await get_preferences(orchestrator, thread_id)
+    return _preferences_directive({"instructions": instructions})
 
 
 async def add_preference(orchestrator, thread_id, rule: str) -> list:

@@ -8,7 +8,8 @@ Built with Python, LangChain, LangGraph, and ChromaDB.
 
 - **Knowledge Q&A** — ask questions about Serbian residency, work permits, banking, health insurance, tax registration, and daily procedures. Answers are sourced from a curated knowledge base using RAG (Retrieval-Augmented Generation)
 - **Translation** — translate between Serbian, English, and Russian, including request phrasings like "Как будет спасибо по-сербски"
-- **Smart routing** — a locally trained classifier picks the right agent in milliseconds, falling back to an LLM only when it is unsure, and rejecting questions outside the bot's scope
+- **Document reading** — photograph a Serbian bill, letter, or form and the bot says what it is, pulls out the dates, amounts, and reference numbers, and explains what to do next
+- **Smart routing** — a locally trained classifier picks the right agent in milliseconds, falling back to an LLM only when it is unsure, and rejecting questions outside the bot's scope. A photo skips classification entirely: the modality already names the agent
 - **Conversational memory** — each chat keeps its own history, so follow-ups like "and in Latin?" are understood, and it is stored on disk so a restart does not wipe it
 - **Standing preferences** — `/pref add Write Serbian translations in Cyrillic` saves a rule the bot applies to later answers
 - **Feedback buttons** — 👍/👎 under each answer, recorded with the predicted intent as labelled data for retraining the classifier
@@ -24,20 +25,22 @@ User (Telegram app)
 Bot Handler Layer (handlers.py)
     │ validates input
     │ checks rate limit
-    ▼
-Orchestrator (orchestrator.py)
-    │ classifies user intent
-    │ routes to correct agent
-    ├──────────────────────┐
-    ▼                      ▼
-RAG Agent              Translation Agent
-(rag_agent.py)         (translation_agent.py)
-    │                      │
-    ▼                      │
-ChromaDB                   │
-(vector store)             │
-    │                      │
-    └──────────┬───────────┘
+    ├─────── photo ────────────────────────────┐
+    │ text                                     ▼
+    ▼                                   Multimodal Agent
+Orchestrator (orchestrator.py)          (multimodal_agent.py)
+    │ classifies user intent                   │
+    │ routes to correct agent                  │
+    ├──────────────────────┐                   │
+    ▼                      ▼                   │
+RAG Agent              Translation Agent       │
+(rag_agent.py)         (translation_agent.py)  │
+    │                      │                   │
+    ▼                      │                   │
+ChromaDB                   │                   │
+(vector store)             │                   │
+    │                      │                   │
+    └──────────┬───────────┴───────────────────┘
                ▼
         Response back to user via Telegram
 ```
@@ -46,7 +49,14 @@ ChromaDB                   │
 
 The orchestrator is built as a LangGraph StateGraph with intent-based routing:
 
-![Orchestrator Graph](docs/orchestrator_graph.png)
+![Orchestrator Graph](assets/orchestrator_graph.png)
+
+The multimodal agent is deliberately **not** a node in this graph. Routing to it
+happens one level earlier, in the Telegram handler layer, because an image
+carries no text for `classify_intent` to work on. Keeping it outside also keeps
+photos out of the graph's state, where a base64 image would be written into
+every saved checkpoint. Regenerate the diagram with
+`python -m scripts.visualize_graph`.
 
 ## Project Structure
 
@@ -55,13 +65,14 @@ settle-in/
 ├── src/
 │   ├── bot/
 │   │   ├── app.py              # Bot entry point, webhook/polling startup
-│   │   ├── handlers.py         # /start, /help, /pref, messages, feedback taps
+│   │   ├── handlers.py         # /start, /help, /pref, messages, photos, feedback taps
 │   │   ├── feedback.py         # Appends thumbs up/down to a JSONL store
-│   │   └── middleware.py       # Input validation and rate limiting
+│   │   └── middleware.py       # Input validation, image checks, rate limiting
 │   ├── agents/
 │   │   ├── orchestrator.py     # LangGraph intent router, memory, preferences
 │   │   ├── intent_classifier.py# Loads the trained classifier artifact
 │   │   ├── rag_agent.py        # Knowledge retrieval chain
+│   │   ├── multimodal_agent.py # Reads a photographed document
 │   │   └── translation_agent.py
 │   ├── knowledge/
 │   │   ├── loader.py           # Document loading and text chunking
@@ -76,8 +87,8 @@ settle-in/
 │   └── checkpoints.sqlite      # Chat history and /pref rules (created on first use)
 ├── tests/
 │   ├── conftest.py             # Shared fixtures (mock Telegram, mock orchestrator)
-│   ├── unit/                   # 88 unit tests
-│   ├── integration/            # 25 integration tests
+│   ├── unit/                   # 113 unit tests
+│   ├── integration/            # 27 integration tests
 │   └── evals/                  # 10 opt-in tests that call the real OpenAI API
 ├── Dockerfile
 ├── pyproject.toml
@@ -91,7 +102,7 @@ settle-in/
 | Language | Python 3.11+ |
 | Bot framework | python-telegram-bot 21+ |
 | AI orchestration | LangChain + LangGraph |
-| LLM | OpenAI GPT-4o-mini (GPT-4o for translation) |
+| LLM | OpenAI GPT-4o-mini (GPT-4o for translation and document reading) |
 | Intent classifier | scikit-learn TF-IDF + MLP, trained locally |
 | Embeddings | OpenAI text-embedding-3-small |
 | Vector store | ChromaDB |
@@ -214,7 +225,7 @@ container and the data disappears at the next deploy exactly as before.
 
 ## Testing
 
-113 tests (88 unit + 25 integration) at 89% code coverage, plus 10 opt-in evals.
+140 tests (113 unit + 27 integration) at 90% code coverage, plus 10 opt-in evals.
 
 ```bash
 # Run all tests (free and offline — evals are excluded)

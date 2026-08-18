@@ -1,0 +1,51 @@
+# EPS electricity bill, September 2025. One value per line, exactly as
+# printed, signs included: a minus separates a discount from a charge, so
+# reading -252,05 as 252,05 is a misreading and must fail. Only the glyph is
+# forgiven - normalise() in scripts/probe_vision.py rewrites a Unicode minus
+# or an en dash as a plain hyphen before comparing.
+#
+# The money chain below was verified against the bill's own formulas:
+#   1+2+3        935,95 + 160,67 + 0,00      = 1.096,62
+#   4+5+..+9     1.096,62 - 252,05           =   844,57
+#   acciza 7,5%  844,57 x 0,075              =    63,34
+#   4+..+9+11    844,57 + 63,34              =   907,91
+#   PDV 20%      907,91 x 0,20               =   181,58
+#   12+13+14     907,91 + 181,58 + 0,00      = 1.089,49
+#   15+16+17     1.089,49 + 349,00 + 0,00    = 1.438,49
+#   18+19        7.110,87 - 7.110,87         =     0,00
+# If the model reads all of these, it has everything the calculation needs.
+
+# header
+СЕПТЕМБАР 2025
+10026037
+НЕОЧИТАН
+
+# billed power
+17,25
+54,2580
+935,95
+
+# charges before tax
+160,67
+1.096,62
+-252,05
+844,57
+
+# taxes
+63,34
+907,91
+181,58
+1.089,49
+
+# levies and totals
+349,00
+1.438,49
+
+# line 18 is the previous period's charge, line 19 the payment that cleared
+# it; the pair nets to 0,00, so the sign is what tells them apart.
+7.110,87
+-7.110,87
+
+# per-unit levies, the smallest print on the page
+0,801
+0,015

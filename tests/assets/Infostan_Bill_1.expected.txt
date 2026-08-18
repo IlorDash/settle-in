@@ -1,0 +1,56 @@
+# Infostan district-heating bill, June 2026. One value per line, exactly as
+# printed. The address, meter codes and serial number are redacted on the
+# image, so nothing personal appears here.
+#
+# This is the hard case: a dense numeric table in small print. It is the bill
+# that produced "16,6 kWh" (a column number read as a quantity) and
+# "Использование газа" (an unreadable label replaced with a familiar one).
+#
+# Verified against the bill's own formulas:
+#   9 = 2+3+...+8   27.460+34.192+23.735+15.925+9.378 = 110.690
+#   same columns    150+187+130+87+51                 =     605
+#   same columns    270+364+212+125+72                =   1.043
+#   b = a/11        18.179 / 182,485                  =  99,6 -> printed 100
+#   19 = 16*17*18   3,96 x 521,97 x 1,000000          = 2.066,98
+# The last one is the answer to "how is this bill calculated": the energy
+# line is 0,00, so the whole charge is the fixed installed-power component.
+
+# header
+јун 2026
+365376
+
+# monthly consumption at the metering point (row "На ММ")
+18.179
+27.460
+34.192
+23.735
+15.925
+9.378
+110.690
+
+# specific consumption rows (annual totals)
+605
+1.043
+
+# installed power at the metering point
+170,815
+182,485
+
+# areas used to split the building total between flats
+2.375,00
+52,00
+
+# the charge itself
+3,96
+8,21
+521,97
+2.066,98
+1,000000
+
+# section Д: consumption against the same month last year. The sign is the
+# whole point - it fell to zero, it did not rise by 100%.
+-100,00
+
+# contacts
+011/655-77-08
+0800 11 00 11

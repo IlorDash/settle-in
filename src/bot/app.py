@@ -11,14 +11,19 @@ from telegram.ext import (
     filters,
 )
 
+from src.agents.multimodal_agent import build_multimodal_chain
 from src.agents.orchestrator import build_orchestrator, build_preference_tidier
 from src.agents.rag_agent import build_rag_chain
 from src.agents.translation_agent import build_translation_chain
 from src.bot.handlers import (
     CALLBACK_PREFIX,
+    DOCUMENT_PREFIX,
+    document_callback,
     error_handler,
     feedback_callback,
     handle_message,
+    handle_photo,
+    handle_unsupported_file,
     help_command,
     pref_command,
     start_command,
@@ -96,6 +101,7 @@ async def _initialize_agents(app) -> None:
     app.bot_data["checkpointer"] = checkpointer
     app.bot_data["orchestrator"] = orchestrator
     app.bot_data["preference_tidier"] = build_preference_tidier()
+    app.bot_data["multimodal_chain"] = build_multimodal_chain()
     logger.info("Orchestrator initialized with RAG and translation agents.")
 
 
@@ -144,7 +150,19 @@ def create_application():
     app.add_handler(
         CallbackQueryHandler(feedback_callback, pattern=f"^{CALLBACK_PREFIX}:")
     )
+    app.add_handler(
+        CallbackQueryHandler(document_callback, pattern=f"^{DOCUMENT_PREFIX}:")
+    )
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    # Modality picks the agent here: an image never reaches intent
+    # classification. Document.IMAGE covers a photo sent as an uncompressed
+    # file, which is how people keep small print readable.
+    app.add_handler(
+        MessageHandler(filters.PHOTO | filters.Document.IMAGE, handle_photo)
+    )
+    # Registered after the image handler, so it catches only what that one
+    # turned down. Without it any other file type would vanish in silence.
+    app.add_handler(MessageHandler(filters.Document.ALL, handle_unsupported_file))
     # Last line of defence: catches anything the handlers above let through.
     app.add_error_handler(error_handler)
 

@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from telegram import CallbackQuery, Chat, Message, Update, User
+from telegram import CallbackQuery, Chat, File, Message, PhotoSize, Update, User
 
 from src.bot.middleware import RateLimiter
 
@@ -61,6 +61,34 @@ def mock_callback_update(mock_user):
 
 
 @pytest.fixture
+def mock_photo_update(mock_user, mock_chat):
+    """An Update carrying a photographed document, ready to be downloaded.
+
+    Telegram sends a photo at several sizes and the handler takes the last;
+    the file behind it yields its bytes through download_as_bytearray.
+    """
+    telegram_file = MagicMock(spec=File)
+    telegram_file.download_as_bytearray = AsyncMock(return_value=bytearray(b"jpegdata"))
+
+    photo = MagicMock(spec=PhotoSize)
+    photo.file_size = 120_000
+    photo.get_file = AsyncMock(return_value=telegram_file)
+
+    message = MagicMock(spec=Message)
+    message.photo = [photo]
+    message.document = None
+    message.caption = None
+    message.from_user = mock_user
+    message.chat = mock_chat
+    message.chat_id = mock_chat.id
+    message.reply_text = AsyncMock()
+
+    update = MagicMock(spec=Update)
+    update.message = message
+    return update
+
+
+@pytest.fixture
 def mock_orchestrator():
     orchestrator = MagicMock()
     orchestrator.ainvoke = AsyncMock(
@@ -70,14 +98,25 @@ def mock_orchestrator():
             "agent_response": "Test answer from orchestrator.",
         }
     )
+    # The preference helpers read the checkpointer for real, so the snapshot
+    # has to hold a plain dict — a bare MagicMock is not iterable.
+    orchestrator.get_state.return_value.values = {}
     return orchestrator
 
 
 @pytest.fixture
-def mock_context(mock_orchestrator):
+def mock_multimodal_chain():
+    chain = MagicMock()
+    chain.ainvoke = AsyncMock(return_value="This is an electricity bill.")
+    return chain
+
+
+@pytest.fixture
+def mock_context(mock_orchestrator, mock_multimodal_chain):
     context = MagicMock()
     context.bot_data = {
         "orchestrator": mock_orchestrator,
+        "multimodal_chain": mock_multimodal_chain,
         "rate_limiter": RateLimiter(),
     }
     return context

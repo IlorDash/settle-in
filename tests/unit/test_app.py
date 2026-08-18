@@ -74,6 +74,7 @@ async def test_post_shutdown_survives_a_failed_startup():
     await _close_checkpointer(app)
 
 
+@patch("src.bot.app.build_multimodal_chain", MagicMock())
 @patch("src.bot.app.build_preference_tidier", MagicMock())
 @patch("src.bot.app.build_translation_chain", MagicMock())
 @patch("src.bot.app.build_rag_chain", MagicMock())
