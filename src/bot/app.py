@@ -86,14 +86,36 @@ async def _initialize_agents(app) -> None:
     Args:
         app: The Application being started, whose bot_data receives the agents.
     """
+    checkpointer = _open_checkpointer()
     orchestrator = build_orchestrator(
         build_rag_chain(_load_retriever()),
         build_translation_chain(),
-        _open_checkpointer(),
+        checkpointer,
     )
+    # Kept so _close_checkpointer can shut its worker thread down on exit.
+    app.bot_data["checkpointer"] = checkpointer
     app.bot_data["orchestrator"] = orchestrator
     app.bot_data["preference_tidier"] = build_preference_tidier()
     logger.info("Orchestrator initialized with RAG and translation agents.")
+
+
+async def _close_checkpointer(app) -> None:
+    """Close the SQLite connection so the process can actually exit.
+
+    Registered as python-telegram-bot's `post_shutdown` hook. aiosqlite runs
+    every query on a worker thread that is NOT a daemon and that blocks on a
+    queue until the connection is closed. Nothing else closes it, so without
+    this the interpreter waits on that thread forever and Ctrl+C leaves the
+    bot hanging after "Application.stop() complete".
+
+    Args:
+        app: The Application being shut down.
+    """
+    checkpointer = app.bot_data.get("checkpointer")
+    if checkpointer is None:
+        return
+    await checkpointer.conn.close()
+    logger.info("Checkpointer connection closed.")
 
 
 def create_application():
@@ -110,6 +132,7 @@ def create_application():
         ApplicationBuilder()
         .token(settings.telegram_bot_token)
         .post_init(_initialize_agents)
+        .post_shutdown(_close_checkpointer)
         .build()
     )
     app.bot_data["rate_limiter"] = RateLimiter()

@@ -1,8 +1,12 @@
 import logging
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import src.bot.app  # noqa: F401  (imported for its logging configuration)
-from src.bot.app import _initialize_agents, create_application
+from src.bot.app import (
+    _close_checkpointer,
+    _initialize_agents,
+    create_application,
+)
 
 
 def test_httpx_logging_is_pinned_to_warning_to_keep_the_token_out_of_logs():
@@ -38,6 +42,36 @@ def test_create_application_registers_the_agent_hook():
     app = create_application()
 
     assert app.post_init is _initialize_agents
+
+
+def test_create_application_registers_the_shutdown_hook():
+    # Without this hook the aiosqlite worker thread, which is not a daemon,
+    # keeps the interpreter alive and Ctrl+C leaves the bot hanging after
+    # "Application.stop() complete".
+    app = create_application()
+
+    assert app.post_shutdown is _close_checkpointer
+
+
+async def test_post_shutdown_closes_the_checkpointer_connection():
+    # Closing the connection is what stops that worker thread; nothing else
+    # in the shutdown path knows the checkpointer exists.
+    connection = AsyncMock()
+    app = MagicMock()
+    app.bot_data = {"checkpointer": MagicMock(conn=connection)}
+
+    await _close_checkpointer(app)
+
+    connection.close.assert_awaited_once()
+
+
+async def test_post_shutdown_survives_a_failed_startup():
+    # post_init can raise before it stores anything, and post_shutdown still
+    # runs; a KeyError here would mask the real startup error.
+    app = MagicMock()
+    app.bot_data = {}
+
+    await _close_checkpointer(app)
 
 
 @patch("src.bot.app.build_preference_tidier", MagicMock())
