@@ -2,7 +2,7 @@ import asyncio
 import re
 from typing import Annotated, Literal, NamedTuple
 
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage, RemoveMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
@@ -247,7 +247,8 @@ def build_orchestrator(rag_chain, translation_chain, checkpointer=None):
 
     async def handle_knowledge_question(state: OrchestratorState) -> dict:
         message = state["messages"][-1].content
-        response = await rag_chain.ainvoke(message)
+        history = _recent_history(state["messages"])
+        response = await rag_chain.ainvoke({"input": message, "history": history})
         return {"agent_response": response, "messages": [AIMessage(content=response)]}
 
     async def handle_translation(state: OrchestratorState) -> dict:
@@ -369,6 +370,47 @@ async def record_exchange(orchestrator, thread_id, exchange: Exchange) -> None:
             ]
         },
     )
+
+
+async def get_history(orchestrator, thread_id) -> list:
+    """Return a chat's remembered messages, oldest first.
+
+    Args:
+        orchestrator: Compiled orchestrator graph from build_orchestrator().
+        thread_id: The conversation id (Telegram chat_id).
+
+    Returns:
+        The stored messages, or an empty list for a chat that never spoke.
+    """
+    state = await _read_state(orchestrator, thread_id)
+    return state.values.get("messages") or []
+
+
+async def clear_history(orchestrator, thread_id) -> int:
+    """Forget a chat's remembered messages, leaving its preferences alone.
+
+    History and preferences are separate channels in the state, so wiping one
+    does not touch the other: someone starting a fresh topic keeps the rules
+    they set with /pref. Deletion goes through RemoveMessage rather than
+    writing an empty list, because the messages channel appends by design and
+    a plain [] would simply add nothing.
+
+    Args:
+        orchestrator: Compiled orchestrator graph from build_orchestrator().
+        thread_id: The conversation id (Telegram chat_id).
+
+    Returns:
+        How many messages were forgotten.
+    """
+    messages = await get_history(orchestrator, thread_id)
+    if not messages:
+        return 0
+    await asyncio.to_thread(
+        orchestrator.update_state,
+        _thread_config(thread_id),
+        {"messages": [RemoveMessage(id=message.id) for message in messages]},
+    )
+    return len(messages)
 
 
 async def _read_state(orchestrator, thread_id):

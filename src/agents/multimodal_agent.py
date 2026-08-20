@@ -22,9 +22,15 @@ IMAGE_DETAIL = "original"
 # model that cannot read a table repeats one line until something stops it.
 TRANSCRIPTION_MAX_TOKENS = 4000
 
-# What to ask the model when the user sent a photo with no caption. Kept
-# general: the handler takes any photo, not only documents.
-DEFAULT_QUESTION = "What is this, and what does it say?"
+# What to ask the model when the user sent a photo with no caption. The chat
+# remembers what the bot said, not what it read, so anything left out of this
+# first answer cannot be asked about later: a summary that skipped a table of
+# monthly figures made a follow-up about them unanswerable.
+DEFAULT_QUESTION = (
+    "What is this, and what does it say? Work through it section by section "
+    "and include the figures each one holds, because I may ask about any of "
+    "them next."
+)
 
 SYSTEM_PROMPT = (
     "You are an assistant for immigrants in Serbia. The user sends a photo, "

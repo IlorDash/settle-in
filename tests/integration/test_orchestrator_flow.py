@@ -13,6 +13,7 @@ from src.agents.orchestrator import (
     Exchange,
     add_preference,
     build_orchestrator,
+    clear_history,
     clear_preferences,
     get_preferences,
     process_message,
@@ -368,3 +369,101 @@ async def test_tidy_preferences_skips_the_llm_for_short_lists():
 
     assert result == ["Write Serbian in Cyrillic."]
     tidier.ainvoke.assert_not_called()
+
+
+@patch("src.agents.orchestrator.load_classifier", MagicMock())
+@patch("src.agents.orchestrator.classify")
+async def test_knowledge_agent_receives_the_conversation(mock_classify):
+    # Without this the RAG agent answered every question as if it were the
+    # first: a follow-up about a document the bot had just described came
+    # back as "I don't have enough information to answer that question."
+    mock_classify.return_value = (INTENT_KNOWLEDGE_QUESTION, 0.99)
+    rag, translation = _chains()
+    orchestrator = build_orchestrator(rag, translation)
+    thread_id = "chat-rag-history"
+    await record_exchange(
+        orchestrator, thread_id, Exchange("[a photo]", "nov-25: 18.179 kWh")
+    )
+
+    await process_message(orchestrator, "what was november?", thread_id=thread_id)
+
+    history = rag.ainvoke.call_args.args[0]["history"]
+    assert [message.content for message in history] == [
+        "[a photo]",
+        "nov-25: 18.179 kWh",
+    ]
+
+
+@patch("src.agents.orchestrator.load_classifier", MagicMock())
+@patch("src.agents.orchestrator.classify")
+async def test_knowledge_agent_searches_on_the_question_alone(mock_classify):
+    # Retrieval must key off the latest message, not the whole conversation:
+    # searching on the transcript of a bill would bury a short follow-up.
+    mock_classify.return_value = (INTENT_KNOWLEDGE_QUESTION, 0.99)
+    rag, translation = _chains()
+    orchestrator = build_orchestrator(rag, translation)
+    thread_id = "chat-rag-input"
+    await record_exchange(
+        orchestrator, thread_id, Exchange("[a photo]", "a long bill transcript")
+    )
+
+    await process_message(orchestrator, "what was november?", thread_id=thread_id)
+
+    assert rag.ainvoke.call_args.args[0]["input"] == "what was november?"
+
+
+@patch("src.agents.orchestrator.load_classifier", MagicMock())
+@patch("src.agents.orchestrator.classify")
+async def test_clear_history_forgets_the_conversation(mock_classify):
+    # Deletion goes through RemoveMessage: the messages channel appends by
+    # design, so writing an empty list would add nothing and change nothing.
+    mock_classify.return_value = (INTENT_KNOWLEDGE_QUESTION, 0.99)
+    rag, translation = _chains()
+    orchestrator = build_orchestrator(rag, translation)
+    thread_id = "chat-reset"
+    await process_message(orchestrator, "first", thread_id=thread_id)
+
+    assert await clear_history(orchestrator, thread_id) == 2
+
+    state = orchestrator.get_state({"configurable": {"thread_id": thread_id}})
+    assert state.values.get("messages", []) == []
+
+
+@patch("src.agents.orchestrator.load_classifier", MagicMock())
+@patch("src.agents.orchestrator.classify")
+async def test_clear_history_keeps_the_preferences(mock_classify):
+    # History and preferences are separate channels; someone starting a new
+    # topic should not silently lose the rules they set with /pref.
+    mock_classify.return_value = (INTENT_KNOWLEDGE_QUESTION, 0.99)
+    rag, translation = _chains()
+    orchestrator = build_orchestrator(rag, translation)
+    thread_id = "chat-reset-pref"
+    await add_preference(orchestrator, thread_id, "Keep answers short.")
+    await process_message(orchestrator, "first", thread_id=thread_id)
+
+    await clear_history(orchestrator, thread_id)
+
+    assert await get_preferences(orchestrator, thread_id) == ["Keep answers short."]
+
+
+@patch("src.agents.orchestrator.load_classifier", MagicMock())
+@patch("src.agents.orchestrator.classify")
+async def test_the_chat_still_works_after_being_cleared(mock_classify):
+    mock_classify.return_value = (INTENT_KNOWLEDGE_QUESTION, 0.99)
+    rag, translation = _chains()
+    orchestrator = build_orchestrator(rag, translation)
+    thread_id = "chat-reset-reuse"
+    await process_message(orchestrator, "first", thread_id=thread_id)
+    await clear_history(orchestrator, thread_id)
+
+    result = await process_message(orchestrator, "second", thread_id=thread_id)
+
+    assert result.response == "rag answer"
+
+
+@patch("src.agents.orchestrator.load_classifier", MagicMock())
+async def test_clear_history_on_an_untouched_chat_reports_nothing():
+    rag, translation = _chains()
+    orchestrator = build_orchestrator(rag, translation)
+
+    assert await clear_history(orchestrator, "chat-never-spoke") == 0

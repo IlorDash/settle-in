@@ -1,5 +1,6 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from langchain_core.messages import AIMessage, HumanMessage
 from openai import APIConnectionError, APITimeoutError, RateLimitError
 from telegram import Chat, InaccessibleMessage
 from telegram.error import BadRequest, TelegramError
@@ -10,19 +11,26 @@ from src.bot.handlers import (
     ERROR_GENERIC,
     ERROR_RATE_LIMIT,
     ERROR_TIMEOUT,
+    EXPORT_EMPTY,
+    EXPORT_LIMIT,
     FEEDBACK_LOST,
     FEEDBACK_THANKS,
     LARGE_FILE_CANCELLED,
+    RESET_DONE,
+    RESET_EMPTY,
     UNSUPPORTED_FILE,
+    _export_limit,
     _strip_markdown,
     document_callback,
     error_handler,
+    export_command,
     feedback_callback,
     handle_message,
     handle_photo,
     handle_unsupported_file,
     help_command,
     pref_command,
+    reset_command,
     start_command,
 )
 from src.bot.middleware import MAX_IMAGE_BYTES, RateLimiter
@@ -889,3 +897,107 @@ async def test_a_second_tap_does_not_read_the_file_again(
     await document_callback(update, mock_context)
 
     mock_multimodal_chain.ainvoke.assert_not_called()
+
+
+@patch("src.bot.handlers.clear_history", return_value=4)
+async def test_reset_command_forgets_the_conversation(
+    mock_clear, mock_update, mock_context
+):
+    await reset_command(mock_update, mock_context)
+
+    reply = mock_update.message.reply_text.call_args[0][0]
+    assert reply == RESET_DONE
+
+
+@patch("src.bot.handlers.clear_history", return_value=0)
+async def test_reset_command_says_when_there_was_nothing_to_forget(
+    mock_clear, mock_update, mock_context
+):
+    await reset_command(mock_update, mock_context)
+
+    reply = mock_update.message.reply_text.call_args[0][0]
+    assert reply == RESET_EMPTY
+
+
+@patch("src.bot.handlers.clear_history", return_value=4)
+async def test_reset_command_points_at_pref_clear_for_preferences(
+    mock_clear, mock_update, mock_context
+):
+    # Wiping history silently while leaving rules in place would be
+    # confusing, so the reply says which one it did.
+    await reset_command(mock_update, mock_context)
+
+    assert "/pref clear" in mock_update.message.reply_text.call_args[0][0]
+
+
+@patch("src.bot.handlers.get_history", return_value=[])
+async def test_export_says_when_there_is_nothing_to_send(
+    mock_history, mock_update, mock_context
+):
+    mock_context.args = []
+
+    await export_command(mock_update, mock_context)
+
+    assert mock_update.message.reply_text.call_args[0][0] == EXPORT_EMPTY
+
+
+@patch("src.bot.handlers.get_history")
+async def test_export_sends_a_file_not_a_message(
+    mock_history, mock_update, mock_context
+):
+    # A few document readings run well past Telegram's 4096-character limit
+    # for a message, so a text reply would be rejected outright.
+    mock_history.return_value = [HumanMessage(content="hi"), AIMessage(content="yo")]
+    mock_context.args = []
+    mock_update.message.reply_document = AsyncMock()
+
+    await export_command(mock_update, mock_context)
+
+    mock_update.message.reply_document.assert_awaited_once()
+
+
+@patch("src.bot.handlers.get_history")
+async def test_export_names_the_file_after_the_chat(
+    mock_history, mock_update, mock_context
+):
+    mock_history.return_value = [HumanMessage(content="hi")]
+    mock_context.args = []
+    mock_update.message.reply_document = AsyncMock()
+
+    await export_command(mock_update, mock_context)
+
+    filename = mock_update.message.reply_document.call_args.kwargs["filename"]
+    assert filename == f"settlein-chat-{mock_update.message.chat_id}.txt"
+
+
+@patch("src.bot.handlers.get_history")
+async def test_export_writes_the_transcript_into_the_file(
+    mock_history, mock_update, mock_context
+):
+    mock_history.return_value = [HumanMessage(content="hi"), AIMessage(content="yo")]
+    mock_context.args = []
+    mock_update.message.reply_document = AsyncMock()
+
+    await export_command(mock_update, mock_context)
+
+    sent = mock_update.message.reply_document.call_args.kwargs["document"]
+    assert sent.getvalue().decode("utf-8") == "[1] user: hi\n[2] bot : yo"
+
+
+@patch("src.bot.handlers.get_history")
+async def test_export_honours_a_requested_count(
+    mock_history, mock_update, mock_context
+):
+    mock_history.return_value = [HumanMessage(content=str(n)) for n in range(10)]
+    mock_context.args = ["3"]
+    mock_update.message.reply_document = AsyncMock()
+
+    await export_command(mock_update, mock_context)
+
+    sent = mock_update.message.reply_document.call_args.kwargs["document"]
+    assert len(sent.getvalue().decode("utf-8").splitlines()) == 3
+
+
+def test_export_limit_ignores_a_non_number():
+    # "/export please" should behave like a bare "/export", not crash.
+    assert _export_limit(["please"]) == EXPORT_LIMIT

@@ -1,6 +1,8 @@
+from operator import itemgetter
+
 from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.vectorstores import VectorStoreRetriever
 from langchain_openai import ChatOpenAI
@@ -12,8 +14,13 @@ LLM_TEMPERATURE = 0
 
 SYSTEM_PROMPT = (
     "You are an assistant helping immigrants in Serbia. "
-    "Answer the question using ONLY the provided context. "
-    "If the context does not contain enough information, "
+    "Answer using ONLY two things: the context below, and what has already "
+    "been said in this conversation. The earlier turns count as much as the "
+    "context does, so a question about something you have already explained "
+    "is answerable from them, including arithmetic over figures you quoted. "
+    "The context is retrieved by matching the latest message alone, so on a "
+    "follow-up it is often unrelated; ignore it when it is. "
+    "If neither holds enough information, "
     'say "I don\'t have enough information to answer that question." '
     "Be concise and helpful.\n\n"
     "Context:\n{context}"
@@ -35,7 +42,8 @@ def build_rag_chain(retriever: VectorStoreRetriever):
         retriever: Vector store retriever that finds relevant document chunks.
 
     Returns:
-        A Runnable chain that accepts a query string and returns an answer string.
+        A Runnable accepting {"input": <question>, "history": [...]} that
+        returns the answer as a string. The history is optional.
     """
     llm = ChatOpenAI(
         model=LLM_MODEL,
@@ -46,12 +54,19 @@ def build_rag_chain(retriever: VectorStoreRetriever):
     prompt = ChatPromptTemplate.from_messages(
         [
             ("system", SYSTEM_PROMPT),
+            MessagesPlaceholder("history", optional=True),
             ("human", "{input}"),
         ]
     )
 
+    # `assign` adds the retrieved context while passing every other key
+    # through, so history reaches the prompt without being named here. Only
+    # the question is used to search: retrieving on the whole conversation
+    # would drown a short follow-up in the words of earlier turns.
     return (
-        {"context": retriever | _format_documents, "input": RunnablePassthrough()}
+        RunnablePassthrough.assign(
+            context=itemgetter("input") | retriever | _format_documents
+        )
         | prompt
         | llm
         | StrOutputParser()
@@ -68,4 +83,4 @@ async def ask(chain, query: str) -> str:
     Returns:
         The LLM's answer grounded in the retrieved documents.
     """
-    return await chain.ainvoke(query)
+    return await chain.ainvoke({"input": query})

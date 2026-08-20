@@ -1,5 +1,6 @@
 import logging
 import re
+from io import BytesIO
 from pathlib import Path
 
 from openai import APIConnectionError, APITimeoutError, RateLimitError
@@ -23,7 +24,9 @@ from src.agents.orchestrator import (
     INTENT_TRANSLATION,
     Exchange,
     add_preference,
+    clear_history,
     clear_preferences,
+    get_history,
     get_preferences,
     preferences_directive,
     process_message,
@@ -38,6 +41,7 @@ from src.bot.middleware import (
     validate_image_upload,
     validate_message_text,
 )
+from src.bot.transcript import format_transcript
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +90,15 @@ LARGE_FILE_CANCELLED = (
     "would rather keep it quick."
 )
 LARGE_FILE_LOST = "Sorry, I can no longer find the file this was about."
+# How many messages /export sends when asked for no particular number.
+EXPORT_LIMIT = 20
+EXPORT_EMPTY = "There is nothing to export - we have not spoken yet."
+EXPORT_CAPTION = "The last {shown} of {total} remembered messages."
+RESET_DONE = (
+    "Forgotten - I no longer remember what we were talking about. Your "
+    "saved preferences are untouched; use /pref clear for those."
+)
+RESET_EMPTY = "There was nothing to forget - we have not spoken yet."
 UNSUPPORTED_FILE = (
     "I can't read {kind} files yet. Please send a photo or a screenshot "
     "of the page instead."
@@ -224,6 +237,55 @@ async def pref_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
 
     await update.message.reply_text(PREF_USAGE)
+
+
+def _export_limit(args: list) -> int:
+    """Read how many messages /export was asked for, defaulting sensibly."""
+    if args and args[0].isdigit():
+        return int(args[0])
+    return EXPORT_LIMIT
+
+
+async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /export: send this chat's recent messages back as a text file.
+
+    Sent as a file rather than a message because Telegram caps a message at
+    4096 characters and a handful of document readings passes that easily,
+    and because a file can be forwarded or attached to a bug report whole,
+    which is the point of having it at all.
+
+    `/export 50` overrides how many messages to include.
+    """
+    orchestrator = context.bot_data["orchestrator"]
+    chat_id = update.message.chat_id
+    messages = await get_history(orchestrator, chat_id)
+    if not messages:
+        await update.message.reply_text(EXPORT_EMPTY)
+        return
+
+    limit = _export_limit(context.args)
+    transcript = format_transcript(messages, limit)
+    await update.message.reply_document(
+        document=BytesIO(transcript.encode("utf-8")),
+        filename=f"settlein-chat-{chat_id}.txt",
+        caption=EXPORT_CAPTION.format(
+            shown=min(limit, len(messages)), total=len(messages)
+        ),
+    )
+
+
+async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /reset: forget this chat's conversation, keeping its preferences.
+
+    Memory is per chat and otherwise unbounded until it hits
+    MAX_STORED_MESSAGES, so without this there is no way to start a new topic
+    without the old one colouring the answers - and no way to retest a
+    failure honestly, since a correction stays in context and the model
+    answers from it rather than working the problem again.
+    """
+    orchestrator = context.bot_data["orchestrator"]
+    forgotten = await clear_history(orchestrator, update.message.chat_id)
+    await update.message.reply_text(RESET_DONE if forgotten else RESET_EMPTY)
 
 
 def _feedback_keyboard(intent: str) -> InlineKeyboardMarkup | None:

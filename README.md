@@ -10,8 +10,9 @@ Built with Python, LangChain, LangGraph, and ChromaDB.
 - **Translation** — translate between Serbian, English, and Russian, including request phrasings like "Как будет спасибо по-сербски"
 - **Document reading** — photograph a Serbian bill, letter, or form and the bot says what it is, pulls out the dates, amounts, and reference numbers, and explains what to do next
 - **Smart routing** — a locally trained classifier picks the right agent in milliseconds, falling back to an LLM only when it is unsure, and rejecting questions outside the bot's scope. A photo skips classification entirely: the modality already names the agent
-- **Conversational memory** — each chat keeps its own history, so follow-ups like "and in Latin?" are understood, and it is stored on disk so a restart does not wipe it
+- **Conversational memory** — each chat keeps its own history, so follow-ups like "and in Latin?" are understood, and it is stored on disk so a restart does not wipe it. Every agent reads it, so a question about a document the bot has already explained is answered from that explanation. `/reset` forgets the conversation without touching saved preferences
 - **Standing preferences** — `/pref add Write Serbian translations in Cyrillic` saves a rule the bot applies to later answers
+- **Chat export** — `/export` sends the recent messages back as a text file, which is how a bug gets reported with the bot's exact wording instead of a retyped approximation
 - **Feedback buttons** — 👍/👎 under each answer, recorded with the predicted intent as labelled data for retraining the classifier
 - **Input protection** — message validation, per-user rate limiting, and graceful error handling for LLM timeouts and API failures, with a catch-all handler so even an unexpected crash gets a reply rather than silence
 
@@ -65,8 +66,9 @@ settle-in/
 ├── src/
 │   ├── bot/
 │   │   ├── app.py              # Bot entry point, webhook/polling startup
-│   │   ├── handlers.py         # /start, /help, /pref, messages, photos, feedback taps
+│   │   ├── handlers.py         # /start, /help, /pref, /reset, /export, messages, photos
 │   │   ├── feedback.py         # Appends thumbs up/down to a JSONL store
+│   │   ├── transcript.py       # Renders stored messages as readable text
 │   │   └── middleware.py       # Input validation, image checks, rate limiting
 │   ├── agents/
 │   │   ├── orchestrator.py     # LangGraph intent router, memory, preferences
@@ -80,6 +82,7 @@ settle-in/
 │   └── config.py               # Environment variable management
 ├── scripts/
 │   ├── chat.py                 # Local CLI harness, no Telegram needed
+│   ├── probe_vision.py         # Measures what the vision model can read
 │   └── train_intent_classifier.py
 ├── data/
 │   ├── knowledge_base/         # 8 text documents on Serbian procedures
@@ -146,6 +149,10 @@ python -m scripts.chat
 ```
 
 It also mirrors `/pref`, so preferences can be tested locally. What it *cannot* test is anything Telegram-specific: inline buttons, feedback taps, or message formatting all need a real bot.
+
+### Reading back what the bot remembers
+
+`/export` in the chat sends the recent messages as a text file, and `/export 50` changes how many. Pair it with `/reset` when retesting a failure. Memory is per chat, so a correction stays in context and the next attempt answers from that correction rather than from the document, which makes the retry look like a fix.
 
 ### Running a second bot for testing
 

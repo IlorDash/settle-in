@@ -20,4 +20,4 @@ async def test_ask_returns_answer_from_chain():
     result = await ask(mock_chain, "test question")
 
     assert result == "test answer"
-    mock_chain.ainvoke.assert_called_once_with("test question")
+    mock_chain.ainvoke.assert_called_once_with({"input": "test question"})

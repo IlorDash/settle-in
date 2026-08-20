@@ -20,12 +20,14 @@ from src.bot.handlers import (
     DOCUMENT_PREFIX,
     document_callback,
     error_handler,
+    export_command,
     feedback_callback,
     handle_message,
     handle_photo,
     handle_unsupported_file,
     help_command,
     pref_command,
+    reset_command,
     start_command,
 )
 from src.bot.middleware import RateLimiter
@@ -146,6 +148,8 @@ def create_application():
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("pref", pref_command))
+    app.add_handler(CommandHandler("reset", reset_command))
+    app.add_handler(CommandHandler("export", export_command))
     # The pattern keeps this handler off any inline keyboard added later.
     app.add_handler(
         CallbackQueryHandler(feedback_callback, pattern=f"^{CALLBACK_PREFIX}:")
