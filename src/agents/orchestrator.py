@@ -1,5 +1,6 @@
 import asyncio
 import re
+from dataclasses import dataclass
 from typing import Annotated, Literal, NamedTuple
 
 from langchain_core.messages import AIMessage, HumanMessage, RemoveMessage
@@ -9,9 +10,18 @@ from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
+from langgraph.runtime import Runtime
 from typing_extensions import TypedDict
 
 from src.agents.intent_classifier import classify, load_classifier
+from src.agents.multimodal_agent import (
+    DEFAULT_QUESTION,
+    TranscriptRequest,
+    build_summary_chain,
+    build_transcription_chain,
+    summarise,
+    transcribe,
+)
 from src.config import settings
 
 LLM_MODEL = "gpt-4o-mini"
@@ -20,6 +30,19 @@ LLM_TEMPERATURE = 0
 INTENT_KNOWLEDGE_QUESTION = "knowledge_question"
 INTENT_TRANSLATION = "translation"
 INTENT_OUT_OF_SCOPE = "out_of_scope"
+# Not a label the classifier can produce: the document node sets it, so that
+# a photo turn is distinguishable in the state. Deliberately outside the
+# bot's FEEDBACK_INTENTS, since a thumb on it would teach the text
+# classifier nothing.
+INTENT_DOCUMENT = "document"
+
+# What the entry edge reads. Modality is known for free - Telegram states it
+# in the update - so it is settled before any model is asked anything.
+MODALITY_TEXT = "text"
+MODALITY_DOCUMENT = "document"
+
+# The image is never stored, so the chat log keeps a note of it instead.
+DOCUMENT_HISTORY_NOTE = "[photo of a document]"
 
 CONFIDENCE_THRESHOLD = 0.6
 MAX_HISTORY_MESSAGES = 6
@@ -99,6 +122,9 @@ class OrchestratorState(TypedDict):
         messages: The running conversation log for one chat. New messages are
             appended (never overwritten) and the log is capped at the most
             recent MAX_STORED_MESSAGES so it cannot grow without bound.
+        modality: Whether this turn arrived as text or as a photograph. Read
+            by the entry edge to pick a branch. Every entry point sets it, so
+            that the previous turn's value can never decide this one's route.
         intent: Classified intent (knowledge_question, translation, out_of_scope).
         agent_response: This turn's reply to send back to the user.
         preferences: Per-chat standing instructions the user has set via the
@@ -107,9 +133,31 @@ class OrchestratorState(TypedDict):
     """
 
     messages: Annotated[list, append_capped_messages]
+    modality: str
     intent: str
     agent_response: str
     preferences: Annotated[dict, merge_preferences]
+
+
+@dataclass
+class DocumentTurn:
+    """One photographed document, as it enters the graph for a single run.
+
+    LangGraph's runtime context rather than a field of OrchestratorState, and
+    the difference is the whole reason this class exists: every state field is
+    written to the checkpointer after each step, so a base64 image kept there
+    would be copied into the chat's SQLite file on every photo - up to
+    MAX_IMAGE_BYTES inflated by a third. Context lives only for the run and is
+    never persisted. What outlives the turn is the transcript the node
+    produces, which is text.
+
+    Attributes:
+        image_url: The photo as a data URL, ready for the vision model.
+        caption: What the user wrote with the photo, if anything.
+    """
+
+    image_url: str = ""
+    caption: str = ""
 
 
 def _build_classifier_chain():
@@ -202,12 +250,33 @@ def _preferences_directive(preferences: dict) -> str:
     )
 
 
+def _document_history_note(caption: str, transcript: str) -> str:
+    """Describe a photo turn in words, since the image itself is not stored.
+
+    The transcript rides along because it is what the photo contained, so it
+    belongs to the user's turn rather than the bot's answer. Later questions
+    are then answered from what the page said, not from what the bot happened
+    to mention about it.
+
+    Args:
+        caption: What the user wrote with the photo, or an empty string.
+        transcript: The model's verbatim reading of the image.
+
+    Returns:
+        The text stored in place of the image.
+    """
+    asked = f"{DOCUMENT_HISTORY_NOTE} {caption}" if caption else DOCUMENT_HISTORY_NOTE
+    return f"{asked}\n\n[what the photo shows]\n{transcript}"
+
+
 def build_orchestrator(rag_chain, translation_chain, checkpointer=None):
     """Build and compile the LangGraph orchestrator.
 
-    Intent is classified by the local DNN classifier; low-confidence messages
-    fall back to the LLM classifier. Routes to the RAG chain, the translation
-    chain, or an out-of-scope rejection.
+    Modality decides the branch taken out of START: a photograph goes to the
+    document agent, and text goes on to be classified. Intent is classified by
+    the local DNN classifier, with low-confidence messages falling back to the
+    LLM classifier, and routes to the RAG chain, the translation chain, or an
+    out-of-scope rejection.
 
     Args:
         rag_chain: Compiled RAG chain from rag_agent.build_rag_chain().
@@ -223,6 +292,11 @@ def build_orchestrator(rag_chain, translation_chain, checkpointer=None):
     """
     classifier = load_classifier()
     classifier_chain = _build_classifier_chain()
+    # Built here rather than injected, for the same reason as the classifier
+    # chain above: both need nothing but settings. The RAG chain is passed in
+    # only because it carries a retriever over the embedded knowledge base.
+    transcription_chain = build_transcription_chain()
+    summary_chain = build_summary_chain()
 
     async def classify_intent(state: OrchestratorState) -> dict:
         message = state["messages"][-1].content
@@ -266,6 +340,43 @@ def build_orchestrator(rag_chain, translation_chain, checkpointer=None):
             "messages": [AIMessage(content=OUT_OF_SCOPE_MESSAGE)],
         }
 
+    async def handle_document(
+        state: OrchestratorState, runtime: Runtime[DocumentTurn]
+    ) -> dict:
+        # The photo is read once, and the reply is written from that reading
+        # rather than from the image again: two readings of one page disagree
+        # in places, and since only the transcript is remembered, the bot
+        # would answer one way now and the other way a turn later.
+        photo = runtime.context
+        transcript = await transcribe(transcription_chain, photo.image_url)
+        response = await summarise(
+            summary_chain,
+            TranscriptRequest(
+                transcript=transcript,
+                question=photo.caption or DEFAULT_QUESTION,
+                preferences=_preferences_directive(state.get("preferences")),
+            ),
+        )
+        return {
+            "intent": INTENT_DOCUMENT,
+            "agent_response": response,
+            "messages": [
+                HumanMessage(content=_document_history_note(photo.caption, transcript)),
+                AIMessage(content=response),
+            ],
+        }
+
+    def route_by_modality(
+        state: OrchestratorState,
+    ) -> Literal["classify_intent", "handle_document"]:
+        # .get(), not [], because update_state evaluates this branch as well:
+        # the /pref helpers write to the checkpointer without running the
+        # graph, and a chat that has never sent a message has no modality
+        # stored. Nothing marking a turn as a photograph means it is not one.
+        if state.get("modality") == MODALITY_DOCUMENT:
+            return "handle_document"
+        return "classify_intent"
+
     def route_to_agent(
         state: OrchestratorState,
     ) -> Literal[
@@ -277,18 +388,20 @@ def build_orchestrator(rag_chain, translation_chain, checkpointer=None):
             return "handle_out_of_scope"
         return "handle_knowledge_question"
 
-    graph = StateGraph(OrchestratorState)
+    graph = StateGraph(OrchestratorState, context_schema=DocumentTurn)
 
     graph.add_node("classify_intent", classify_intent)
     graph.add_node("handle_knowledge_question", handle_knowledge_question)
     graph.add_node("handle_translation", handle_translation)
     graph.add_node("handle_out_of_scope", handle_out_of_scope)
+    graph.add_node("handle_document", handle_document)
 
-    graph.add_edge(START, "classify_intent")
+    graph.add_conditional_edges(START, route_by_modality)
     graph.add_conditional_edges("classify_intent", route_to_agent)
     graph.add_edge("handle_knowledge_question", END)
     graph.add_edge("handle_translation", END)
     graph.add_edge("handle_out_of_scope", END)
+    graph.add_edge("handle_document", END)
 
     return graph.compile(checkpointer=checkpointer or MemorySaver())
 
@@ -310,19 +423,6 @@ class MessageResult(NamedTuple):
     intent: str
 
 
-class Exchange(NamedTuple):
-    """One turn of conversation, as it should be remembered.
-
-    Attributes:
-        question: What the user asked, in text. A photo has no text of its
-            own, so the caller supplies a short stand-in describing it.
-        answer: The reply the bot sent back.
-    """
-
-    question: str
-    answer: str
-
-
 async def process_message(
     orchestrator, message: str, thread_id: str = "cli"
 ) -> MessageResult:
@@ -339,37 +439,40 @@ async def process_message(
         A MessageResult with the response text and the classified intent.
     """
     result = await orchestrator.ainvoke(
-        {"messages": [HumanMessage(content=message)]},
+        # Modality is written on every turn, never left to whatever the last
+        # one set. A photo followed by a question would otherwise re-enter the
+        # document node with no photo to read.
+        {"messages": [HumanMessage(content=message)], "modality": MODALITY_TEXT},
         config=_thread_config(thread_id),
     )
     return MessageResult(response=result["agent_response"], intent=result["intent"])
 
 
-async def record_exchange(orchestrator, thread_id, exchange: Exchange) -> None:
-    """Append a turn to a chat's history without running the graph.
+async def process_document(
+    orchestrator, photo: DocumentTurn, thread_id: str = "cli"
+) -> MessageResult:
+    """Run a photographed document through the orchestrator and return the reply.
 
-    The document agent is reached straight from its handler rather than
-    through the graph, because an image cannot be routed by a text intent
-    classifier. Writing the turn here keeps the conversation whole anyway, so
-    a later text follow-up ("what was that deadline?") still has the context.
-    Only the text is stored - the photo itself never enters the checkpointer,
-    where a base64 image would bloat every saved checkpoint.
+    The photo travels as LangGraph runtime context rather than in the state,
+    so it is never written to the checkpointer; see DocumentTurn. The graph
+    still records the turn, because the node returns the transcript and the
+    answer as ordinary messages, which is how a later text follow-up about the
+    same document finds its context.
 
     Args:
         orchestrator: Compiled orchestrator graph from build_orchestrator().
-        thread_id: The conversation id (Telegram chat_id).
-        exchange: The user's turn and the bot's reply, as text.
+        photo: The image and the caption the user sent with it.
+        thread_id: Identifies the conversation, as for process_message().
+
+    Returns:
+        A MessageResult with the answer and INTENT_DOCUMENT.
     """
-    await asyncio.to_thread(
-        orchestrator.update_state,
-        _thread_config(thread_id),
-        {
-            "messages": [
-                HumanMessage(content=exchange.question),
-                AIMessage(content=exchange.answer),
-            ]
-        },
+    result = await orchestrator.ainvoke(
+        {"modality": MODALITY_DOCUMENT},
+        config=_thread_config(thread_id),
+        context=photo,
     )
+    return MessageResult(response=result["agent_response"], intent=result["intent"])
 
 
 async def get_history(orchestrator, thread_id) -> list:
@@ -468,23 +571,6 @@ async def get_preferences(orchestrator, thread_id) -> list:
     """
     state = await _read_state(orchestrator, thread_id)
     return (state.values.get("preferences") or {}).get("instructions") or []
-
-
-async def preferences_directive(orchestrator, thread_id) -> str:
-    """Render a chat's standing rules as a directive for an agent.
-
-    The graph's nodes build this for themselves; this is the way in for an
-    agent called outside the graph, such as the document agent.
-
-    Args:
-        orchestrator: Compiled orchestrator graph from build_orchestrator().
-        thread_id: The conversation id (Telegram chat_id).
-
-    Returns:
-        The directive text to hand the agent as its `preferences` input.
-    """
-    instructions = await get_preferences(orchestrator, thread_id)
-    return _preferences_directive({"instructions": instructions})
 
 
 async def add_preference(orchestrator, thread_id, rule: str) -> list:

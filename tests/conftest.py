@@ -105,26 +105,10 @@ def mock_orchestrator():
 
 
 @pytest.fixture
-def mock_summary_chain():
-    chain = MagicMock()
-    chain.ainvoke = AsyncMock(return_value="This is an electricity bill.")
-    return chain
-
-
-@pytest.fixture
-def mock_transcription_chain():
-    chain = MagicMock()
-    chain.ainvoke = AsyncMock(return_value="Racun za grejanje\nInstalisana snaga 3,96")
-    return chain
-
-
-@pytest.fixture
-def mock_context(mock_orchestrator, mock_summary_chain, mock_transcription_chain):
+def mock_context(mock_orchestrator):
     context = MagicMock()
     context.bot_data = {
         "orchestrator": mock_orchestrator,
-        "summary_chain": mock_summary_chain,
-        "transcription_chain": mock_transcription_chain,
         "rate_limiter": RateLimiter(),
     }
     return context

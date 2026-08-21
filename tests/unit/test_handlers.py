@@ -5,7 +5,6 @@ from openai import APIConnectionError, APITimeoutError, RateLimitError
 from telegram import Chat, InaccessibleMessage
 from telegram.error import BadRequest, TelegramError
 
-from src.agents.multimodal_agent import DEFAULT_QUESTION
 from src.bot.handlers import (
     ERROR_CONNECTION,
     ERROR_GENERIC,
@@ -421,9 +420,11 @@ def test_strip_markdown_keeps_plain_text_untouched():
 
 
 async def test_handle_photo_strips_markdown_from_the_answer(
-    mock_photo_update, mock_context, mock_summary_chain
+    mock_photo_update, mock_context, mock_orchestrator
 ):
-    mock_summary_chain.ainvoke = AsyncMock(return_value="### Итог\n**Всего**: 5")
+    mock_orchestrator.ainvoke = AsyncMock(
+        return_value={"intent": "document", "agent_response": "### Итог\n**Всего**: 5"}
+    )
 
     await handle_photo(mock_photo_update, mock_context)
 
@@ -435,39 +436,41 @@ async def test_handle_photo_sends_the_agents_reading(mock_photo_update, mock_con
     await handle_photo(mock_photo_update, mock_context)
 
     reply_text = mock_photo_update.message.reply_text.call_args[0][0]
-    assert reply_text == "This is an electricity bill."
+    assert reply_text == "Test answer from orchestrator."
 
 
 async def test_handle_photo_sends_the_downloaded_image(
-    mock_photo_update, mock_context, mock_transcription_chain
+    mock_photo_update, mock_context, mock_orchestrator
 ):
     # The bytes must arrive base64-encoded in a data URL, not as raw bytes,
-    # and they go to the transcription chain - the only one that sees pixels.
+    # and they ride in the run's context rather than in the graph's state,
+    # which is what keeps them out of the checkpoint file.
     await handle_photo(mock_photo_update, mock_context)
 
-    sent = mock_transcription_chain.ainvoke.call_args.args[0]
-    assert sent["image_url"] == "data:image/jpeg;base64,anBlZ2RhdGE="
+    photo = mock_orchestrator.ainvoke.call_args.kwargs["context"]
+    assert photo.image_url == "data:image/jpeg;base64,anBlZ2RhdGE="
 
 
-async def test_handle_photo_uses_the_caption_as_the_question(
-    mock_photo_update, mock_context, mock_summary_chain
+async def test_handle_photo_passes_the_caption_to_the_graph(
+    mock_photo_update, mock_context, mock_orchestrator
 ):
     mock_photo_update.message.caption = "Kada moram da platim?"
 
     await handle_photo(mock_photo_update, mock_context)
 
-    sent = mock_summary_chain.ainvoke.call_args.args[0]
-    assert sent["question"] == "Kada moram da platim?"
+    photo = mock_orchestrator.ainvoke.call_args.kwargs["context"]
+    assert photo.caption == "Kada moram da platim?"
 
 
-async def test_handle_photo_falls_back_to_a_default_question(
-    mock_photo_update, mock_context, mock_summary_chain
+async def test_handle_photo_sends_an_empty_caption_when_there_is_none(
+    mock_photo_update, mock_context, mock_orchestrator
 ):
-    # A photo with no caption still has to ask the model something.
+    # Telegram reports a missing caption as None, and the node decides
+    # what to ask in that case, so it is handed a string either way.
     await handle_photo(mock_photo_update, mock_context)
 
-    sent = mock_summary_chain.ainvoke.call_args.args[0]
-    assert sent["question"] == DEFAULT_QUESTION
+    photo = mock_orchestrator.ainvoke.call_args.kwargs["context"]
+    assert photo.caption == ""
 
 
 async def test_handle_photo_takes_the_largest_photo_size(
@@ -483,30 +486,8 @@ async def test_handle_photo_takes_the_largest_photo_size(
     largest.get_file.assert_awaited_once()
 
 
-async def test_handle_photo_records_the_turn_in_history(
-    mock_photo_update, mock_context, mock_orchestrator
-):
-    # The image never reaches the graph, so without this write a text
-    # follow-up about the document would have no context at all.
-    await handle_photo(mock_photo_update, mock_context)
-
-    written = mock_orchestrator.update_state.call_args.args[1]
-    assert written["messages"][1].content == "This is an electricity bill."
-
-
-async def test_handle_photo_keeps_the_caption_in_history(
-    mock_photo_update, mock_context, mock_orchestrator
-):
-    mock_photo_update.message.caption = "Kada moram da platim?"
-
-    await handle_photo(mock_photo_update, mock_context)
-
-    written = mock_orchestrator.update_state.call_args.args[1]
-    assert "Kada moram da platim?" in written["messages"][0].content
-
-
 async def test_handle_photo_rejects_an_unsupported_image_type(
-    mock_photo_update, mock_context, mock_summary_chain
+    mock_photo_update, mock_context, mock_orchestrator
 ):
     # An image sent as a file carries its own mime type, which may be one no
     # vision model reads.
@@ -518,7 +499,7 @@ async def test_handle_photo_rejects_an_unsupported_image_type(
 
     await handle_photo(mock_photo_update, mock_context)
 
-    mock_summary_chain.ainvoke.assert_not_called()
+    mock_orchestrator.ainvoke.assert_not_called()
 
 
 async def test_handle_photo_does_not_download_an_oversized_image(
@@ -533,31 +514,24 @@ async def test_handle_photo_does_not_download_an_oversized_image(
     photo.get_file.assert_not_called()
 
 
-async def test_handle_photo_is_rate_limited(
-    mock_photo_update,
-    mock_orchestrator,
-    mock_summary_chain,
-    mock_transcription_chain,
-):
+async def test_handle_photo_is_rate_limited(mock_photo_update, mock_orchestrator):
     # A vision call costs more than a text one, so the same limit applies.
     context = MagicMock()
     context.bot_data = {
         "orchestrator": mock_orchestrator,
-        "summary_chain": mock_summary_chain,
-        "transcription_chain": mock_transcription_chain,
         "rate_limiter": RateLimiter(max_messages=1, window_seconds=60),
     }
 
     await handle_photo(mock_photo_update, context)
     await handle_photo(mock_photo_update, context)
 
-    assert mock_summary_chain.ainvoke.call_count == 1
+    assert mock_orchestrator.ainvoke.call_count == 1
 
 
 async def test_handle_photo_replies_timeout_when_the_vision_call_times_out(
-    mock_photo_update, mock_context, mock_summary_chain
+    mock_photo_update, mock_context, mock_orchestrator
 ):
-    mock_summary_chain.ainvoke = AsyncMock(side_effect=APITimeoutError(request=None))
+    mock_orchestrator.ainvoke = AsyncMock(side_effect=APITimeoutError(request=None))
 
     await handle_photo(mock_photo_update, mock_context)
 
@@ -759,7 +733,7 @@ def _large_document(mock_photo_update, size=3 * 1024 * 1024):
 
 
 async def test_handle_photo_asks_before_reading_a_large_file(
-    mock_photo_update, mock_context, mock_summary_chain
+    mock_photo_update, mock_context, mock_orchestrator
 ):
     # Only an uncompressed upload can be big enough to matter: Telegram
     # shrinks anything sent as a photo, so that path is never asked about.
@@ -767,7 +741,7 @@ async def test_handle_photo_asks_before_reading_a_large_file(
 
     await handle_photo(mock_photo_update, mock_context)
 
-    mock_summary_chain.ainvoke.assert_not_called()
+    mock_orchestrator.ainvoke.assert_not_called()
 
 
 async def test_the_large_file_question_offers_both_choices(
@@ -798,16 +772,16 @@ async def test_the_large_file_question_replies_to_the_upload(
 
 
 async def test_an_ordinary_photo_is_read_without_asking(
-    mock_photo_update, mock_context, mock_summary_chain
+    mock_photo_update, mock_context, mock_orchestrator
 ):
     # A compressed photo is cheap, so a question about it would be noise.
     await handle_photo(mock_photo_update, mock_context)
 
-    mock_summary_chain.ainvoke.assert_called_once()
+    mock_orchestrator.ainvoke.assert_called_once()
 
 
 async def test_confirming_reads_the_file_that_was_asked_about(
-    mock_photo_update, mock_context, mock_summary_chain
+    mock_photo_update, mock_context, mock_orchestrator
 ):
     upload = mock_photo_update.message
     _large_document(mock_photo_update)
@@ -822,11 +796,11 @@ async def test_confirming_reads_the_file_that_was_asked_about(
 
     await document_callback(update, mock_context)
 
-    mock_summary_chain.ainvoke.assert_called_once()
+    mock_orchestrator.ainvoke.assert_called_once()
 
 
 async def test_cancelling_does_not_read_the_file(
-    mock_photo_update, mock_context, mock_summary_chain
+    mock_photo_update, mock_context, mock_orchestrator
 ):
     query = MagicMock()
     query.data = "doc:cancel"
@@ -838,7 +812,7 @@ async def test_cancelling_does_not_read_the_file(
 
     await document_callback(update, mock_context)
 
-    mock_summary_chain.ainvoke.assert_not_called()
+    mock_orchestrator.ainvoke.assert_not_called()
 
 
 async def test_cancelling_says_what_to_do_instead(mock_context):
@@ -855,7 +829,7 @@ async def test_cancelling_says_what_to_do_instead(mock_context):
     query.answer.assert_awaited_once_with(LARGE_FILE_CANCELLED)
 
 
-async def test_confirming_an_unreachable_file_says_so(mock_context, mock_summary_chain):
+async def test_confirming_an_unreachable_file_says_so(mock_context, mock_orchestrator):
     # Past ~48 hours Telegram sends an InaccessibleMessage, so the reply
     # chain back to the upload is gone and there is nothing to read.
     query = MagicMock()
@@ -868,7 +842,7 @@ async def test_confirming_an_unreachable_file_says_so(mock_context, mock_summary
 
     await document_callback(update, mock_context)
 
-    mock_summary_chain.ainvoke.assert_not_called()
+    mock_orchestrator.ainvoke.assert_not_called()
 
 
 async def test_the_large_file_question_states_the_size(mock_photo_update, mock_context):
@@ -880,7 +854,7 @@ async def test_the_large_file_question_states_the_size(mock_photo_update, mock_c
 
 
 async def test_a_second_tap_does_not_read_the_file_again(
-    mock_photo_update, mock_context, mock_summary_chain
+    mock_photo_update, mock_context, mock_orchestrator
 ):
     # Telegram refuses to clear a keyboard that is already gone, and that
     # refusal is the only signal that another tap got here first. Without it
@@ -898,7 +872,7 @@ async def test_a_second_tap_does_not_read_the_file_again(
 
     await document_callback(update, mock_context)
 
-    mock_summary_chain.ainvoke.assert_not_called()
+    mock_orchestrator.ainvoke.assert_not_called()
 
 
 @patch("src.bot.handlers.clear_history", return_value=4)
@@ -1076,9 +1050,11 @@ async def test_only_the_last_piece_carries_the_feedback_buttons(
 
 
 async def test_a_long_photo_reading_is_split_too(
-    mock_photo_update, mock_context, mock_summary_chain
+    mock_photo_update, mock_context, mock_orchestrator
 ):
-    mock_summary_chain.ainvoke = AsyncMock(return_value="y" * 9000)
+    mock_orchestrator.ainvoke = AsyncMock(
+        return_value={"intent": "document", "agent_response": "y" * 9000}
+    )
 
     await handle_photo(mock_photo_update, mock_context)
 
@@ -1091,50 +1067,3 @@ async def test_help_lists_the_reset_and_export_commands(mock_update, mock_contex
 
     reply = mock_update.message.reply_text.call_args[0][0]
     assert "/reset" in reply and "/export" in reply
-
-
-async def test_the_transcript_is_remembered_not_shown(
-    mock_photo_update, mock_context, mock_orchestrator
-):
-    # The point of the split: the user sees a short answer, while the whole
-    # page goes into memory so a later question can reach any of it.
-    await handle_photo(mock_photo_update, mock_context)
-
-    shown = mock_photo_update.message.reply_text.call_args[0][0]
-    remembered = mock_orchestrator.update_state.call_args.args[1]["messages"][0]
-    assert "Instalisana snaga 3,96" in remembered.content
-    assert "Instalisana snaga 3,96" not in shown
-
-
-async def test_the_answer_is_written_from_the_stored_transcript(
-    mock_photo_update, mock_context, mock_transcription_chain, mock_summary_chain
-):
-    # The single source of truth. Looking at the image a second time to write
-    # the answer would give two accounts that disagree, and since only the
-    # transcript is kept, the bot would contradict itself one turn later.
-    mock_transcription_chain.ainvoke = AsyncMock(return_value="Adresa DRASKA 1")
-
-    await handle_photo(mock_photo_update, mock_context)
-
-    assert mock_summary_chain.ainvoke.call_args.args[0]["transcript"] == (
-        "Adresa DRASKA 1"
-    )
-
-
-async def test_the_summary_chain_never_sees_the_image(
-    mock_photo_update, mock_context, mock_summary_chain
-):
-    # It is a text model, so an image URL reaching it would be both wasted
-    # and, on a model without vision, an API error.
-    await handle_photo(mock_photo_update, mock_context)
-
-    assert "image_url" not in mock_summary_chain.ainvoke.call_args.args[0]
-
-
-async def test_the_photo_is_read_only_once(
-    mock_photo_update, mock_context, mock_transcription_chain
-):
-    # The image is the expensive part of the request, so it is sent once.
-    await handle_photo(mock_photo_update, mock_context)
-
-    assert mock_transcription_chain.ainvoke.await_count == 1

@@ -13,25 +13,18 @@ from telegram import (
 from telegram.error import BadRequest, TelegramError
 from telegram.ext import ContextTypes
 
-from src.agents.multimodal_agent import (
-    DEFAULT_QUESTION,
-    TranscriptRequest,
-    encode_image_as_data_url,
-    summarise,
-    transcribe,
-)
+from src.agents.multimodal_agent import encode_image_as_data_url
 from src.agents.orchestrator import (
     INTENT_KNOWLEDGE_QUESTION,
     INTENT_TRANSLATION,
-    Exchange,
+    DocumentTurn,
     add_preference,
     clear_history,
     clear_preferences,
     get_history,
     get_preferences,
-    preferences_directive,
+    process_document,
     process_message,
-    record_exchange,
     remove_preference,
     tidy_preferences,
 )
@@ -71,8 +64,6 @@ FEEDBACK_LOST = "Sorry, I can no longer find the question this answered."
 
 # Telegram compresses every photo to JPEG, so a PhotoSize needs no mime check.
 PHOTO_MIME_TYPE = "image/jpeg"
-# The image itself is never stored, so the chat log keeps a note of it instead.
-DOCUMENT_HISTORY_NOTE = "[photo of a document]"
 
 # Prefix marking the "read this large file?" buttons, kept apart from the
 # feedback prefix so each callback handler only ever sees its own payloads.
@@ -493,25 +484,6 @@ async def _fetch_document_image(message) -> str:
     return encode_image_as_data_url(bytes(image_bytes), mime_type)
 
 
-def _document_history_note(caption: str | None, transcript: str) -> str:
-    """Describe a photo turn in words, since the image itself is not stored.
-
-    The transcript rides along because it is what the photo contained, so it
-    belongs to the user's turn rather than the bot's answer. Later questions
-    are then answered from what the page said, not from what the bot happened
-    to mention about it.
-
-    Args:
-        caption: What the user wrote with the photo, if anything.
-        transcript: The model's verbatim reading of the image.
-
-    Returns:
-        The text stored in place of the image.
-    """
-    asked = f"{DOCUMENT_HISTORY_NOTE} {caption}" if caption else DOCUMENT_HISTORY_NOTE
-    return f"{asked}\n\n[what the photo shows]\n{transcript}"
-
-
 def _confirmation_keyboard() -> InlineKeyboardMarkup:
     """Build the yes/no buttons offered before reading a large file."""
     buttons = [
@@ -526,50 +498,35 @@ def _confirmation_keyboard() -> InlineKeyboardMarkup:
 
 
 async def _read_photo_and_reply(message, context) -> None:
-    """Answer the photo on `message`, and remember everything it contained.
+    """Answer the photo on `message` by running it through the orchestrator.
 
-    The photo is read once, and everything afterwards works from that one
-    reading: the transcript goes into the chat's memory, and the reply is
-    written from the same transcript rather than from the image again.
-
-    Reading the image twice would give two accounts that disagree in places,
-    and since only the transcript is stored, the bot would answer one way now
-    and the other way a turn later. Storing the answer alone was worse still,
-    because whatever the model read and chose not to mention was simply lost.
+    Everything past the download belongs to the graph: the document agent is
+    a node like any other, reached by the entry edge that reads the modality.
+    The handler's job is the part only Telegram knows about - checking the
+    upload and fetching its bytes.
 
     Args:
         message: The Telegram message carrying the photo or image file.
-        context: The PTB context, holding the agents in bot_data.
+        context: The PTB context, holding the orchestrator in bot_data.
     """
-    orchestrator = context.bot_data["orchestrator"]
-    chat_id = message.chat_id
     context.bot_data["rate_limiter"].check(message.from_user.id)
     image_url = await _fetch_document_image(message)
-    transcript = await transcribe(context.bot_data["transcription_chain"], image_url)
-    answer = await summarise(
-        context.bot_data["summary_chain"],
-        TranscriptRequest(
-            transcript=transcript,
-            question=message.caption or DEFAULT_QUESTION,
-            preferences=await preferences_directive(orchestrator, chat_id),
-        ),
+    result = await process_document(
+        context.bot_data["orchestrator"],
+        DocumentTurn(image_url=image_url, caption=message.caption or ""),
+        message.chat_id,
     )
-    for part in _split_for_telegram(_strip_markdown(answer)):
+    for part in _split_for_telegram(_strip_markdown(result.response)):
         await message.reply_text(part)
-    await record_exchange(
-        orchestrator,
-        chat_id,
-        Exchange(_document_history_note(message.caption, transcript), answer),
-    )
 
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Read any photo the user sends and answer their question about it.
 
-    An image carries no text to classify, so the modality alone chooses the
-    agent: this skips the orchestrator's graph and calls the vision agent
-    directly. The turn is written into the chat's history afterwards, so a
-    text follow-up about the document still has the context.
+    An image carries no text to classify, so modality alone chooses the agent.
+    That choice is made by the orchestrator's entry edge, not here: Telegram
+    states the modality in the update, so it is settled for free and before
+    any model is asked anything.
 
     A large file is not read straight away. Telegram compresses anything sent
     as a photo, so only an uncompressed upload can be big enough to matter,

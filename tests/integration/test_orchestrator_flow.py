@@ -1,26 +1,34 @@
+from contextlib import contextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiosqlite
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
+from src.agents.multimodal_agent import DEFAULT_QUESTION
 from src.agents.orchestrator import (
+    INTENT_DOCUMENT,
     INTENT_KNOWLEDGE_QUESTION,
     INTENT_OUT_OF_SCOPE,
     INTENT_TRANSLATION,
     MAX_HISTORY_MESSAGES,
     OUT_OF_SCOPE_MESSAGE,
-    Exchange,
+    DocumentTurn,
     add_preference,
     build_orchestrator,
     clear_history,
     clear_preferences,
+    get_history,
     get_preferences,
+    process_document,
     process_message,
-    record_exchange,
     remove_preference,
     tidy_preferences,
 )
+
+# Stands in for a photograph. Short enough to search a SQLite file for, so a
+# test can prove the image never reached the checkpointer.
+IMAGE_URL = "data:image/jpeg;base64,QUJDREVGR0hJSktMTU5PUFFSU1Q="
 
 
 def _chains():
@@ -30,6 +38,32 @@ def _chains():
     translation = MagicMock()
     translation.ainvoke = AsyncMock(return_value="translation answer")
     return rag, translation
+
+
+@contextmanager
+def _document_agent(transcript="a bill", answer="It is an electricity bill."):
+    """Stand in for the two chains build_orchestrator makes for itself.
+
+    They are patched at the module rather than passed in, because the
+    orchestrator builds them the same way it builds its classifier chain -
+    neither needs anything but settings. The patch has to be active only
+    while the graph is built, since the chains are captured there.
+
+    Yields:
+        The transcription chain and the summary chain, to assert against.
+    """
+    transcription = MagicMock()
+    transcription.ainvoke = AsyncMock(return_value=transcript)
+    summary = MagicMock()
+    summary.ainvoke = AsyncMock(return_value=answer)
+    with (
+        patch(
+            "src.agents.orchestrator.build_transcription_chain",
+            return_value=transcription,
+        ),
+        patch("src.agents.orchestrator.build_summary_chain", return_value=summary),
+    ):
+        yield transcription, summary
 
 
 @patch("src.agents.orchestrator.load_classifier", MagicMock())
@@ -281,41 +315,40 @@ async def test_tidy_preferences_replaces_list_with_merged_rules():
 
 @patch("src.agents.orchestrator.load_classifier", MagicMock())
 @patch("src.agents.orchestrator.classify")
-async def test_a_recorded_exchange_is_remembered_as_history(mock_classify):
-    # A document is answered outside the graph, so the turn is written to the
-    # checkpointer by hand; the next text message must see it as context.
+async def test_a_document_turn_is_remembered_as_history(mock_classify):
+    # The node writes the turn as ordinary messages, so the next text message
+    # sees the photograph as context without anything being recorded by hand.
     mock_classify.return_value = (INTENT_TRANSLATION, 0.99)
     rag, translation = _chains()
-    orchestrator = build_orchestrator(rag, translation)
+    with _document_agent(transcript="Racun za grejanje"):
+        orchestrator = build_orchestrator(rag, translation)
     thread_id = "chat-doc"
-    await record_exchange(
-        orchestrator, thread_id, Exchange("[a photo]", "It is an electricity bill.")
-    )
+    await process_document(orchestrator, DocumentTurn(image_url=IMAGE_URL), thread_id)
 
     await process_message(orchestrator, "и когда платить?", thread_id=thread_id)
 
     history = translation.ainvoke.call_args.args[0]["history"]
-    assert [message.content for message in history] == [
-        "[a photo]",
-        "It is an electricity bill.",
-    ]
+    assert "Racun za grejanje" in history[0].content
+    assert history[1].content == "It is an electricity bill."
 
 
 @patch("src.agents.orchestrator.load_classifier", MagicMock())
 @patch("src.agents.orchestrator.classify")
-async def test_a_recorded_exchange_does_not_skip_classification(mock_classify):
-    # update_state writes "as" whichever node LangGraph infers ran last. If it
-    # picked classify_intent, the next run would resume after it and route on a
-    # stale intent, so the guard is that classification still happens.
+async def test_text_after_a_photo_is_still_classified(mock_classify):
+    # Modality is stored state, so a turn that did not overwrite it would be
+    # routed by the previous one: the question after a photo would re-enter
+    # the document node, with no photo in the run's context to read.
     mock_classify.return_value = (INTENT_KNOWLEDGE_QUESTION, 0.99)
     rag, translation = _chains()
-    orchestrator = build_orchestrator(rag, translation)
+    with _document_agent():
+        orchestrator = build_orchestrator(rag, translation)
     thread_id = "chat-doc-classify"
-    await record_exchange(orchestrator, thread_id, Exchange("[a photo]", "A bill."))
+    await process_document(orchestrator, DocumentTurn(image_url=IMAGE_URL), thread_id)
 
     await process_message(orchestrator, "how do I pay it?", thread_id=thread_id)
 
     mock_classify.assert_called_once()
+    rag.ainvoke.assert_called_once()
 
 
 def _sqlite_orchestrator(path):
@@ -379,19 +412,16 @@ async def test_knowledge_agent_receives_the_conversation(mock_classify):
     # back as "I don't have enough information to answer that question."
     mock_classify.return_value = (INTENT_KNOWLEDGE_QUESTION, 0.99)
     rag, translation = _chains()
-    orchestrator = build_orchestrator(rag, translation)
+    with _document_agent(transcript="nov-25: 18.179 kWh", answer="A power bill."):
+        orchestrator = build_orchestrator(rag, translation)
     thread_id = "chat-rag-history"
-    await record_exchange(
-        orchestrator, thread_id, Exchange("[a photo]", "nov-25: 18.179 kWh")
-    )
+    await process_document(orchestrator, DocumentTurn(image_url=IMAGE_URL), thread_id)
 
     await process_message(orchestrator, "what was november?", thread_id=thread_id)
 
     history = rag.ainvoke.call_args.args[0]["history"]
-    assert [message.content for message in history] == [
-        "[a photo]",
-        "nov-25: 18.179 kWh",
-    ]
+    assert "nov-25: 18.179 kWh" in history[0].content
+    assert history[1].content == "A power bill."
 
 
 @patch("src.agents.orchestrator.load_classifier", MagicMock())
@@ -401,11 +431,10 @@ async def test_knowledge_agent_searches_on_the_question_alone(mock_classify):
     # searching on the transcript of a bill would bury a short follow-up.
     mock_classify.return_value = (INTENT_KNOWLEDGE_QUESTION, 0.99)
     rag, translation = _chains()
-    orchestrator = build_orchestrator(rag, translation)
+    with _document_agent(transcript="a long bill transcript"):
+        orchestrator = build_orchestrator(rag, translation)
     thread_id = "chat-rag-input"
-    await record_exchange(
-        orchestrator, thread_id, Exchange("[a photo]", "a long bill transcript")
-    )
+    await process_document(orchestrator, DocumentTurn(image_url=IMAGE_URL), thread_id)
 
     await process_message(orchestrator, "what was november?", thread_id=thread_id)
 
@@ -467,3 +496,134 @@ async def test_clear_history_on_an_untouched_chat_reports_nothing():
     orchestrator = build_orchestrator(rag, translation)
 
     assert await clear_history(orchestrator, "chat-never-spoke") == 0
+
+
+@patch("src.agents.orchestrator.load_classifier", MagicMock())
+@patch("src.agents.orchestrator.classify")
+async def test_a_photo_reaches_the_document_agent_without_being_classified(
+    mock_classify,
+):
+    # The point of the entry edge. Modality comes free with the update, so a
+    # photograph never pays for an inference to find out where it belongs -
+    # and the classifier could not read it anyway.
+    rag, translation = _chains()
+    with _document_agent():
+        orchestrator = build_orchestrator(rag, translation)
+
+    result = await process_document(
+        orchestrator, DocumentTurn(image_url=IMAGE_URL), "chat-photo"
+    )
+
+    assert result.intent == INTENT_DOCUMENT
+    mock_classify.assert_not_called()
+    rag.ainvoke.assert_not_called()
+    translation.ainvoke.assert_not_called()
+
+
+@patch("src.agents.orchestrator.load_classifier", MagicMock())
+@patch("src.agents.orchestrator.classify")
+async def test_writing_a_preference_runs_no_agent(mock_classify):
+    # Making the entry edge conditional means update_state evaluates it, and
+    # the /pref helpers write that way. The branch is only asked which task
+    # would come next, so saving a rule must still cost nothing.
+    rag, translation = _chains()
+    with _document_agent() as (transcription, summary):
+        orchestrator = build_orchestrator(rag, translation)
+
+    await add_preference(orchestrator, "chat-pref-cost", "Reply in Cyrillic.")
+
+    mock_classify.assert_not_called()
+    rag.ainvoke.assert_not_called()
+    transcription.ainvoke.assert_not_called()
+    summary.ainvoke.assert_not_called()
+
+
+@patch("src.agents.orchestrator.load_classifier", MagicMock())
+async def test_the_document_node_answers_from_its_own_transcript():
+    # The single source of truth. Reading the image a second time to write
+    # the answer would give two accounts that disagree, and since only the
+    # transcript is kept, the bot would contradict itself one turn later.
+    rag, translation = _chains()
+    with _document_agent(transcript="Adresa DRASKA 1") as (transcription, summary):
+        orchestrator = build_orchestrator(rag, translation)
+
+    await process_document(
+        orchestrator, DocumentTurn(image_url=IMAGE_URL), "chat-transcript"
+    )
+
+    assert transcription.ainvoke.await_count == 1
+    assert summary.ainvoke.call_args.args[0]["transcript"] == "Adresa DRASKA 1"
+    assert "image_url" not in summary.ainvoke.call_args.args[0]
+
+
+@patch("src.agents.orchestrator.load_classifier", MagicMock())
+async def test_a_caption_becomes_the_question_and_its_absence_a_default():
+    rag, translation = _chains()
+    with _document_agent() as (_, summary):
+        orchestrator = build_orchestrator(rag, translation)
+
+    await process_document(
+        orchestrator, DocumentTurn(image_url=IMAGE_URL, caption="Kada?"), "chat-cap"
+    )
+    assert summary.ainvoke.call_args.args[0]["question"] == "Kada?"
+
+    await process_document(
+        orchestrator, DocumentTurn(image_url=IMAGE_URL), "chat-no-cap"
+    )
+    assert summary.ainvoke.call_args.args[0]["question"] == DEFAULT_QUESTION
+
+
+@patch("src.agents.orchestrator.load_classifier", MagicMock())
+async def test_the_document_turn_is_remembered_with_its_whole_transcript():
+    # The user is shown a short answer; the page itself goes into memory, so
+    # a later question can reach a figure the answer never mentioned.
+    rag, translation = _chains()
+    with _document_agent(transcript="Instalisana snaga 3,96", answer="A bill."):
+        orchestrator = build_orchestrator(rag, translation)
+    thread_id = "chat-doc-memory"
+
+    photo = DocumentTurn(image_url=IMAGE_URL, caption="Sta je ovo?")
+    result = await process_document(orchestrator, photo, thread_id)
+
+    asked, answered = await get_history(orchestrator, thread_id)
+    assert "Sta je ovo?" in asked.content
+    assert "Instalisana snaga 3,96" in asked.content
+    assert "Instalisana snaga 3,96" not in result.response
+    assert answered.content == "A bill."
+
+
+@patch("src.agents.orchestrator.load_classifier", MagicMock())
+async def test_stored_preferences_reach_the_document_agent():
+    # The node reads them straight out of the state it was handed, which is
+    # why answering a photo no longer needs its own trip to the checkpointer.
+    rag, translation = _chains()
+    with _document_agent() as (_, summary):
+        orchestrator = build_orchestrator(rag, translation)
+    thread_id = "chat-doc-pref"
+    await add_preference(orchestrator, thread_id, "Answer in Russian.")
+
+    await process_document(orchestrator, DocumentTurn(image_url=IMAGE_URL), thread_id)
+
+    assert "Answer in Russian." in summary.ainvoke.call_args.args[0]["preferences"]
+
+
+@patch("src.agents.orchestrator.load_classifier", MagicMock())
+async def test_the_photograph_never_reaches_the_checkpoint_file(tmp_path):
+    # Why the image travels as runtime context instead of as state: every
+    # state field is written to the checkpointer, and at MAX_IMAGE_BYTES a
+    # base64 photo would add megabytes to this file on each upload. The
+    # transcript is text and is meant to be there.
+    path = tmp_path / "checkpoints.sqlite"
+    rag, translation = _chains()
+    saver = AsyncSqliteSaver(aiosqlite.connect(str(path)))
+    with _document_agent(transcript="Racun 2.066,98 RSD"):
+        orchestrator = build_orchestrator(rag, translation, saver)
+
+    await process_document(
+        orchestrator, DocumentTurn(image_url=IMAGE_URL), "chat-on-disk"
+    )
+    await saver.conn.close()
+
+    written = path.read_bytes()
+    assert IMAGE_URL.split(",")[1].encode() not in written
+    assert b"2.066,98 RSD" in written

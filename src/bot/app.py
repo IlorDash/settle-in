@@ -11,10 +11,6 @@ from telegram.ext import (
     filters,
 )
 
-from src.agents.multimodal_agent import (
-    build_summary_chain,
-    build_transcription_chain,
-)
 from src.agents.orchestrator import build_orchestrator, build_preference_tidier
 from src.agents.rag_agent import build_rag_chain
 from src.agents.translation_agent import build_translation_chain
@@ -106,8 +102,6 @@ async def _initialize_agents(app) -> None:
     app.bot_data["checkpointer"] = checkpointer
     app.bot_data["orchestrator"] = orchestrator
     app.bot_data["preference_tidier"] = build_preference_tidier()
-    app.bot_data["transcription_chain"] = build_transcription_chain()
-    app.bot_data["summary_chain"] = build_summary_chain()
     logger.info("Orchestrator initialized with RAG and translation agents.")
 
 
