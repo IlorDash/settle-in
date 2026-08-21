@@ -15,9 +15,10 @@ from telegram.ext import ContextTypes
 
 from src.agents.multimodal_agent import (
     DEFAULT_QUESTION,
-    DocumentRequest,
-    analyze_document,
+    TranscriptRequest,
     encode_image_as_data_url,
+    summarise,
+    transcribe,
 )
 from src.agents.orchestrator import (
     INTENT_KNOWLEDGE_QUESTION,
@@ -90,6 +91,11 @@ LARGE_FILE_CANCELLED = (
     "would rather keep it quick."
 )
 LARGE_FILE_LOST = "Sorry, I can no longer find the file this was about."
+# Telegram rejects a message over this outright, with BadRequest rather
+# than a truncated send, so a long document reading arrived as no answer
+# at all.
+TELEGRAM_MESSAGE_LIMIT = 4096
+
 # How many messages /export sends when asked for no particular number.
 EXPORT_LIMIT = 20
 EXPORT_EMPTY = "There is nothing to export - we have not spoken yet."
@@ -125,7 +131,9 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "Available commands:\n\n"
         "/start - Welcome message\n"
         "/help - Show this help message\n"
-        "/pref - Set standing preferences (e.g. always reply in Cyrillic)\n\n"
+        "/pref - Set standing preferences (e.g. always reply in Cyrillic)\n"
+        "/reset - Forget our conversation and start fresh\n"
+        "/export - Send our recent messages back as a text file\n\n"
         "You can also just type a question and I'll try to help, or send a "
         "photo of a Serbian document and I'll explain it.\n\n"
         "Examples:\n"
@@ -342,6 +350,32 @@ def _strip_markdown(text: str) -> str:
     return _MARKDOWN_EMPHASIS.sub(r"\2", without_headings)
 
 
+def _split_for_telegram(text: str) -> list[str]:
+    """Break an answer into pieces Telegram will accept.
+
+    Splits at a line break inside the last window where one exists, so a
+    numbered list or a table row is not cut in half. Falls back to a hard cut
+    only when a single line is longer than the whole limit.
+
+    Args:
+        text: The answer to send.
+
+    Returns:
+        One or more pieces, each within TELEGRAM_MESSAGE_LIMIT.
+    """
+    parts = []
+    remaining = text
+    while len(remaining) > TELEGRAM_MESSAGE_LIMIT:
+        window = remaining[:TELEGRAM_MESSAGE_LIMIT]
+        cut = window.rfind("\n")
+        if cut <= 0:
+            cut = TELEGRAM_MESSAGE_LIMIT
+        parts.append(remaining[:cut].rstrip())
+        remaining = remaining[cut:].lstrip("\n")
+    parts.append(remaining)
+    return [part for part in parts if part] or [text]
+
+
 async def _reply_with_error(message, error: Exception, request: str) -> None:
     """Log a failed AI call and send the user the matching apology.
 
@@ -393,14 +427,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
         # Answering as a Telegram reply is load-bearing, not cosmetic: it is
         # how a later button tap finds the question this answered.
-        await update.message.reply_text(
-            _strip_markdown(result.response),
-            reply_to_message_id=update.message.message_id,
-            # If the question was deleted while the LLM was thinking, send
-            # the answer anyway rather than losing a reply we paid for.
-            allow_sending_without_reply=True,
-            reply_markup=_feedback_keyboard(result.intent),
-        )
+        parts = _split_for_telegram(_strip_markdown(result.response))
+        for position, part in enumerate(parts, 1):
+            await update.message.reply_text(
+                part,
+                reply_to_message_id=update.message.message_id,
+                # If the question was deleted while the LLM was thinking, send
+                # the answer anyway rather than losing a reply we paid for.
+                allow_sending_without_reply=True,
+                # The buttons go on the last piece: that is where the answer
+                # ends, and it is the piece a later tap walks back from.
+                reply_markup=(
+                    _feedback_keyboard(result.intent)
+                    if position == len(parts)
+                    else None
+                ),
+            )
     except Exception as error:
         await _reply_with_error(update.message, error, f"user {user_id}: {user_text}")
 
@@ -451,11 +493,23 @@ async def _fetch_document_image(message) -> str:
     return encode_image_as_data_url(bytes(image_bytes), mime_type)
 
 
-def _document_history_note(caption: str | None) -> str:
-    """Describe a photo turn in words, since the image itself is not stored."""
-    if caption:
-        return f"{DOCUMENT_HISTORY_NOTE} {caption}"
-    return DOCUMENT_HISTORY_NOTE
+def _document_history_note(caption: str | None, transcript: str) -> str:
+    """Describe a photo turn in words, since the image itself is not stored.
+
+    The transcript rides along because it is what the photo contained, so it
+    belongs to the user's turn rather than the bot's answer. Later questions
+    are then answered from what the page said, not from what the bot happened
+    to mention about it.
+
+    Args:
+        caption: What the user wrote with the photo, if anything.
+        transcript: The model's verbatim reading of the image.
+
+    Returns:
+        The text stored in place of the image.
+    """
+    asked = f"{DOCUMENT_HISTORY_NOTE} {caption}" if caption else DOCUMENT_HISTORY_NOTE
+    return f"{asked}\n\n[what the photo shows]\n{transcript}"
 
 
 def _confirmation_keyboard() -> InlineKeyboardMarkup:
@@ -472,10 +526,16 @@ def _confirmation_keyboard() -> InlineKeyboardMarkup:
 
 
 async def _read_photo_and_reply(message, context) -> None:
-    """Send the photo on `message` to the vision agent and answer it.
+    """Answer the photo on `message`, and remember everything it contained.
 
-    Shared by the direct path and the confirmed-large-file path, so both cost
-    the same checks and record the same history.
+    The photo is read once, and everything afterwards works from that one
+    reading: the transcript goes into the chat's memory, and the reply is
+    written from the same transcript rather than from the image again.
+
+    Reading the image twice would give two accounts that disagree in places,
+    and since only the transcript is stored, the bot would answer one way now
+    and the other way a turn later. Storing the answer alone was worse still,
+    because whatever the model read and chose not to mention was simply lost.
 
     Args:
         message: The Telegram message carrying the photo or image file.
@@ -484,17 +544,22 @@ async def _read_photo_and_reply(message, context) -> None:
     orchestrator = context.bot_data["orchestrator"]
     chat_id = message.chat_id
     context.bot_data["rate_limiter"].check(message.from_user.id)
-    request = DocumentRequest(
-        image_url=await _fetch_document_image(message),
-        question=message.caption or DEFAULT_QUESTION,
-        preferences=await preferences_directive(orchestrator, chat_id),
+    image_url = await _fetch_document_image(message)
+    transcript = await transcribe(context.bot_data["transcription_chain"], image_url)
+    answer = await summarise(
+        context.bot_data["summary_chain"],
+        TranscriptRequest(
+            transcript=transcript,
+            question=message.caption or DEFAULT_QUESTION,
+            preferences=await preferences_directive(orchestrator, chat_id),
+        ),
     )
-    answer = await analyze_document(context.bot_data["multimodal_chain"], request)
-    await message.reply_text(_strip_markdown(answer))
+    for part in _split_for_telegram(_strip_markdown(answer)):
+        await message.reply_text(part)
     await record_exchange(
         orchestrator,
         chat_id,
-        Exchange(_document_history_note(message.caption), answer),
+        Exchange(_document_history_note(message.caption, transcript), answer),
     )
 
 

@@ -12,6 +12,11 @@ from src.config import settings
 LLM_MODEL = "gpt-5.4"
 LLM_TEMPERATURE = 0
 
+# The reply is written from the transcript, so it needs no vision and no
+# strength beyond reading text: gpt-4o-mini charges $0.60/1M for output
+# against $15.00/1M on the vision model, and output is what a reply costs.
+SUMMARY_MODEL = "gpt-4o-mini"
+
 # Sends the image at its own resolution, budgeted in 32x32 patches up to
 # roughly 10 megapixels, instead of the 768px shortest side gpt-4o-class
 # models impose. Only gpt-5.4 and newer accept it, so this and LLM_MODEL move
@@ -23,53 +28,53 @@ IMAGE_DETAIL = "original"
 TRANSCRIPTION_MAX_TOKENS = 4000
 
 # What to ask the model when the user sent a photo with no caption. The chat
-# remembers what the bot said, not what it read, so anything left out of this
-# first answer cannot be asked about later: a summary that skipped a table of
-# monthly figures made a follow-up about them unanswerable.
+# remembers the transcript rather than this answer, so leaving something out
+# of it loses nothing: detail is one follow-up away. Asking instead for every
+# figure on the page produced replies past Telegram's own length limit.
 DEFAULT_QUESTION = (
-    "What is this, and what does it say? Work through it section by section "
-    "and include the figures each one holds, because I may ask about any of "
-    "them next."
+    "What is this, and what does it say? Keep it to a short summary - I will "
+    "ask if I want detail."
 )
 
-SYSTEM_PROMPT = (
-    "You are an assistant for immigrants in Serbia. The user sends a photo, "
-    "usually an official document, letter, bill, form, or product label "
-    "written in Serbian, together with a question about it.\n\n"
+ANSWER_PROMPT = (
+    "You are an assistant for immigrants in Serbia. Below is a verbatim "
+    "transcript of a photo the user sent, usually an official document, "
+    "letter, bill, form, or product label written in Serbian, together with "
+    "their question about it.\n\n"
     "Answer the question they actually asked, and only that. Do not impose a "
     "fixed structure on your reply: if they ask how a total was worked out, "
     "walk through the calculation; if they ask for a translation, translate; "
     "if they ask about one field, answer about that field. Summarise the "
-    "whole document only when the question is itself a general one. Do not "
-    "add advice on what to do next unless they asked for it.\n\n"
-    "Read the image carefully before answering. Quote figures, dates, and "
-    "reference numbers exactly as printed, and say plainly which parts you "
-    "cannot read rather than filling the gap with something plausible. Never "
-    "invent a value, and never rename a line to something more familiar: a "
-    "charge you cannot identify stays unidentified.\n\n"
-    "You may do arithmetic on numbers you can actually see, and where a "
-    "document prints its own formulas, follow them. Before using a number, "
-    "name the row or field it comes from and quote it as printed, so that a "
-    "misreading is visible instead of hidden inside a result. Beware of "
-    "tables that number their own columns: such a number labels the column, "
-    "it is never a quantity. If you cannot read a value with confidence, say "
-    "so rather than calculating with a guess. Omitting something beats "
-    "stating it wrongly.\n\n"
+    "whole document only when the question is itself a general one, and keep "
+    "that summary short. Do not add advice on what to do next unless they "
+    "asked for it.\n\n"
+    "Use the transcript and nothing else. Quote figures, dates, and "
+    "reference numbers exactly as they appear in it, and never rename a line "
+    "to something more familiar: a charge you cannot identify stays "
+    "unidentified. Where the transcript carries [?], that part of the page "
+    "could not be read, so say so rather than filling the gap.\n\n"
+    "You may do arithmetic on the figures in the transcript, and where it "
+    "carries a document's own formulas, follow them. Before using a number, "
+    "name the row or field it comes from, so that a misreading is visible "
+    "instead of hidden inside a result. Beware of tables that number their "
+    "own columns: such a number labels the column, it is never a quantity. "
+    "Omitting something beats stating it wrongly.\n\n"
     "Reply in the language the user asked their question in, even though the "
     "document is in a different one: a Russian question gets a Russian "
     "answer, quoting the Serbian wording where the exact term matters.\n\n"
     "Write plain text. Telegram prints markdown as raw characters, so use no "
     "#, *, or _ for formatting; separate points with line breaks, and use "
     "plain numbers or dashes if a list helps.\n\n"
-    "If the photo shows no document or product at all, say so in one "
+    "If the transcript shows no document or product at all, say so in one "
     "sentence. You are not a lawyer: do not give legal advice, and send the "
-    "user to the issuing office for binding answers."
+    "user to the issuing office for binding answers.\n\n"
+    "Transcript:\n{transcript}"
 )
 
 
-# Used only by scripts/probe_vision.py and the evals, to measure reading
-# rather than reasoning. The [?] rule is the point: a gap is data, a guess is
-# noise.
+# The [?] rule is the point: a gap is data, a guess is noise. This text is
+# both what the reply is written from and what the chat remembers, so an
+# invented value here would be believed for the rest of the conversation.
 TRANSCRIPTION_PROMPT = (
     "Transcribe this image for a reader who cannot see it. Work top to "
     "bottom and keep the document's own structure, copying every label, "
@@ -85,18 +90,18 @@ TRANSCRIPTION_PROMPT = (
 )
 
 
-class DocumentRequest(NamedTuple):
-    """One document for the vision agent to read.
+class TranscriptRequest(NamedTuple):
+    """One transcribed photo to answer a question about.
 
     Attributes:
-        image_url: The image as a data URL, from encode_image_as_data_url().
+        transcript: The verbatim reading produced by the transcription chain.
         question: What the user asked, or DEFAULT_QUESTION if they sent the
             photo without a caption.
         preferences: The chat's standing rules, rendered by the orchestrator's
             _preferences_directive().
     """
 
-    image_url: str
+    transcript: str
     question: str
     preferences: str
 
@@ -118,11 +123,12 @@ def encode_image_as_data_url(image_bytes: bytes, mime_type: str) -> str:
     return f"data:{mime_type};base64,{encoded}"
 
 
-def _vision_llm(model: str = LLM_MODEL, max_tokens: int | None = None) -> ChatOpenAI:
-    """Build the vision model both the answering and transcribing chains use.
+def _llm(model: str, max_tokens: int | None = None) -> ChatOpenAI:
+    """Build one of the two models this agent calls.
 
     Args:
-        model: Vision model to call.
+        model: Model to call. The two chains run on different ones, so there
+            is no sensible default.
         max_tokens: Hard ceiling on the reply, or None to leave it to the API.
     """
     return ChatOpenAI(
@@ -141,36 +147,33 @@ def _image_block(detail: str) -> dict:
     }
 
 
-def build_multimodal_chain(detail: str = IMAGE_DETAIL, model: str = LLM_MODEL):
-    """Build an LCEL chain that reads a photo and answers a question about it.
+def build_summary_chain(model: str = SUMMARY_MODEL):
+    """Build a chain that answers a question from a transcribed photo.
+
+    The reply is written from the transcript rather than from the image, so
+    that what the user is told and what the chat remembers come from one
+    source. Two independent readings of the same photo disagree in places -
+    the transcript reads a street name one way, a second look at the image
+    reads it another - and since the transcript is what is stored, the bot
+    would contradict itself one turn later.
 
     Args:
-        detail: How much of the image the API should look at. The default is
-            what the bot runs; `scripts/probe_vision.py` varies it to measure
-            what the model can actually read.
-        model: Vision model to call. Overridable for the same reason.
+        model: Text model to call. No vision is needed here.
 
     Returns:
-        A Runnable accepting {"image_url": ..., "question": ...,
+        A Runnable accepting {"transcript": ..., "question": ...,
         "preferences": ...} that returns the answer as a string.
     """
-    llm = _vision_llm(model)
+    llm = _llm(model)
 
-    # The human turn is a list of content blocks, not a string: the text and
-    # the image are two parts of one message. Preferences sit right before it
-    # for the same reason as in the translation agent - a standing rule placed
-    # at the top of the prompt gets ignored far more often.
+    # Preferences sit right before the user's turn, the same "reminder"
+    # position the translation agent needs: a standing rule placed at the top
+    # of the prompt gets ignored far more often.
     prompt = ChatPromptTemplate.from_messages(
         [
-            ("system", SYSTEM_PROMPT),
+            ("system", ANSWER_PROMPT),
             ("system", "{preferences}"),
-            (
-                "human",
-                [
-                    {"type": "text", "text": "{question}"},
-                    _image_block(detail),
-                ],
-            ),
+            ("human", "{question}"),
         ]
     ).partial(preferences="(no special preferences)")
 
@@ -178,17 +181,17 @@ def build_multimodal_chain(detail: str = IMAGE_DETAIL, model: str = LLM_MODEL):
 
 
 def build_transcription_chain(detail: str = IMAGE_DETAIL, model: str = LLM_MODEL):
-    """Build a chain that transcribes an image verbatim, for diagnosis.
+    """Build a chain that transcribes an image verbatim.
 
-    Not part of the bot's reply path. The answering chain reads and reasons in
-    one pass, so when an answer is wrong there is no intermediate text to
-    inspect and a misreading cannot be told apart from a reasoning mistake.
-    This produces that text deliberately, which makes "how much of the image
-    can the model resolve" measurable, and comparable across detail settings.
+    The only step that looks at the image. Keeping it apart from the answering
+    step is what makes a wrong reply diagnosable: the transcript shows whether
+    the model misread the page or misused what it read.
 
     Args:
-        detail: How much of the image the API should look at.
-        model: Vision model to call.
+        detail: How much of the image the API should look at. The default is
+            what the bot runs; scripts/probe_vision.py and the evals vary it
+            to score a pairing against a bill whose values are known.
+        model: Vision model to call. Overridable for the same reason.
 
     Returns:
         A Runnable accepting {"image_url": ...} that returns the transcript.
@@ -200,7 +203,7 @@ def build_transcription_chain(detail: str = IMAGE_DETAIL, model: str = LLM_MODEL
         ]
     )
 
-    llm = _vision_llm(model, max_tokens=TRANSCRIPTION_MAX_TOKENS)
+    llm = _llm(model, max_tokens=TRANSCRIPTION_MAX_TOKENS)
     return prompt | llm | StrOutputParser()
 
 
@@ -217,19 +220,20 @@ async def transcribe(chain, image_url: str) -> str:
     return await chain.ainvoke({"image_url": image_url})
 
 
-async def analyze_document(chain, request: DocumentRequest) -> str:
-    """Send one document photo through the vision chain.
+async def summarise(chain, request: TranscriptRequest) -> str:
+    """Answer one question about a transcribed photo.
 
     Args:
-        chain: Chain built by build_multimodal_chain().
-        request: The image, the user's question, and their standing rules.
+        chain: Chain built by build_summary_chain().
+        request: The transcript, the user's question, and their standing
+            rules.
 
     Returns:
-        The model's explanation of the document.
+        The answer to send back.
     """
     return await chain.ainvoke(
         {
-            "image_url": request.image_url,
+            "transcript": request.transcript,
             "question": request.question,
             "preferences": request.preferences,
         }
