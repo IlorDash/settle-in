@@ -36,6 +36,7 @@ from src.bot.middleware import (
     validate_message_text,
 )
 from src.bot.transcript import format_transcript
+from src.bot.typing_indicator import show_typing
 
 logger = logging.getLogger(__name__)
 
@@ -188,7 +189,10 @@ async def _pref_remove(update: Update, orchestrator, chat_id, args: list[str]) -
 async def _pref_tidy(update: Update, context, orchestrator, chat_id) -> None:
     """Merge semantically-duplicate rules on demand for `/pref tidy`."""
     tidier = context.bot_data["preference_tidier"]
-    rules = await tidy_preferences(orchestrator, tidier, chat_id)
+    # The only /pref branch that can wait on a model, so the only one that
+    # shows the indicator; the rest answer straight from the checkpointer.
+    async with show_typing(context.bot, chat_id):
+        rules = await tidy_preferences(orchestrator, tidier, chat_id)
     if not rules:
         await update.message.reply_text("You have no saved preferences to tidy.")
         return
@@ -413,9 +417,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     user_id = update.message.from_user.id
 
     try:
-        result = await process_message(
-            orchestrator, user_text, thread_id=update.message.chat_id
-        )
+        async with show_typing(context.bot, update.message.chat_id):
+            result = await process_message(
+                orchestrator, user_text, thread_id=update.message.chat_id
+            )
         # Answering as a Telegram reply is load-bearing, not cosmetic: it is
         # how a later button tap finds the question this answered.
         parts = _split_for_telegram(_strip_markdown(result.response))
@@ -510,12 +515,13 @@ async def _read_photo_and_reply(message, context) -> None:
         context: The PTB context, holding the orchestrator in bot_data.
     """
     context.bot_data["rate_limiter"].check(message.from_user.id)
-    image_url = await _fetch_document_image(message)
-    result = await process_document(
-        context.bot_data["orchestrator"],
-        DocumentTurn(image_url=image_url, caption=message.caption or ""),
-        message.chat_id,
-    )
+    async with show_typing(context.bot, message.chat_id):
+        image_url = await _fetch_document_image(message)
+        result = await process_document(
+            context.bot_data["orchestrator"],
+            DocumentTurn(image_url=image_url, caption=message.caption or ""),
+            message.chat_id,
+        )
     for part in _split_for_telegram(_strip_markdown(result.response)):
         await message.reply_text(part)
 

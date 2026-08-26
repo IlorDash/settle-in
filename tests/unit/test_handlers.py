@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from langchain_core.messages import AIMessage, HumanMessage
 from openai import APIConnectionError, APITimeoutError, RateLimitError
 from telegram import Chat, InaccessibleMessage
+from telegram.constants import ChatAction
 from telegram.error import BadRequest, TelegramError
 
 from src.bot.handlers import (
@@ -320,9 +321,12 @@ async def test_handle_message_replies_generic_error_on_unexpected_failure(
     mock_update.message.reply_text.assert_called_once_with(ERROR_GENERIC)
 
 
-async def test_handle_message_rejects_when_rate_limited(mock_update, mock_orchestrator):
+async def test_handle_message_rejects_when_rate_limited(
+    mock_update, mock_orchestrator, mock_bot
+):
     rate_limiter = RateLimiter(max_messages=1, window_seconds=60)
     context = MagicMock()
+    context.bot = mock_bot
     context.bot_data = {
         "orchestrator": mock_orchestrator,
         "rate_limiter": rate_limiter,
@@ -514,9 +518,12 @@ async def test_handle_photo_does_not_download_an_oversized_image(
     photo.get_file.assert_not_called()
 
 
-async def test_handle_photo_is_rate_limited(mock_photo_update, mock_orchestrator):
+async def test_handle_photo_is_rate_limited(
+    mock_photo_update, mock_orchestrator, mock_bot
+):
     # A vision call costs more than a text one, so the same limit applies.
     context = MagicMock()
+    context.bot = mock_bot
     context.bot_data = {
         "orchestrator": mock_orchestrator,
         "rate_limiter": RateLimiter(max_messages=1, window_seconds=60),
@@ -1067,3 +1074,91 @@ async def test_help_lists_the_reset_and_export_commands(mock_update, mock_contex
 
     reply = mock_update.message.reply_text.call_args[0][0]
     assert "/reset" in reply and "/export" in reply
+
+
+async def test_handle_message_shows_the_typing_indicator(mock_update, mock_context):
+    mock_update.message.text = "How do I get a work permit?"
+
+    await handle_message(mock_update, mock_context)
+
+    mock_context.bot.send_chat_action.assert_awaited_once_with(
+        chat_id=mock_update.message.chat_id, action=ChatAction.TYPING
+    )
+
+
+async def test_handle_photo_shows_the_typing_indicator(mock_photo_update, mock_context):
+    await handle_photo(mock_photo_update, mock_context)
+
+    mock_context.bot.send_chat_action.assert_awaited_once_with(
+        chat_id=mock_photo_update.message.chat_id, action=ChatAction.TYPING
+    )
+
+
+async def test_a_rate_limited_message_shows_no_typing_indicator(
+    mock_update, mock_orchestrator, mock_bot
+):
+    # The indicator sits after the rate-limit check, so a future edit that
+    # moves it earlier would start billing typing actions for a rejection.
+    context = MagicMock()
+    context.bot = mock_bot
+    context.bot_data = {
+        "orchestrator": mock_orchestrator,
+        "rate_limiter": RateLimiter(max_messages=0, window_seconds=60),
+    }
+    mock_update.message.text = "hello"
+
+    await handle_message(mock_update, context)
+
+    mock_bot.send_chat_action.assert_not_awaited()
+
+
+@patch("src.bot.handlers.clear_history", return_value=4)
+async def test_reset_command_shows_no_typing_indicator(
+    mock_clear, mock_update, mock_context
+):
+    # /reset answers straight from the checkpointer, with no model call.
+    await reset_command(mock_update, mock_context)
+
+    mock_context.bot.send_chat_action.assert_not_awaited()
+
+
+@patch("src.bot.handlers.get_history", return_value=[])
+async def test_export_command_shows_no_typing_indicator(
+    mock_history, mock_update, mock_context
+):
+    # /export answers straight from the checkpointer, with no model call.
+    mock_context.args = []
+
+    await export_command(mock_update, mock_context)
+
+    mock_context.bot.send_chat_action.assert_not_awaited()
+
+
+@patch("src.bot.handlers.get_preferences", return_value=[])
+async def test_pref_command_with_no_args_shows_no_typing_indicator(
+    mock_get, mock_update, mock_context
+):
+    # A bare /pref only lists saved rules, with no model call.
+    mock_context.args = []
+
+    await pref_command(mock_update, mock_context)
+
+    mock_context.bot.send_chat_action.assert_not_awaited()
+
+
+@patch(
+    "src.bot.handlers.tidy_preferences",
+    new=AsyncMock(return_value=["Merged rule."]),
+)
+async def test_pref_tidy_shows_the_typing_indicator(mock_update, mock_context):
+    # The one /pref branch that waits on a model, and the only indicator site
+    # that lives inside a helper rather than in a handler of its own - the
+    # three tests above it would all still pass if it were dropped.
+    mock_context.args = ["tidy"]
+    mock_context.bot_data["preference_tidier"] = MagicMock()
+
+    await pref_command(mock_update, mock_context)
+
+    mock_context.bot.send_chat_action.assert_awaited_once_with(
+        chat_id=mock_update.message.chat_id, action=ChatAction.TYPING
+    )

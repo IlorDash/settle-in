@@ -1,7 +1,16 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from telegram import CallbackQuery, Chat, File, Message, PhotoSize, Update, User
+from telegram import (
+    Bot,
+    CallbackQuery,
+    Chat,
+    File,
+    Message,
+    PhotoSize,
+    Update,
+    User,
+)
 
 from src.bot.middleware import RateLimiter
 
@@ -105,8 +114,21 @@ def mock_orchestrator():
 
 
 @pytest.fixture
-def mock_context(mock_orchestrator):
+def mock_bot():
+    """The Bot handlers reach through `context.bot`.
+
+    send_chat_action has to be awaitable: every path that waits on a model
+    shows the typing indicator, and a plain MagicMock cannot be awaited.
+    """
+    bot = MagicMock(spec=Bot)
+    bot.send_chat_action = AsyncMock()
+    return bot
+
+
+@pytest.fixture
+def mock_context(mock_orchestrator, mock_bot):
     context = MagicMock()
+    context.bot = mock_bot
     context.bot_data = {
         "orchestrator": mock_orchestrator,
         "rate_limiter": RateLimiter(),
