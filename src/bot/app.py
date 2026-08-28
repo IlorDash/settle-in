@@ -1,7 +1,10 @@
+import asyncio
+import contextlib
 import logging
 from pathlib import Path
 
 import aiosqlite
+from langchain_core.vectorstores import VectorStoreRetriever
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from telegram.ext import (
     ApplicationBuilder,
@@ -14,6 +17,7 @@ from telegram.ext import (
 from src.agents.orchestrator import build_orchestrator, build_preference_tidier
 from src.agents.rag_agent import build_rag_chain
 from src.agents.translation_agent import build_translation_chain
+from src.bot.admin import TelegramLogHandler, mirror_logs
 from src.bot.handlers import (
     CALLBACK_PREFIX,
     DOCUMENT_PREFIX,
@@ -25,6 +29,8 @@ from src.bot.handlers import (
     handle_photo,
     handle_unsupported_file,
     help_command,
+    loglevel_command,
+    logs_command,
     pref_command,
     reset_command,
     start_command,
@@ -68,6 +74,32 @@ def _open_checkpointer() -> AsyncSqliteSaver:
     return AsyncSqliteSaver(aiosqlite.connect(settings.checkpoint_path))
 
 
+class StartupError(RuntimeError):
+    """The bot cannot serve anyone, so it must not pretend to be up."""
+
+
+def _load_retriever_or_stop() -> VectorStoreRetriever:
+    """Return a retriever, or stop the bot if the knowledge base is unusable.
+
+    Retrieval is the main feature, so a bot that starts without it would
+    answer every question with an apology. Better to fail loudly: the log
+    line names the cause and the process exits non-zero.
+
+    Returns:
+        The retriever, ready to search.
+
+    Raises:
+        StartupError: If the knowledge base could not be loaded or indexed.
+    """
+    try:
+        return _load_retriever()
+    except Exception as error:
+        logger.critical(
+            "Cannot start: the knowledge base could not be indexed.", exc_info=error
+        )
+        raise StartupError("knowledge base indexing failed") from error
+
+
 def _load_retriever():
     """Return a retriever, embedding the knowledge base first if it is empty."""
     vectorstore = load_vectorstore()
@@ -93,26 +125,91 @@ async def _initialize_agents(app) -> None:
         app: The Application being started, whose bot_data receives the agents.
     """
     checkpointer = _open_checkpointer()
+    # Kept so _close_checkpointer can shut its worker thread down on exit,
+    # and stored before anything that can fail: post_shutdown runs even when
+    # this hook raises, and it can only close what it can find.
+    app.bot_data["checkpointer"] = checkpointer
     orchestrator = build_orchestrator(
-        build_rag_chain(_load_retriever()),
+        build_rag_chain(_load_retriever_or_stop()),
         build_translation_chain(),
         checkpointer,
     )
-    # Kept so _close_checkpointer can shut its worker thread down on exit.
-    app.bot_data["checkpointer"] = checkpointer
     app.bot_data["orchestrator"] = orchestrator
     app.bot_data["preference_tidier"] = build_preference_tidier()
+    _start_log_mirror(app)
     logger.info("Orchestrator initialized with RAG and translation agents.")
+
+
+def _start_log_mirror(app) -> None:
+    """Send this run's serious log records to the operator, if there is one.
+
+    Does nothing without ADMIN_CHAT_ID, so a deployment that has not set it
+    behaves exactly as before. Installed here rather than at import because
+    the sending task needs a running event loop, which is the same reason
+    the agents are built in this hook.
+
+    Args:
+        app: The Application being started, whose bot_data receives both.
+    """
+    if not settings.admin_chat_id:
+        return
+
+    handler = TelegramLogHandler()
+    logging.getLogger().addHandler(handler)
+    app.bot_data["log_handler"] = handler
+    app.bot_data["log_mirror"] = asyncio.create_task(mirror_logs(app.bot, handler))
+    logger.info("Mirroring logs to chat %s.", settings.admin_chat_id)
+
+
+async def _shut_down_cleanly(app) -> None:
+    """Stop everything this run started, in the order it was started.
+
+    Registered as python-telegram-bot's `post_shutdown` hook, which runs
+    even when startup itself failed - so both halves have to tolerate the
+    thing they close never having been created.
+
+    Args:
+        app: The Application being shut down.
+    """
+    await _stop_log_mirror(app)
+    await _close_checkpointer(app)
+
+
+async def _stop_log_mirror(app) -> None:
+    """Detach the log handler and wait for its forwarding task to stop.
+
+    The handler is taken off the root logger first, so no record is queued
+    once there is nobody left to send it - and so a second `initialize()`
+    in the same process does not stack a second handler onto the first.
+
+    The task is awaited rather than only cancelled: `cancel()` merely
+    schedules the CancelledError, and this hook is the last thing awaited
+    before the loop closes, so a task left unresumed prints "Task was
+    destroyed but it is pending" on the way out.
+
+    Args:
+        app: The Application being shut down.
+    """
+    handler = app.bot_data.get("log_handler")
+    if handler is not None:
+        logging.getLogger().removeHandler(handler)
+        handler.close()
+
+    mirror = app.bot_data.get("log_mirror")
+    if mirror is None:
+        return
+    mirror.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await mirror
 
 
 async def _close_checkpointer(app) -> None:
     """Close the SQLite connection so the process can actually exit.
 
-    Registered as python-telegram-bot's `post_shutdown` hook. aiosqlite runs
-    every query on a worker thread that is NOT a daemon and that blocks on a
-    queue until the connection is closed. Nothing else closes it, so without
-    this the interpreter waits on that thread forever and Ctrl+C leaves the
-    bot hanging after "Application.stop() complete".
+    aiosqlite runs every query on a worker thread that is NOT a daemon and
+    that blocks on a queue until the connection is closed. Nothing else
+    closes it, so without this the interpreter waits on that thread forever
+    and Ctrl+C leaves the bot hanging after "Application.stop() complete".
 
     Args:
         app: The Application being shut down.
@@ -138,7 +235,7 @@ def create_application():
         ApplicationBuilder()
         .token(settings.telegram_bot_token)
         .post_init(_initialize_agents)
-        .post_shutdown(_close_checkpointer)
+        .post_shutdown(_shut_down_cleanly)
         .build()
     )
     app.bot_data["rate_limiter"] = RateLimiter()
@@ -148,6 +245,10 @@ def create_application():
     app.add_handler(CommandHandler("pref", pref_command))
     app.add_handler(CommandHandler("reset", reset_command))
     app.add_handler(CommandHandler("export", export_command))
+    # Operator commands. They answer only in the admin chat; anywhere else
+    # they are silent, so there is nothing to discover by guessing.
+    app.add_handler(CommandHandler("loglevel", loglevel_command))
+    app.add_handler(CommandHandler("logs", logs_command))
     # The pattern keeps this handler off any inline keyboard added later.
     app.add_handler(
         CallbackQueryHandler(feedback_callback, pattern=f"^{CALLBACK_PREFIX}:")
@@ -173,11 +274,25 @@ def create_application():
 
 
 def main() -> None:
-    """Start the bot in the mode specified by BOT_MODE env variable."""
+    """Start the bot, turning a refused startup into a failing exit code."""
     logger.info("Starting bot in %s mode...", settings.bot_mode)
 
     app = create_application()
+    try:
+        _run(app)
+    except StartupError:
+        # The cause is already logged at CRITICAL; re-raising it here would
+        # bury that line under a traceback. Exiting non-zero is what tells
+        # the platform the start failed rather than finished.
+        raise SystemExit(1) from None
 
+
+def _run(app) -> None:
+    """Hand control to python-telegram-bot in the configured mode.
+
+    Args:
+        app: The built Application, ready to start.
+    """
     if settings.bot_mode == "webhook":
         logger.info(
             "Bot is starting webhook on 0.0.0.0:%s ... "

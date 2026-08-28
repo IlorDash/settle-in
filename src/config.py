@@ -19,6 +19,7 @@ class Settings:
         bot_mode: "polling" for local dev, "webhook" for production.
         webhook_url: Public HTTPS URL for webhook mode.
         port: Port number for the webhook server (default 8443).
+        admin_chat_id: Chat that receives operator alerts; empty turns them off.
     """
 
     telegram_bot_token: str
@@ -29,6 +30,7 @@ class Settings:
     bot_mode: str
     webhook_url: str
     port: int
+    admin_chat_id: str
 
 
 def load_settings() -> Settings:
@@ -62,6 +64,7 @@ def load_settings() -> Settings:
         bot_mode=os.getenv("BOT_MODE", "polling"),
         webhook_url=os.getenv("WEBHOOK_URL", ""),
         port=int(os.getenv("PORT", "8443")),
+        admin_chat_id=os.getenv("ADMIN_CHAT_ID", ""),
     )
 
 

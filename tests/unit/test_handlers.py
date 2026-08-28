@@ -1,21 +1,38 @@
+import logging
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from langchain_core.messages import AIMessage, HumanMessage
-from openai import APIConnectionError, APITimeoutError, RateLimitError
+from openai import (
+    APIConnectionError,
+    APITimeoutError,
+    AuthenticationError,
+    BadRequestError,
+    InternalServerError,
+    NotFoundError,
+    PermissionDeniedError,
+    RateLimitError,
+)
 from telegram import Chat, InaccessibleMessage
 from telegram.constants import ChatAction
 from telegram.error import BadRequest, TelegramError
 
+from src.bot.admin import TelegramLogHandler
 from src.bot.handlers import (
     ERROR_CONNECTION,
     ERROR_GENERIC,
+    ERROR_NEEDS_OPERATOR,
+    ERROR_OUTAGE,
     ERROR_RATE_LIMIT,
     ERROR_TIMEOUT,
+    ERROR_TOO_LONG,
     EXPORT_EMPTY,
     EXPORT_LIMIT,
     FEEDBACK_LOST,
     FEEDBACK_THANKS,
     LARGE_FILE_CANCELLED,
+    LOGLEVEL_SET,
+    LOGLEVEL_USAGE,
+    LOGS_EMPTY,
     RESET_DONE,
     RESET_EMPTY,
     TELEGRAM_MESSAGE_LIMIT,
@@ -31,11 +48,26 @@ from src.bot.handlers import (
     handle_photo,
     handle_unsupported_file,
     help_command,
+    loglevel_command,
+    logs_command,
     pref_command,
     reset_command,
     start_command,
 )
 from src.bot.middleware import MAX_IMAGE_BYTES, RateLimiter
+
+
+def _api_error(cls, status_code, code=None, error_type=None):
+    """Build a real openai exception the way the SDK would raise it.
+
+    The SDK strips the "error" wrapper before constructing the exception, so
+    the body is flat: {"type": ..., "code": ...}.
+    """
+    response = MagicMock()
+    response.status_code = status_code
+    response.headers = {}
+    body = {"type": error_type or code, "code": code} if code is not None else None
+    return cls(message="mock error", response=response, body=body)
 
 
 async def test_start_command_sends_welcome_message(mock_update, mock_context):
@@ -209,6 +241,21 @@ async def test_pref_command_tidy_merges_and_shows_result(mock_update, mock_conte
     assert "Merged rule." in reply_text
 
 
+@patch(
+    "src.bot.handlers.tidy_preferences",
+    new=AsyncMock(side_effect=APITimeoutError(request=None)),
+)
+async def test_pref_command_tidy_replies_timeout_on_llm_timeout(
+    mock_update, mock_context
+):
+    mock_context.args = ["tidy"]
+    mock_context.bot_data["preference_tidier"] = MagicMock()
+
+    await pref_command(mock_update, mock_context)
+
+    mock_update.message.reply_text.assert_called_once_with(ERROR_TIMEOUT)
+
+
 async def test_handle_message_sends_orchestrator_response(mock_update, mock_context):
     mock_update.message.text = "How do I get a work permit?"
 
@@ -313,6 +360,110 @@ async def test_handle_message_replies_generic_error_on_unexpected_failure(
 ):
     mock_orchestrator.ainvoke = AsyncMock(
         side_effect=RuntimeError("something unexpected")
+    )
+    mock_update.message.text = "test question"
+
+    await handle_message(mock_update, mock_context)
+
+    mock_update.message.reply_text.assert_called_once_with(ERROR_GENERIC)
+
+
+async def test_handle_message_replies_needs_operator_on_exhausted_quota(
+    mock_update, mock_context, mock_orchestrator
+):
+    mock_orchestrator.ainvoke = AsyncMock(
+        side_effect=_api_error(RateLimitError, 429, code="insufficient_quota")
+    )
+    mock_update.message.text = "test question"
+
+    await handle_message(mock_update, mock_context)
+
+    mock_update.message.reply_text.assert_called_once_with(ERROR_NEEDS_OPERATOR)
+
+
+async def test_handle_message_replies_rate_limit_on_explicit_throttle_code(
+    mock_update, mock_context, mock_orchestrator
+):
+    mock_orchestrator.ainvoke = AsyncMock(
+        side_effect=_api_error(RateLimitError, 429, code="rate_limit_exceeded")
+    )
+    mock_update.message.text = "test question"
+
+    await handle_message(mock_update, mock_context)
+
+    mock_update.message.reply_text.assert_called_once_with(ERROR_RATE_LIMIT)
+
+
+async def test_handle_message_replies_outage_on_internal_server_error(
+    mock_update, mock_context, mock_orchestrator
+):
+    mock_orchestrator.ainvoke = AsyncMock(
+        side_effect=_api_error(InternalServerError, 500)
+    )
+    mock_update.message.text = "test question"
+
+    await handle_message(mock_update, mock_context)
+
+    mock_update.message.reply_text.assert_called_once_with(ERROR_OUTAGE)
+
+
+async def test_handle_message_replies_needs_operator_on_bad_authentication(
+    mock_update, mock_context, mock_orchestrator
+):
+    mock_orchestrator.ainvoke = AsyncMock(
+        side_effect=_api_error(AuthenticationError, 401)
+    )
+    mock_update.message.text = "test question"
+
+    await handle_message(mock_update, mock_context)
+
+    mock_update.message.reply_text.assert_called_once_with(ERROR_NEEDS_OPERATOR)
+
+
+async def test_handle_message_replies_needs_operator_on_permission_denied(
+    mock_update, mock_context, mock_orchestrator
+):
+    mock_orchestrator.ainvoke = AsyncMock(
+        side_effect=_api_error(PermissionDeniedError, 403)
+    )
+    mock_update.message.text = "test question"
+
+    await handle_message(mock_update, mock_context)
+
+    mock_update.message.reply_text.assert_called_once_with(ERROR_NEEDS_OPERATOR)
+
+
+async def test_handle_message_replies_needs_operator_on_model_not_found(
+    mock_update, mock_context, mock_orchestrator
+):
+    mock_orchestrator.ainvoke = AsyncMock(side_effect=_api_error(NotFoundError, 404))
+    mock_update.message.text = "test question"
+
+    await handle_message(mock_update, mock_context)
+
+    mock_update.message.reply_text.assert_called_once_with(ERROR_NEEDS_OPERATOR)
+
+
+async def test_handle_message_replies_too_long_on_context_length_exceeded(
+    mock_update, mock_context, mock_orchestrator
+):
+    mock_orchestrator.ainvoke = AsyncMock(
+        side_effect=_api_error(BadRequestError, 400, code="context_length_exceeded")
+    )
+    mock_update.message.text = "test question"
+
+    await handle_message(mock_update, mock_context)
+
+    mock_update.message.reply_text.assert_called_once_with(ERROR_TOO_LONG)
+
+
+async def test_handle_message_replies_generic_on_other_bad_request_codes(
+    mock_update, mock_context, mock_orchestrator
+):
+    # Guards the compound condition on branch 6: without the `code` check,
+    # a nested `if` would route every 400 to ERROR_TOO_LONG.
+    mock_orchestrator.ainvoke = AsyncMock(
+        side_effect=_api_error(BadRequestError, 400, code="invalid_image_url")
     )
     mock_update.message.text = "test question"
 
@@ -692,6 +843,18 @@ async def test_error_handler_apologises_to_the_user(mock_update):
     await error_handler(mock_update, context)
 
     mock_update.message.reply_text.assert_awaited_once_with(ERROR_GENERIC)
+
+
+async def test_error_handler_classifies_an_openai_timeout(mock_update):
+    # It must run the same failure mapping as a handler's own try/except,
+    # not fall back to the generic apology for every error that reaches it.
+    context = MagicMock()
+    context.error = APITimeoutError(request=None)
+    mock_update.effective_message = mock_update.message
+
+    await error_handler(mock_update, context)
+
+    mock_update.message.reply_text.assert_awaited_once_with(ERROR_TIMEOUT)
 
 
 async def test_error_handler_survives_an_update_less_failure():
@@ -1144,6 +1307,146 @@ async def test_pref_command_with_no_args_shows_no_typing_indicator(
     await pref_command(mock_update, mock_context)
 
     mock_context.bot.send_chat_action.assert_not_awaited()
+
+
+@patch("src.bot.handlers.is_admin", return_value=False)
+async def test_loglevel_command_is_silent_outside_the_admin_chat(
+    mock_is_admin, mock_update, mock_context
+):
+    mock_context.bot_data["log_handler"] = TelegramLogHandler()
+    mock_context.args = ["warning"]
+    mock_update.message.reply_document = AsyncMock()
+
+    await loglevel_command(mock_update, mock_context)
+
+    mock_update.message.reply_text.assert_not_called()
+    mock_update.message.reply_document.assert_not_called()
+
+
+@patch("src.bot.handlers.is_admin", return_value=False)
+async def test_logs_command_is_silent_outside_the_admin_chat(
+    mock_is_admin, mock_update, mock_context
+):
+    mock_context.bot_data["log_handler"] = TelegramLogHandler()
+    mock_update.message.reply_document = AsyncMock()
+
+    await logs_command(mock_update, mock_context)
+
+    mock_update.message.reply_text.assert_not_called()
+    mock_update.message.reply_document.assert_not_called()
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_loglevel_warning_moves_the_push_level(
+    mock_is_admin, mock_update, mock_context
+):
+    handler = TelegramLogHandler()
+    mock_context.bot_data["log_handler"] = handler
+    mock_context.args = ["warning"]
+
+    await loglevel_command(mock_update, mock_context)
+
+    assert handler.push_level == logging.WARNING
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_loglevel_warning_confirms_the_change(
+    mock_is_admin, mock_update, mock_context
+):
+    mock_context.bot_data["log_handler"] = TelegramLogHandler()
+    mock_context.args = ["warning"]
+
+    await loglevel_command(mock_update, mock_context)
+
+    reply = mock_update.message.reply_text.call_args[0][0]
+    assert reply == LOGLEVEL_SET.format(level="WARNING")
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_loglevel_with_an_unknown_level_shows_usage(
+    mock_is_admin, mock_update, mock_context
+):
+    mock_context.bot_data["log_handler"] = TelegramLogHandler()
+    mock_context.args = ["nonsense"]
+
+    await loglevel_command(mock_update, mock_context)
+
+    reply = mock_update.message.reply_text.call_args[0][0]
+    assert reply == LOGLEVEL_USAGE.format(current="ERROR")
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_loglevel_with_an_unknown_level_leaves_the_push_level_unchanged(
+    mock_is_admin, mock_update, mock_context
+):
+    handler = TelegramLogHandler()
+    mock_context.bot_data["log_handler"] = handler
+    mock_context.args = ["nonsense"]
+
+    await loglevel_command(mock_update, mock_context)
+
+    assert handler.push_level == logging.ERROR
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_loglevel_with_no_args_shows_usage(
+    mock_is_admin, mock_update, mock_context
+):
+    mock_context.bot_data["log_handler"] = TelegramLogHandler()
+    mock_context.args = []
+
+    await loglevel_command(mock_update, mock_context)
+
+    reply = mock_update.message.reply_text.call_args[0][0]
+    assert reply == LOGLEVEL_USAGE.format(current="ERROR")
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_loglevel_with_no_args_leaves_the_push_level_unchanged(
+    mock_is_admin, mock_update, mock_context
+):
+    handler = TelegramLogHandler()
+    mock_context.bot_data["log_handler"] = handler
+    mock_context.args = []
+
+    await loglevel_command(mock_update, mock_context)
+
+    assert handler.push_level == logging.ERROR
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_logs_command_replies_when_the_buffer_is_empty(
+    mock_is_admin, mock_update, mock_context
+):
+    mock_context.bot_data["log_handler"] = TelegramLogHandler()
+
+    await logs_command(mock_update, mock_context)
+
+    mock_update.message.reply_text.assert_called_once_with(LOGS_EMPTY)
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_logs_command_sends_a_document_when_there_are_records(
+    mock_is_admin, mock_update, mock_context
+):
+    handler = TelegramLogHandler()
+    handler.handle(
+        logging.LogRecord(
+            name="src.bot.handlers",
+            level=logging.ERROR,
+            pathname=__file__,
+            lineno=1,
+            msg="boom",
+            args=(),
+            exc_info=None,
+        )
+    )
+    mock_context.bot_data["log_handler"] = handler
+    mock_update.message.reply_document = AsyncMock()
+
+    await logs_command(mock_update, mock_context)
+
+    mock_update.message.reply_document.assert_awaited_once()
 
 
 @patch(

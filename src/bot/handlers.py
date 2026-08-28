@@ -1,9 +1,19 @@
 import logging
 import re
+from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
 
-from openai import APIConnectionError, APITimeoutError, RateLimitError
+from openai import (
+    APIConnectionError,
+    APITimeoutError,
+    AuthenticationError,
+    BadRequestError,
+    InternalServerError,
+    NotFoundError,
+    PermissionDeniedError,
+    RateLimitError,
+)
 from telegram import (
     CallbackQuery,
     InlineKeyboardButton,
@@ -28,6 +38,7 @@ from src.agents.orchestrator import (
     remove_preference,
     tidy_preferences,
 )
+from src.bot.admin import LOG_LEVELS, is_admin
 from src.bot.feedback import VERDICT_DOWN, VERDICT_UP, record_feedback
 from src.bot.middleware import (
     ValidationError,
@@ -52,6 +63,61 @@ ERROR_RATE_LIMIT = (
 ERROR_GENERIC = (
     "Sorry, something went wrong while processing your question. "
     "Please try again later."
+)
+ERROR_NEEDS_OPERATOR = (
+    "I can't use the AI service right now, and this is not something waiting "
+    "will fix - the bot's operator has to sort it out. Sorry."
+)
+ERROR_OUTAGE = (
+    "The AI service is having problems on its side right now. "
+    "Please try again in a few minutes."
+)
+ERROR_TOO_LONG = (
+    "That was too much for me to handle in one go. Please send a shorter "
+    "message, or a photo of just the part you need."
+)
+
+# A 429 means either "slow down" or "your balance is gone", and only the
+# error body tells them apart. A 400 is likewise several things at once.
+QUOTA_EXHAUSTED_CODE = "insufficient_quota"
+CONTEXT_LENGTH_CODE = "context_length_exceeded"
+
+
+@dataclass(frozen=True)
+class _Failure:
+    """One way an AI call can fail: what the user reads, what the log says.
+
+    Attributes:
+        reply: The message sent to the user.
+        log: Log line; its "%s" takes the description of the request.
+        level: Level to log at. ERROR is what reaches the operator's chat.
+    """
+
+    reply: str
+    log: str
+    level: int = logging.WARNING
+
+
+FAILURE_TIMEOUT = _Failure(ERROR_TIMEOUT, "LLM timeout for %s")
+FAILURE_CONNECTION = _Failure(ERROR_CONNECTION, "LLM connection error for %s")
+FAILURE_THROTTLED = _Failure(ERROR_RATE_LIMIT, "OpenAI rate limit hit for %s")
+FAILURE_QUOTA = _Failure(
+    ERROR_NEEDS_OPERATOR,
+    "OpenAI credit exhausted, turning away %s",
+    level=logging.ERROR,
+)
+# One failure for three causes, because the operator has to look at the
+# account either way: a 403 is as often an unavailable model or region as a
+# bad key, and a 404 is the account losing access to a model this bot pins.
+FAILURE_REFUSED = _Failure(
+    ERROR_NEEDS_OPERATOR,
+    "OpenAI refused the key or the model, turning away %s",
+    level=logging.ERROR,
+)
+FAILURE_OUTAGE = _Failure(ERROR_OUTAGE, "OpenAI is failing on its side for %s")
+FAILURE_TOO_LONG = _Failure(ERROR_TOO_LONG, "Request too long for the model: %s")
+FAILURE_UNKNOWN = _Failure(
+    ERROR_GENERIC, "Unexpected error for %s", level=logging.ERROR
 )
 
 # Prefix that marks a button as ours, so the handler ignores any other
@@ -97,6 +163,17 @@ RESET_DONE = (
     "saved preferences are untouched; use /pref clear for those."
 )
 RESET_EMPTY = "There was nothing to forget - we have not spoken yet."
+
+# Operator commands. They answer only in the admin chat, and stay silent
+# everywhere else rather than announcing that they exist.
+LOGLEVEL_USAGE = (
+    "Sending {current} and above to this chat.\n\n"
+    "/loglevel warning - also send warnings\n"
+    "/loglevel error - only send errors"
+)
+LOGLEVEL_SET = "Sending {level} and above to this chat."
+LOGS_EMPTY = "Nothing logged since the bot started."
+LOGS_CAPTION = "The last {count} log records held in memory."
 UNSUPPORTED_FILE = (
     "I can't read {kind} files yet. Please send a photo or a screenshot "
     "of the page instead."
@@ -190,9 +267,16 @@ async def _pref_tidy(update: Update, context, orchestrator, chat_id) -> None:
     """Merge semantically-duplicate rules on demand for `/pref tidy`."""
     tidier = context.bot_data["preference_tidier"]
     # The only /pref branch that can wait on a model, so the only one that
-    # shows the indicator; the rest answer straight from the checkpointer.
-    async with show_typing(context.bot, chat_id):
-        rules = await tidy_preferences(orchestrator, tidier, chat_id)
+    # shows the indicator, and the only one that can fail the way an agent
+    # call fails. The try covers the indicator too, so it stops before the
+    # apology is sent.
+    try:
+        async with show_typing(context.bot, chat_id):
+            rules = await tidy_preferences(orchestrator, tidier, chat_id)
+    except Exception as error:
+        user_id = update.message.from_user.id
+        await _reply_with_error(update.message, error, f"user {user_id}: /pref tidy")
+        return
     if not rules:
         await update.message.reply_text("You have no saved preferences to tidy.")
         return
@@ -274,6 +358,51 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         caption=EXPORT_CAPTION.format(
             shown=min(limit, len(messages)), total=len(messages)
         ),
+    )
+
+
+async def loglevel_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /loglevel: choose which records are pushed to the admin chat.
+
+    Only the handler's own threshold moves. No logger's level is touched, so
+    the server keeps logging everything it logged before, and nothing a
+    library writes can be turned on from a chat - which matters because
+    httpx logs the bot token as part of every request URL.
+    """
+    if not is_admin(update.message.chat_id):
+        return
+
+    handler = context.bot_data["log_handler"]
+    wanted = context.args[0].lower() if context.args else ""
+    if wanted not in LOG_LEVELS:
+        current = logging.getLevelName(handler.push_level)
+        await update.message.reply_text(LOGLEVEL_USAGE.format(current=current))
+        return
+
+    handler.push_level = LOG_LEVELS[wanted]
+    await update.message.reply_text(LOGLEVEL_SET.format(level=wanted.upper()))
+
+
+async def logs_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /logs: send the buffered log records back as a file.
+
+    Sent as a file for the same reason /export is: a few hundred lines pass
+    Telegram's message cap, and a file can be attached to a bug report
+    whole. The buffer lives in memory, so a restart empties it - at which
+    point the server's own log is where to look.
+    """
+    if not is_admin(update.message.chat_id):
+        return
+
+    records = context.bot_data["log_handler"].snapshot()
+    if not records:
+        await update.message.reply_text(LOGS_EMPTY)
+        return
+
+    await update.message.reply_document(
+        document=BytesIO("\n".join(records).encode("utf-8")),
+        filename="settlein-log.txt",
+        caption=LOGS_CAPTION.format(count=len(records)),
     )
 
 
@@ -371,6 +500,43 @@ def _split_for_telegram(text: str) -> list[str]:
     return [part for part in parts if part] or [text]
 
 
+def _classify_openai_failure(error: Exception) -> _Failure:
+    """Decide which kind of failure an exception represents.
+
+    Order matters twice over. APITimeoutError subclasses APIConnectionError,
+    so it has to be tested first or it becomes unreachable. And no
+    APIStatusError or APIError catch-all may be added above the branches
+    below, because every one of them is a subclass of it.
+
+    Args:
+        error: The exception the AI call raised.
+
+    Returns:
+        What to tell the user, what to log, and whom to wake.
+    """
+    if isinstance(error, APITimeoutError):
+        return FAILURE_TIMEOUT
+    if isinstance(error, APIConnectionError):
+        return FAILURE_CONNECTION
+    if isinstance(error, RateLimitError):
+        # Both arrive as 429. `code` is None when the response carried no
+        # JSON body, which correctly falls through to plain throttling.
+        if error.code == QUOTA_EXHAUSTED_CODE:
+            return FAILURE_QUOTA
+        return FAILURE_THROTTLED
+    # 404 belongs here: the only one this bot can provoke is a model its
+    # account has lost access to, which no user can do anything about.
+    if isinstance(error, (AuthenticationError, PermissionDeniedError, NotFoundError)):
+        return FAILURE_REFUSED
+    if isinstance(error, InternalServerError):
+        return FAILURE_OUTAGE
+    # One condition, not a nested `if`: every other 400 has to fall through
+    # to FAILURE_UNKNOWN and be logged with its traceback.
+    if isinstance(error, BadRequestError) and error.code == CONTEXT_LENGTH_CODE:
+        return FAILURE_TOO_LONG
+    return FAILURE_UNKNOWN
+
+
 async def _reply_with_error(message, error: Exception, request: str) -> None:
     """Log a failed AI call and send the user the matching apology.
 
@@ -383,20 +549,14 @@ async def _reply_with_error(message, error: Exception, request: str) -> None:
         error: The exception the AI call raised.
         request: Short description of what was being processed, for the log.
     """
-    if isinstance(error, APITimeoutError):
-        logger.warning("LLM timeout for %s", request)
-        await message.reply_text(ERROR_TIMEOUT)
-        return
-    if isinstance(error, APIConnectionError):
-        logger.warning("LLM connection error for %s", request)
-        await message.reply_text(ERROR_CONNECTION)
-        return
-    if isinstance(error, RateLimitError):
-        logger.warning("OpenAI rate limit hit for %s", request)
-        await message.reply_text(ERROR_RATE_LIMIT)
-        return
-    logger.error("Unexpected error for %s", request, exc_info=error)
-    await message.reply_text(ERROR_GENERIC)
+    failure = _classify_openai_failure(error)
+    logger.log(
+        failure.level,
+        failure.log,
+        request,
+        exc_info=error if failure is FAILURE_UNKNOWN else None,
+    )
+    await message.reply_text(failure.reply)
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -755,6 +915,12 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     typed `object` because the failure need not come from a message at all,
     in which case there is nobody to reply to.
 
+    It runs the same failure mapping as the handlers that catch their own
+    exceptions. Every path that can raise an OpenAI error already catches
+    one, so what arrives here is an error that escaped such a block - and
+    the traceback is then the only record of where it came from, which is
+    why it is logged here whatever the mapping makes of it.
+
     Args:
         update: The update being processed when the error happened, if any.
         context: The PTB context, carrying the exception on `.error`.
@@ -765,7 +931,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     if message is None:
         return
     try:
-        await message.reply_text(ERROR_GENERIC)
+        await _reply_with_error(message, context.error, f"chat {message.chat_id}")
     except TelegramError:
         # The chat may be blocked or gone; the log above is what matters.
         logger.debug("Could not deliver the error notice to the user.")

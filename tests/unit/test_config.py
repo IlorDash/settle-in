@@ -80,3 +80,28 @@ def test_load_settings_raises_when_openai_key_missing():
         load_settings()
 
     assert "OPENAI_API_KEY" in str(exc_info.value)
+
+
+@patch.dict(
+    "os.environ",
+    {"TELEGRAM_BOT_TOKEN": "test-token", "OPENAI_API_KEY": "test-key"},
+    clear=True,
+)
+def test_load_settings_admin_chat_id_defaults_to_empty():
+    settings = load_settings()
+
+    assert settings.admin_chat_id == ""
+
+
+@patch.dict(
+    "os.environ",
+    {
+        "TELEGRAM_BOT_TOKEN": "test-token",
+        "OPENAI_API_KEY": "test-key",
+        "ADMIN_CHAT_ID": "123456",
+    },
+)
+def test_load_settings_reads_admin_chat_id_from_env():
+    settings = load_settings()
+
+    assert settings.admin_chat_id == "123456"
