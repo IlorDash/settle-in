@@ -19,8 +19,11 @@ from src.agents.rag_agent import build_rag_chain
 from src.agents.translation_agent import build_translation_chain
 from src.bot.admin import TelegramLogHandler, mirror_logs
 from src.bot.handlers import (
+    ADMIN_PREFIX,
     CALLBACK_PREFIX,
     DOCUMENT_PREFIX,
+    admin_callback,
+    admin_command,
     document_callback,
     error_handler,
     export_command,
@@ -249,6 +252,7 @@ def create_application():
     # they are silent, so there is nothing to discover by guessing.
     app.add_handler(CommandHandler("loglevel", loglevel_command))
     app.add_handler(CommandHandler("logs", logs_command))
+    app.add_handler(CommandHandler("admin", admin_command))
     # The pattern keeps this handler off any inline keyboard added later.
     app.add_handler(
         CallbackQueryHandler(feedback_callback, pattern=f"^{CALLBACK_PREFIX}:")
@@ -256,6 +260,7 @@ def create_application():
     app.add_handler(
         CallbackQueryHandler(document_callback, pattern=f"^{DOCUMENT_PREFIX}:")
     )
+    app.add_handler(CallbackQueryHandler(admin_callback, pattern=f"^{ADMIN_PREFIX}:"))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     # Modality picks the agent here: an image never reaches intent
     # classification. Document.IMAGE covers a photo sent as an uncompressed

@@ -174,6 +174,13 @@ LOGLEVEL_USAGE = (
 LOGLEVEL_SET = "Sending {level} and above to this chat."
 LOGS_EMPTY = "Nothing logged since the bot started."
 LOGS_CAPTION = "The last {count} log records held in memory."
+
+# Prefix marking the operator panel's buttons, kept apart from the other two
+# so each callback handler only ever sees its own payloads.
+ADMIN_PREFIX = "adm"
+ADMIN_PANEL = "Operator panel\n\n" + LOGLEVEL_SET
+LEVEL_IN_FORCE = "●"
+LEVEL_AVAILABLE = "○"
 UNSUPPORTED_FILE = (
     "I can't read {kind} files yet. Please send a photo or a screenshot "
     "of the page instead."
@@ -372,7 +379,10 @@ async def loglevel_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if not is_admin(update.message.chat_id):
         return
 
-    handler = context.bot_data["log_handler"]
+    handler = context.bot_data.get("log_handler")
+    if handler is None:
+        return
+
     wanted = context.args[0].lower() if context.args else ""
     if wanted not in LOG_LEVELS:
         current = logging.getLevelName(handler.push_level)
@@ -394,7 +404,11 @@ async def logs_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if not is_admin(update.message.chat_id):
         return
 
-    records = context.bot_data["log_handler"].snapshot()
+    handler = context.bot_data.get("log_handler")
+    if handler is None:
+        return
+
+    records = handler.snapshot()
     if not records:
         await update.message.reply_text(LOGS_EMPTY)
         return
@@ -404,6 +418,166 @@ async def logs_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         filename="settlein-log.txt",
         caption=LOGS_CAPTION.format(count=len(records)),
     )
+
+
+async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /admin: show the panel the operator runs the bot from.
+
+    A control surface, not a log viewer: it says what the bot is doing now
+    and offers the taps that change it. Records still arrive by push (the
+    mirror) and by pull (/logs).
+    """
+    if not is_admin(update.message.chat_id):
+        return
+
+    handler = context.bot_data.get("log_handler")
+    # Silent for the same reason a non-admin gets silence: without the
+    # mirror there is no state to show, and nothing the operator taps could
+    # do anything. Only reachable if the mirror failed to install.
+    if handler is None:
+        return
+
+    await update.message.reply_text(
+        _admin_panel_text(handler.push_level),
+        reply_markup=_admin_keyboard(handler.push_level),
+    )
+
+
+async def admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Apply a tap on the operator panel, then redraw the panel in place.
+
+    Stateless like the other two keyboards: the level being switched to
+    travels in the button's payload, and the level in force is read back off
+    the log handler, so nothing is held between sending the panel and a tap
+    on it.
+    """
+    query = update.callback_query
+    handler = context.bot_data.get("log_handler")
+    level = _parse_admin_action(query.data)
+    if not _is_admin_tap(query) or handler is None or level is None:
+        await query.answer()
+        return
+
+    handler.push_level = LOG_LEVELS[level]
+    if await _redraw_admin_panel(query, handler.push_level):
+        await query.answer()
+        return
+    # The panel could not be rewritten, so the toast carries what it would
+    # have said - the tap moved the level either way.
+    await query.answer(LOGLEVEL_SET.format(level=level.upper()))
+
+
+def _is_admin_tap(query: CallbackQuery) -> bool:
+    """Say whether a tap came from the operator's own chat.
+
+    Reads the chat off `message.chat` rather than the `chat_id` shortcut:
+    past about 48 hours Telegram sends an InaccessibleMessage, which carries
+    a chat but none of the shortcuts Message defines on top of it.
+
+    Args:
+        query: The CallbackQuery raised by the button tap.
+
+    Returns:
+        True if the panel tapped is the one in the admin chat.
+    """
+    if query.message is None:
+        return False
+    return is_admin(query.message.chat.id)
+
+
+def _admin_panel_text(push_level: int) -> str:
+    """Say what the panel reports about the bot's current state.
+
+    Args:
+        push_level: The threshold the log handler is pushing at.
+
+    Returns:
+        The panel's message body.
+    """
+    return ADMIN_PANEL.format(level=logging.getLevelName(push_level))
+
+
+def _admin_keyboard(push_level: int) -> InlineKeyboardMarkup:
+    """Build the panel's buttons, marking the level currently in force.
+
+    Args:
+        push_level: The threshold the log handler is pushing at.
+
+    Returns:
+        One row holding one button per level the operator can choose.
+    """
+    buttons = [
+        InlineKeyboardButton(
+            _level_label(name, push_level),
+            callback_data=f"{ADMIN_PREFIX}:{name}",
+        )
+        for name in LOG_LEVELS
+    ]
+    return InlineKeyboardMarkup([buttons])
+
+
+def _level_label(name: str, push_level: int) -> str:
+    """Name one level button, marked when it is the level in force.
+
+    Args:
+        name: The level this button switches to.
+        push_level: The threshold the log handler is pushing at.
+
+    Returns:
+        The text shown on the button.
+    """
+    marker = LEVEL_IN_FORCE if LOG_LEVELS[name] == push_level else LEVEL_AVAILABLE
+    return f"{marker} {name.upper()}"
+
+
+def _parse_admin_action(callback_data: str) -> str | None:
+    """Read which of the panel's buttons was tapped.
+
+    Buttons outlive deploys: a panel sent before this format existed is
+    still tappable in the chat history, so unknown payloads are rejected
+    rather than acted on.
+
+    Args:
+        callback_data: The raw payload from the tapped button.
+
+    Returns:
+        The name of the level to switch to, or None if the payload is not
+        one this panel issues.
+    """
+    parts = callback_data.split(":", maxsplit=1)
+    if len(parts) != 2 or parts[0] != ADMIN_PREFIX:
+        return None
+    return parts[1] if parts[1] in LOG_LEVELS else None
+
+
+async def _redraw_admin_panel(query: CallbackQuery, push_level: int) -> bool:
+    """Rewrite the panel to show the state the tap has just left it in.
+
+    The whole message is rebuilt from the handler rather than the tapped
+    button being patched, so a panel left open while /loglevel changed the
+    level redraws correct rather than merely different.
+
+    Args:
+        query: The CallbackQuery raised by the button tap.
+        push_level: The threshold the log handler is now pushing at.
+
+    Returns:
+        True if the panel now shows the level in force. False if it could
+        not be rewritten - Telegram refuses an edit that would change
+        nothing, one whose message has been deleted, and one past about 48
+        hours, which python-telegram-bot raises as TypeError rather than
+        BadRequest. The tap has already moved the level in every one of
+        those cases, so the caller has to say so some other way.
+    """
+    try:
+        await query.edit_message_text(
+            _admin_panel_text(push_level),
+            reply_markup=_admin_keyboard(push_level),
+        )
+    except (BadRequest, TypeError):
+        logger.debug("Operator panel could not be redrawn (unchanged or stale).")
+        return False
+    return True
 
 
 async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

@@ -70,6 +70,29 @@ def mock_callback_update(mock_user):
 
 
 @pytest.fixture
+def mock_admin_callback_update(mock_chat):
+    """An Update carrying a tap on the operator panel.
+
+    `_is_admin_tap` reads the chat off `message.chat`, not the `chat_id`
+    shortcut, since a stale panel arrives as an InaccessibleMessage that
+    carries a chat but none of the shortcuts Message defines on top of it -
+    so the mock is built the same way rather than setting `chat_id` directly.
+    """
+    message = MagicMock(spec=Message)
+    message.chat = mock_chat
+
+    query = MagicMock(spec=CallbackQuery)
+    query.data = "adm:warning"
+    query.message = message
+    query.answer = AsyncMock()
+    query.edit_message_text = AsyncMock()
+
+    update = MagicMock(spec=Update)
+    update.callback_query = query
+    return update
+
+
+@pytest.fixture
 def mock_photo_update(mock_user, mock_chat):
     """An Update carrying a photographed document, ready to be downloaded.
 

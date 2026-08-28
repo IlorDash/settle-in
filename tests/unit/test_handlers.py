@@ -37,9 +37,13 @@ from src.bot.handlers import (
     RESET_EMPTY,
     TELEGRAM_MESSAGE_LIMIT,
     UNSUPPORTED_FILE,
+    _admin_keyboard,
+    _admin_panel_text,
     _export_limit,
     _split_for_telegram,
     _strip_markdown,
+    admin_callback,
+    admin_command,
     document_callback,
     error_handler,
     export_command,
@@ -1337,6 +1341,28 @@ async def test_logs_command_is_silent_outside_the_admin_chat(
 
 
 @patch("src.bot.handlers.is_admin", return_value=True)
+async def test_loglevel_command_is_silent_when_there_is_no_log_handler(
+    mock_is_admin, mock_update, mock_context
+):
+    # Only reachable if the mirror failed to install - the mock leaves
+    # bot_data without a "log_handler" key entirely.
+    mock_context.args = ["warning"]
+
+    await loglevel_command(mock_update, mock_context)
+
+    mock_update.message.reply_text.assert_not_called()
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_logs_command_is_silent_when_there_is_no_log_handler(
+    mock_is_admin, mock_update, mock_context
+):
+    await logs_command(mock_update, mock_context)
+
+    mock_update.message.reply_text.assert_not_called()
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
 async def test_loglevel_warning_moves_the_push_level(
     mock_is_admin, mock_update, mock_context
 ):
@@ -1447,6 +1473,197 @@ async def test_logs_command_sends_a_document_when_there_are_records(
     await logs_command(mock_update, mock_context)
 
     mock_update.message.reply_document.assert_awaited_once()
+
+
+@patch("src.bot.handlers.is_admin", return_value=False)
+async def test_admin_command_is_silent_outside_the_admin_chat(
+    mock_is_admin, mock_update, mock_context
+):
+    mock_context.bot_data["log_handler"] = TelegramLogHandler()
+
+    await admin_command(mock_update, mock_context)
+
+    mock_update.message.reply_text.assert_not_called()
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_admin_command_is_silent_when_there_is_no_log_handler(
+    mock_is_admin, mock_update, mock_context
+):
+    await admin_command(mock_update, mock_context)
+
+    mock_update.message.reply_text.assert_not_called()
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_admin_command_panel_marks_the_level_currently_in_force(
+    mock_is_admin, mock_update, mock_context
+):
+    # push_level is moved away from the handler's own default so the
+    # assertion cannot pass merely by reading a fresh handler's starting
+    # value - it proves the panel reads live state, not a copy.
+    handler = TelegramLogHandler()
+    handler.push_level = logging.WARNING
+    mock_context.bot_data["log_handler"] = handler
+
+    await admin_command(mock_update, mock_context)
+
+    keyboard = mock_update.message.reply_text.call_args.kwargs["reply_markup"]
+    labels = [button.text for button in keyboard.inline_keyboard[0]]
+    assert labels == ["● WARNING", "○ ERROR"]
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_admin_callback_moves_the_push_level_to_the_tapped_level(
+    mock_is_admin, mock_admin_callback_update, mock_context
+):
+    handler = TelegramLogHandler()
+    mock_context.bot_data["log_handler"] = handler
+    mock_admin_callback_update.callback_query.data = "adm:warning"
+
+    await admin_callback(mock_admin_callback_update, mock_context)
+
+    assert handler.push_level == logging.WARNING
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_admin_callback_redraws_the_panel_in_place(
+    mock_is_admin, mock_admin_callback_update, mock_context
+):
+    handler = TelegramLogHandler()
+    mock_context.bot_data["log_handler"] = handler
+    mock_admin_callback_update.callback_query.data = "adm:warning"
+
+    await admin_callback(mock_admin_callback_update, mock_context)
+
+    redraw = mock_admin_callback_update.callback_query.edit_message_text
+    redraw.assert_awaited_once_with(
+        _admin_panel_text(logging.WARNING),
+        reply_markup=_admin_keyboard(logging.WARNING),
+    )
+
+
+@patch("src.bot.handlers.is_admin", return_value=False)
+async def test_admin_callback_from_outside_the_admin_chat_changes_nothing(
+    mock_is_admin, mock_admin_callback_update, mock_context
+):
+    handler = TelegramLogHandler()
+    mock_context.bot_data["log_handler"] = handler
+    mock_admin_callback_update.callback_query.data = "adm:warning"
+
+    await admin_callback(mock_admin_callback_update, mock_context)
+
+    assert handler.push_level == logging.ERROR
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_admin_callback_ignores_an_unknown_level_payload(
+    mock_is_admin, mock_admin_callback_update, mock_context
+):
+    handler = TelegramLogHandler()
+    mock_context.bot_data["log_handler"] = handler
+    mock_admin_callback_update.callback_query.data = "adm:nonsense"
+
+    await admin_callback(mock_admin_callback_update, mock_context)
+
+    assert handler.push_level == logging.ERROR
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_admin_callback_ignores_a_payload_that_is_not_its_own(
+    mock_is_admin, mock_admin_callback_update, mock_context
+):
+    # Shaped like a button payload, but issued by the feedback keyboard.
+    handler = TelegramLogHandler()
+    mock_context.bot_data["log_handler"] = handler
+    mock_admin_callback_update.callback_query.data = "fb:up:knowledge_question"
+
+    await admin_callback(mock_admin_callback_update, mock_context)
+
+    assert handler.push_level == logging.ERROR
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_admin_callback_still_answers_an_unrecognised_payload(
+    mock_is_admin, mock_admin_callback_update, mock_context
+):
+    mock_context.bot_data["log_handler"] = TelegramLogHandler()
+    mock_admin_callback_update.callback_query.data = "adm:nonsense"
+
+    await admin_callback(mock_admin_callback_update, mock_context)
+
+    mock_admin_callback_update.callback_query.answer.assert_awaited_once_with()
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_admin_callback_still_moves_the_level_when_the_redraw_is_refused(
+    mock_is_admin, mock_admin_callback_update, mock_context
+):
+    # Telegram refuses an edit that would leave the message unchanged, or
+    # whose message has been deleted - either way the tap already landed.
+    handler = TelegramLogHandler()
+    mock_context.bot_data["log_handler"] = handler
+    mock_admin_callback_update.callback_query.data = "adm:warning"
+    mock_admin_callback_update.callback_query.edit_message_text = AsyncMock(
+        side_effect=BadRequest("message is not modified")
+    )
+
+    await admin_callback(mock_admin_callback_update, mock_context)
+
+    assert handler.push_level == logging.WARNING
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_admin_callback_still_moves_the_level_when_the_panel_is_too_old(
+    mock_is_admin, mock_admin_callback_update, mock_context
+):
+    # python-telegram-bot raises TypeError, not BadRequest, for a panel past
+    # about 48 hours - an InaccessibleMessage carries none of the attributes
+    # edit_message_text needs.
+    handler = TelegramLogHandler()
+    mock_context.bot_data["log_handler"] = handler
+    mock_admin_callback_update.callback_query.data = "adm:warning"
+    mock_admin_callback_update.callback_query.edit_message_text = AsyncMock(
+        side_effect=TypeError("message is inaccessible")
+    )
+
+    await admin_callback(mock_admin_callback_update, mock_context)
+
+    assert handler.push_level == logging.WARNING
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_admin_callback_names_the_new_level_when_the_redraw_is_refused(
+    mock_is_admin, mock_admin_callback_update, mock_context
+):
+    mock_context.bot_data["log_handler"] = TelegramLogHandler()
+    mock_admin_callback_update.callback_query.data = "adm:warning"
+    mock_admin_callback_update.callback_query.edit_message_text = AsyncMock(
+        side_effect=BadRequest("message is not modified")
+    )
+
+    await admin_callback(mock_admin_callback_update, mock_context)
+
+    mock_admin_callback_update.callback_query.answer.assert_awaited_once_with(
+        LOGLEVEL_SET.format(level="WARNING")
+    )
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_admin_callback_names_the_new_level_when_the_panel_is_too_old(
+    mock_is_admin, mock_admin_callback_update, mock_context
+):
+    mock_context.bot_data["log_handler"] = TelegramLogHandler()
+    mock_admin_callback_update.callback_query.data = "adm:warning"
+    mock_admin_callback_update.callback_query.edit_message_text = AsyncMock(
+        side_effect=TypeError("message is inaccessible")
+    )
+
+    await admin_callback(mock_admin_callback_update, mock_context)
+
+    mock_admin_callback_update.callback_query.answer.assert_awaited_once_with(
+        LOGLEVEL_SET.format(level="WARNING")
+    )
 
 
 @patch(
