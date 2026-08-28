@@ -6,6 +6,8 @@ from pathlib import Path
 import aiosqlite
 from langchain_core.vectorstores import VectorStoreRetriever
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from telegram import Bot, BotCommand, BotCommandScopeChat
+from telegram.error import TelegramError
 from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
@@ -54,6 +56,25 @@ logging.basicConfig(
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
+
+# The "/" menu Telegram offers in a chat. Scopes do not merge: a list set
+# for one chat replaces the default list there rather than adding to it, so
+# the operator's menu has to repeat the public commands or lose them.
+PUBLIC_COMMANDS = (
+    ("start", "Welcome message"),
+    ("help", "What I can do"),
+    ("pref", "Standing preferences for my replies"),
+    ("reset", "Forget our conversation"),
+    ("export", "Send our recent messages as a file"),
+)
+OPERATOR_COMMANDS = (
+    ("admin", "Operator panel"),
+    ("loglevel", "Which records reach this chat"),
+    ("logs", "Send the log held in memory"),
+)
+# Published once, at startup: the menu lists what the bot has, not what it
+# will do right now, so it still offers /export and /reset while the panel
+# has one of them switched off. The command itself says when it is off.
 
 
 def _open_checkpointer() -> AsyncSqliteSaver:
@@ -144,6 +165,7 @@ async def _initialize_agents(app) -> None:
     # switch back where the bot ships it.
     app.bot_data["features"] = default_features()
     _start_log_mirror(app)
+    await _publish_operator_menu(app.bot)
     logger.info("Orchestrator initialized with RAG and translation agents.")
 
 
@@ -166,6 +188,40 @@ def _start_log_mirror(app) -> None:
     app.bot_data["log_handler"] = handler
     app.bot_data["log_mirror"] = asyncio.create_task(mirror_logs(app.bot, handler))
     logger.info("Mirroring logs to chat %s.", settings.admin_chat_id)
+
+
+async def _publish_operator_menu(bot: Bot) -> None:
+    """Offer the operator's commands in the "/" menu of their chat alone.
+
+    Presentation only: it keeps the operator commands out of everyone
+    else's menu, but it does not protect them - the is_admin guard in each
+    of their handlers is what does that, and every command added to
+    OPERATOR_COMMANDS needs one.
+
+    A menu is worth nothing next to a bot that will not start, so a chat
+    Telegram refuses to set one for - the usual cause is an ADMIN_CHAT_ID
+    that has never messaged the bot - is logged and let go.
+
+    Args:
+        bot: The bot whose command menu is being set.
+    """
+    if not settings.admin_chat_id:
+        return
+
+    commands = [
+        BotCommand(name, description)
+        for name, description in PUBLIC_COMMANDS + OPERATOR_COMMANDS
+    ]
+    try:
+        await bot.set_my_commands(
+            commands, scope=BotCommandScopeChat(settings.admin_chat_id)
+        )
+    except TelegramError as error:
+        logger.warning(
+            "Could not offer the operator menu in chat %s: %s",
+            settings.admin_chat_id,
+            error,
+        )
 
 
 async def _shut_down_cleanly(app) -> None:

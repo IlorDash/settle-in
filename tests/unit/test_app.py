@@ -5,12 +5,18 @@ from dataclasses import replace
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
+from telegram import Bot, BotCommandScopeChat
+from telegram.error import TelegramError
+from telegram.ext import CommandHandler
 
 import src.bot.app  # noqa: F401  (imported for its logging configuration)
 from src.bot.app import (
+    OPERATOR_COMMANDS,
+    PUBLIC_COMMANDS,
     StartupError,
     _close_checkpointer,
     _initialize_agents,
+    _publish_operator_menu,
     _shut_down_cleanly,
     _start_log_mirror,
     _stop_log_mirror,
@@ -78,6 +84,35 @@ def test_create_application_registers_the_shutdown_hook():
     assert app.post_shutdown is _shut_down_cleanly
 
 
+def _registered_command_names(app) -> set[str]:
+    return {
+        name
+        for group in app.handlers.values()
+        for handler in group
+        if isinstance(handler, CommandHandler)
+        for name in handler.commands
+    }
+
+
+def test_every_menu_command_is_registered_as_a_command_handler():
+    # A name added to the menu tuples without a matching CommandHandler
+    # would show the operator a command that does nothing when tapped.
+    app = create_application()
+    menu_names = {name for name, _ in PUBLIC_COMMANDS + OPERATOR_COMMANDS}
+
+    assert menu_names <= _registered_command_names(app)
+
+
+def test_every_non_public_command_handler_is_listed_as_an_operator_command():
+    # A CommandHandler added to create_application() without a matching
+    # OPERATOR_COMMANDS entry would work but never appear in anyone's menu.
+    app = create_application()
+    public_names = {name for name, _ in PUBLIC_COMMANDS}
+    operator_names = {name for name, _ in OPERATOR_COMMANDS}
+
+    assert _registered_command_names(app) - public_names <= operator_names
+
+
 async def test_post_shutdown_closes_the_checkpointer_connection():
     # Closing the connection is what stops that worker thread; nothing else
     # in the shutdown path knows the checkpointer exists.
@@ -108,10 +143,17 @@ async def test_post_shutdown_survives_a_failed_startup():
 async def test_post_init_puts_the_orchestrator_in_bot_data(mock_build):
     # The agents move into bot_data only when the post_init hook runs, so the
     # handlers would find nothing there if it were left unregistered.
-    app = MagicMock()
-    app.bot_data = {}
+    #
+    # admin_chat_id is pinned to empty so this does not depend on whatever
+    # ADMIN_CHAT_ID happens to be set in the developer's own .env: with one
+    # set, _publish_operator_menu would await a plain MagicMock's
+    # set_my_commands and fail with "object MagicMock can't be used in
+    # 'await' expression" regardless of the orchestrator wiring under test.
+    with patch("src.bot.app.settings", replace(settings, admin_chat_id="")):
+        app = MagicMock()
+        app.bot_data = {}
 
-    await _initialize_agents(app)
+        await _initialize_agents(app)
 
     assert app.bot_data["orchestrator"] is mock_build.return_value
 
@@ -224,6 +266,80 @@ async def test_stop_log_mirror_survives_a_startup_that_never_started_one():
     app.bot_data = {}
 
     await _stop_log_mirror(app)
+
+
+async def test_publish_operator_menu_sets_no_menu_when_admin_chat_id_is_empty():
+    with patch("src.bot.app.settings", replace(settings, admin_chat_id="")):
+        bot = MagicMock(spec=Bot)
+        bot.set_my_commands = AsyncMock()
+
+        await _publish_operator_menu(bot)
+
+        bot.set_my_commands.assert_not_called()
+
+
+async def test_publish_operator_menu_awaits_set_my_commands_once():
+    with patch("src.bot.app.settings", replace(settings, admin_chat_id="99")):
+        bot = MagicMock(spec=Bot)
+        bot.set_my_commands = AsyncMock()
+
+        await _publish_operator_menu(bot)
+
+        bot.set_my_commands.assert_awaited_once()
+
+
+async def test_publish_operator_menu_scopes_the_menu_to_the_admin_chat():
+    with patch("src.bot.app.settings", replace(settings, admin_chat_id="99")):
+        bot = MagicMock(spec=Bot)
+        bot.set_my_commands = AsyncMock()
+
+        await _publish_operator_menu(bot)
+
+        scope = bot.set_my_commands.call_args.kwargs["scope"]
+        assert scope == BotCommandScopeChat("99")
+
+
+async def test_publish_operator_menu_lists_public_commands_before_operator_ones():
+    with patch("src.bot.app.settings", replace(settings, admin_chat_id="99")):
+        bot = MagicMock(spec=Bot)
+        bot.set_my_commands = AsyncMock()
+
+        await _publish_operator_menu(bot)
+
+        published = bot.set_my_commands.call_args.args[0]
+        names = [command.command for command in published]
+        assert names == [name for name, _ in PUBLIC_COMMANDS + OPERATOR_COMMANDS]
+
+
+async def test_publish_operator_menu_swallows_a_telegram_error():
+    # A menu is cosmetic; a chat Telegram refuses to set one for - the usual
+    # cause is an ADMIN_CHAT_ID that has never messaged the bot - must not
+    # raise out of startup and turn into exit code 1.
+    with patch("src.bot.app.settings", replace(settings, admin_chat_id="99")):
+        bot = MagicMock(spec=Bot)
+        bot.set_my_commands = AsyncMock(side_effect=TelegramError("nope"))
+
+        await _publish_operator_menu(bot)
+
+
+@patch("src.bot.app.build_preference_tidier", MagicMock())
+@patch("src.bot.app.build_translation_chain", MagicMock())
+@patch("src.bot.app.build_rag_chain", MagicMock())
+@patch("src.bot.app.build_orchestrator")
+@patch("src.bot.app._open_checkpointer", MagicMock())
+@patch("src.bot.app._load_retriever", MagicMock())
+@patch("src.bot.app._start_log_mirror", MagicMock())
+async def test_post_init_completes_when_the_operator_menu_cannot_be_set(mock_build):
+    # The property the swallowed TelegramError exists for: a cosmetic menu
+    # failure must not stop the rest of post_init from finishing.
+    with patch("src.bot.app.settings", replace(settings, admin_chat_id="99")):
+        app = MagicMock()
+        app.bot_data = {}
+        app.bot.set_my_commands = AsyncMock(side_effect=TelegramError("nope"))
+
+        await _initialize_agents(app)
+
+    assert app.bot_data["orchestrator"] is mock_build.return_value
 
 
 @patch("src.bot.app._close_checkpointer", new_callable=AsyncMock)
