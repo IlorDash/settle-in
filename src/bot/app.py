@@ -24,6 +24,7 @@ from src.bot.handlers import (
     DOCUMENT_PREFIX,
     admin_callback,
     admin_command,
+    default_features,
     document_callback,
     error_handler,
     export_command,
@@ -139,6 +140,9 @@ async def _initialize_agents(app) -> None:
     )
     app.bot_data["orchestrator"] = orchestrator
     app.bot_data["preference_tidier"] = build_preference_tidier()
+    # Not persisted: a restart is the one thing that reliably puts every
+    # switch back where the bot ships it.
+    app.bot_data["features"] = default_features()
     _start_log_mirror(app)
     logger.info("Orchestrator initialized with RAG and translation agents.")
 

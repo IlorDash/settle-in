@@ -181,10 +181,38 @@ ADMIN_PREFIX = "adm"
 ADMIN_PANEL = "Operator panel\n\n" + LOGLEVEL_SET
 LEVEL_IN_FORCE = "●"
 LEVEL_AVAILABLE = "○"
+
+# The commands the operator can switch off from the panel. Both rest on:
+# the switch is there for an incident, so a bot nobody has touched works.
+FEATURE_EXPORT = "export"
+FEATURE_RESET = "reset"
+FEATURES = (FEATURE_EXPORT, FEATURE_RESET)
+FEATURE_LABEL = "/{name}: {state}"
+FEATURE_ON = "on"
+FEATURE_OFF = "off"
+FEATURE_UNAVAILABLE = (
+    "/{name} is not available at the moment - the bot's operator has "
+    "switched it off. Everything else still works."
+)
+
+
 UNSUPPORTED_FILE = (
     "I can't read {kind} files yet. Please send a photo or a screenshot "
     "of the page instead."
 )
+
+
+@dataclass(frozen=True)
+class _PanelState:
+    """Everything the operator panel shows, read at the moment it is drawn.
+
+    Attributes:
+        push_level: The threshold the log handler is pushing at.
+        features: Which switchable commands are on, keyed by name.
+    """
+
+    push_level: int
+    features: dict[str, bool]
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -350,6 +378,10 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     `/export 50` overrides how many messages to include.
     """
+    if not _is_enabled(context, FEATURE_EXPORT):
+        await update.message.reply_text(FEATURE_UNAVAILABLE.format(name=FEATURE_EXPORT))
+        return
+
     orchestrator = context.bot_data["orchestrator"]
     chat_id = update.message.chat_id
     messages = await get_history(orchestrator, chat_id)
@@ -437,34 +469,33 @@ async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if handler is None:
         return
 
+    state = _panel_state(context)
     await update.message.reply_text(
-        _admin_panel_text(handler.push_level),
-        reply_markup=_admin_keyboard(handler.push_level),
+        _admin_panel_text(state), reply_markup=_admin_keyboard(state)
     )
 
 
 async def admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Apply a tap on the operator panel, then redraw the panel in place.
 
-    Stateless like the other two keyboards: the level being switched to
-    travels in the button's payload, and the level in force is read back off
-    the log handler, so nothing is held between sending the panel and a tap
-    on it.
+    Stateless like the other two keyboards: what to change travels in the
+    button's payload, and the state it changes is read back out of bot_data,
+    so nothing is held between sending the panel and a tap on it.
     """
     query = update.callback_query
     handler = context.bot_data.get("log_handler")
-    level = _parse_admin_action(query.data)
-    if not _is_admin_tap(query) or handler is None or level is None:
+    action = _parse_admin_action(query.data)
+    if not _is_admin_tap(query) or handler is None or action is None:
         await query.answer()
         return
 
-    handler.push_level = LOG_LEVELS[level]
-    if await _redraw_admin_panel(query, handler.push_level):
+    changed = _apply_admin_action(context, action)
+    if await _redraw_admin_panel(query, _panel_state(context)):
         await query.answer()
         return
     # The panel could not be rewritten, so the toast carries what it would
-    # have said - the tap moved the level either way.
-    await query.answer(LOGLEVEL_SET.format(level=level.upper()))
+    # have said - the tap changed something either way.
+    await query.answer(changed)
 
 
 def _is_admin_tap(query: CallbackQuery) -> bool:
@@ -485,35 +516,99 @@ def _is_admin_tap(query: CallbackQuery) -> bool:
     return is_admin(query.message.chat.id)
 
 
-def _admin_panel_text(push_level: int) -> str:
-    """Say what the panel reports about the bot's current state.
+def _apply_admin_action(context: ContextTypes.DEFAULT_TYPE, action: str) -> str:
+    """Carry out one panel tap, and describe the state it leaves behind.
 
     Args:
-        push_level: The threshold the log handler is pushing at.
+        context: The PTB context, holding the panel's state in bot_data.
+        action: The action the tapped button carried.
+
+    Returns:
+        A line naming the new state, which the toast falls back on when the
+        panel itself cannot be redrawn.
+    """
+    if action in LOG_LEVELS:
+        context.bot_data["log_handler"].push_level = LOG_LEVELS[action]
+        return LOGLEVEL_SET.format(level=action.upper())
+
+    return _set_feature(context, action)
+
+
+def _panel_state(context: ContextTypes.DEFAULT_TYPE) -> _PanelState:
+    """Gather what the panel shows, at the moment it is about to be drawn.
+
+    Args:
+        context: The PTB context; its bot_data holds the log handler the
+            caller has already found.
+
+    Returns:
+        The level being pushed, and the position of every switch.
+    """
+    return _PanelState(
+        push_level=context.bot_data["log_handler"].push_level,
+        features=_feature_states(context),
+    )
+
+
+def _admin_panel_text(state: _PanelState) -> str:
+    """Say what the panel reports in words rather than on its buttons.
+
+    Args:
+        state: What the panel is showing.
 
     Returns:
         The panel's message body.
     """
-    return ADMIN_PANEL.format(level=logging.getLevelName(push_level))
+    return ADMIN_PANEL.format(level=logging.getLevelName(state.push_level))
 
 
-def _admin_keyboard(push_level: int) -> InlineKeyboardMarkup:
-    """Build the panel's buttons, marking the level currently in force.
+def _admin_keyboard(state: _PanelState) -> InlineKeyboardMarkup:
+    """Build the panel's buttons: the level to push at, then the switches.
 
     Args:
-        push_level: The threshold the log handler is pushing at.
+        state: What the panel is showing.
 
     Returns:
-        One row holding one button per level the operator can choose.
+        Two rows, each button labelled with the state it is in now and
+        carrying the action a tap on it performs.
     """
-    buttons = [
-        InlineKeyboardButton(
-            _level_label(name, push_level),
-            callback_data=f"{ADMIN_PREFIX}:{name}",
-        )
-        for name in LOG_LEVELS
+    levels = [
+        _admin_button(_level_label(name, state.push_level), name) for name in LOG_LEVELS
     ]
-    return InlineKeyboardMarkup([buttons])
+    switches = [_feature_button(name, state.features) for name in FEATURES]
+    return InlineKeyboardMarkup([levels, switches])
+
+
+def _feature_button(name: str, features: dict[str, bool]) -> InlineKeyboardButton:
+    """Build one switch button, which reads and acts on different things.
+
+    The label is the position the switch is in now; the payload is the
+    position a tap puts it in. Naming the target rather than asking for a
+    flip is what makes a tap on a panel drawn before someone else moved the
+    same switch land where the button said it would.
+
+    Args:
+        name: The command the switch controls.
+        features: Which switchable commands are on.
+
+    Returns:
+        The button, ready to place in a row.
+    """
+    target = FEATURE_OFF if features[name] else FEATURE_ON
+    return _admin_button(_feature_label(name, features), f"{name}:{target}")
+
+
+def _admin_button(label: str, action: str) -> InlineKeyboardButton:
+    """Build one panel button, tagged with the prefix that routes its tap.
+
+    Args:
+        label: The text shown on the button.
+        action: What tapping it asks the panel to do.
+
+    Returns:
+        The button, ready to place in a row.
+    """
+    return InlineKeyboardButton(label, callback_data=f"{ADMIN_PREFIX}:{action}")
 
 
 def _level_label(name: str, push_level: int) -> str:
@@ -530,6 +625,78 @@ def _level_label(name: str, push_level: int) -> str:
     return f"{marker} {name.upper()}"
 
 
+def _feature_label(name: str, features: dict[str, bool]) -> str:
+    """Name one switch button, showing the position it is in now.
+
+    Args:
+        name: The command the switch controls.
+        features: Which switchable commands are on.
+
+    Returns:
+        The text shown on the button.
+    """
+    state = FEATURE_ON if features[name] else FEATURE_OFF
+    return FEATURE_LABEL.format(name=name, state=state)
+
+
+def default_features() -> dict[str, bool]:
+    """Return every switch in the position the bot starts in.
+
+    Read at startup to seed bot_data, and again wherever a flag is missing,
+    so the shipped position is written down once rather than in each place
+    that has to cope with its absence.
+
+    Returns:
+        One entry per switchable command.
+    """
+    return dict.fromkeys(FEATURES, True)
+
+
+def _is_enabled(context: ContextTypes.DEFAULT_TYPE, feature: str) -> bool:
+    """Say whether a command the operator can switch off is on right now.
+
+    A missing flag reads as whatever the bot ships with. The switches are an
+    incident control, so the bot has to work in a run where nobody has
+    touched them - including one where the panel was never wired up at all.
+
+    Args:
+        context: The PTB context, holding the flags in bot_data.
+        feature: The command being asked about.
+
+    Returns:
+        True if the command may run.
+    """
+    return (default_features() | context.bot_data.get("features", {}))[feature]
+
+
+def _feature_states(context: ContextTypes.DEFAULT_TYPE) -> dict[str, bool]:
+    """Read the position of every switch, for the panel to draw.
+
+    Args:
+        context: The PTB context, holding the flags in bot_data.
+
+    Returns:
+        One entry per switchable command.
+    """
+    return {name: _is_enabled(context, name) for name in FEATURES}
+
+
+def _set_feature(context: ContextTypes.DEFAULT_TYPE, action: str) -> str:
+    """Put one switch where its button said, so its command stops or starts.
+
+    Args:
+        context: The PTB context, holding the flags in bot_data.
+        action: The tapped payload, as "<command>:<position>".
+
+    Returns:
+        A line naming the position the switch is now in.
+    """
+    name, _, position = action.partition(":")
+    features = context.bot_data.setdefault("features", {})
+    features[name] = position == FEATURE_ON
+    return _feature_label(name, _feature_states(context))
+
+
 def _parse_admin_action(callback_data: str) -> str | None:
     """Read which of the panel's buttons was tapped.
 
@@ -541,38 +708,44 @@ def _parse_admin_action(callback_data: str) -> str | None:
         callback_data: The raw payload from the tapped button.
 
     Returns:
-        The name of the level to switch to, or None if the payload is not
-        one this panel issues.
+        The action to carry out - a log level, or a switchable command and
+        the position to put it in - or None if the payload is not one this
+        panel issues.
     """
     parts = callback_data.split(":", maxsplit=1)
     if len(parts) != 2 or parts[0] != ADMIN_PREFIX:
         return None
-    return parts[1] if parts[1] in LOG_LEVELS else None
+    action = parts[1]
+    if action in LOG_LEVELS:
+        return action
+    name, _, position = action.partition(":")
+    if name in FEATURES and position in (FEATURE_ON, FEATURE_OFF):
+        return action
+    return None
 
 
-async def _redraw_admin_panel(query: CallbackQuery, push_level: int) -> bool:
+async def _redraw_admin_panel(query: CallbackQuery, state: _PanelState) -> bool:
     """Rewrite the panel to show the state the tap has just left it in.
 
-    The whole message is rebuilt from the handler rather than the tapped
-    button being patched, so a panel left open while /loglevel changed the
-    level redraws correct rather than merely different.
+    The whole message is rebuilt from bot_data rather than the tapped button
+    being patched, so a panel left open while /loglevel changed the level
+    redraws correct rather than merely different.
 
     Args:
         query: The CallbackQuery raised by the button tap.
-        push_level: The threshold the log handler is now pushing at.
+        state: What the panel should now be showing.
 
     Returns:
-        True if the panel now shows the level in force. False if it could
-        not be rewritten - Telegram refuses an edit that would change
-        nothing, one whose message has been deleted, and one past about 48
-        hours, which python-telegram-bot raises as TypeError rather than
-        BadRequest. The tap has already moved the level in every one of
-        those cases, so the caller has to say so some other way.
+        True if the panel now shows that state. False if it could not be
+        rewritten - Telegram refuses an edit that would change nothing, one
+        whose message has been deleted, and one past about 48 hours, which
+        python-telegram-bot raises as TypeError rather than BadRequest. The
+        tap has already changed something in every one of those cases, so
+        the caller has to say so some other way.
     """
     try:
         await query.edit_message_text(
-            _admin_panel_text(push_level),
-            reply_markup=_admin_keyboard(push_level),
+            _admin_panel_text(state), reply_markup=_admin_keyboard(state)
         )
     except (BadRequest, TypeError):
         logger.debug("Operator panel could not be redrawn (unchanged or stale).")
@@ -589,6 +762,10 @@ async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     failure honestly, since a correction stays in context and the model
     answers from it rather than working the problem again.
     """
+    if not _is_enabled(context, FEATURE_RESET):
+        await update.message.reply_text(FEATURE_UNAVAILABLE.format(name=FEATURE_RESET))
+        return
+
     orchestrator = context.bot_data["orchestrator"]
     forgotten = await clear_history(orchestrator, update.message.chat_id)
     await update.message.reply_text(RESET_DONE if forgotten else RESET_EMPTY)

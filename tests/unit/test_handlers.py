@@ -27,6 +27,9 @@ from src.bot.handlers import (
     ERROR_TOO_LONG,
     EXPORT_EMPTY,
     EXPORT_LIMIT,
+    FEATURE_EXPORT,
+    FEATURE_RESET,
+    FEATURE_UNAVAILABLE,
     FEEDBACK_LOST,
     FEEDBACK_THANKS,
     LARGE_FILE_CANCELLED,
@@ -40,10 +43,12 @@ from src.bot.handlers import (
     _admin_keyboard,
     _admin_panel_text,
     _export_limit,
+    _PanelState,
     _split_for_telegram,
     _strip_markdown,
     admin_callback,
     admin_command,
+    default_features,
     document_callback,
     error_handler,
     export_command,
@@ -1148,6 +1153,99 @@ async def test_export_honours_a_requested_count(
     assert len(sent.getvalue().decode("utf-8").splitlines()) == 3
 
 
+async def test_export_command_replies_unavailable_when_switched_off(
+    mock_update, mock_context
+):
+    mock_context.bot_data["features"] = {"export": False}
+
+    await export_command(mock_update, mock_context)
+
+    reply = mock_update.message.reply_text.call_args[0][0]
+    assert reply == FEATURE_UNAVAILABLE.format(name=FEATURE_EXPORT)
+
+
+@patch("src.bot.handlers.get_history")
+async def test_export_command_does_not_read_history_when_switched_off(
+    mock_history, mock_update, mock_context
+):
+    mock_context.bot_data["features"] = {"export": False}
+
+    await export_command(mock_update, mock_context)
+
+    mock_history.assert_not_called()
+
+
+@patch("src.bot.handlers.get_history")
+async def test_export_command_still_works_when_its_switch_is_on(
+    mock_history, mock_update, mock_context
+):
+    mock_history.return_value = [HumanMessage(content="hi")]
+    mock_context.args = []
+    mock_context.bot_data["features"] = {"export": True}
+    mock_update.message.reply_document = AsyncMock()
+
+    await export_command(mock_update, mock_context)
+
+    mock_update.message.reply_document.assert_awaited_once()
+
+
+@patch("src.bot.handlers.get_history")
+async def test_export_command_works_when_no_features_key_is_stored(
+    mock_history, mock_update, mock_context
+):
+    mock_history.return_value = [HumanMessage(content="hi")]
+    mock_context.args = []
+    mock_update.message.reply_document = AsyncMock()
+
+    await export_command(mock_update, mock_context)
+
+    mock_update.message.reply_document.assert_awaited_once()
+
+
+async def test_reset_command_replies_unavailable_when_switched_off(
+    mock_update, mock_context
+):
+    mock_context.bot_data["features"] = {"reset": False}
+
+    await reset_command(mock_update, mock_context)
+
+    reply = mock_update.message.reply_text.call_args[0][0]
+    assert reply == FEATURE_UNAVAILABLE.format(name=FEATURE_RESET)
+
+
+@patch("src.bot.handlers.clear_history")
+async def test_reset_command_does_not_clear_history_when_switched_off(
+    mock_clear, mock_update, mock_context
+):
+    mock_context.bot_data["features"] = {"reset": False}
+
+    await reset_command(mock_update, mock_context)
+
+    mock_clear.assert_not_called()
+
+
+@patch("src.bot.handlers.clear_history", return_value=4)
+async def test_reset_command_still_works_when_its_switch_is_on(
+    mock_clear, mock_update, mock_context
+):
+    mock_context.bot_data["features"] = {"reset": True}
+
+    await reset_command(mock_update, mock_context)
+
+    reply = mock_update.message.reply_text.call_args[0][0]
+    assert reply == RESET_DONE
+
+
+@patch("src.bot.handlers.clear_history", return_value=4)
+async def test_reset_command_works_when_no_features_key_is_stored(
+    mock_clear, mock_update, mock_context
+):
+    await reset_command(mock_update, mock_context)
+
+    reply = mock_update.message.reply_text.call_args[0][0]
+    assert reply == RESET_DONE
+
+
 def test_export_limit_ignores_a_non_number():
     # "/export please" should behave like a bare "/export", not crash.
     assert _export_limit(["please"]) == EXPORT_LIMIT
@@ -1536,10 +1634,10 @@ async def test_admin_callback_redraws_the_panel_in_place(
 
     await admin_callback(mock_admin_callback_update, mock_context)
 
+    state = _PanelState(push_level=logging.WARNING, features=default_features())
     redraw = mock_admin_callback_update.callback_query.edit_message_text
     redraw.assert_awaited_once_with(
-        _admin_panel_text(logging.WARNING),
-        reply_markup=_admin_keyboard(logging.WARNING),
+        _admin_panel_text(state), reply_markup=_admin_keyboard(state)
     )
 
 
@@ -1664,6 +1762,76 @@ async def test_admin_callback_names_the_new_level_when_the_panel_is_too_old(
     mock_admin_callback_update.callback_query.answer.assert_awaited_once_with(
         LOGLEVEL_SET.format(level="WARNING")
     )
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_admin_command_panel_shows_the_position_of_each_switch(
+    mock_is_admin, mock_update, mock_context
+):
+    mock_context.bot_data["log_handler"] = TelegramLogHandler()
+    mock_context.bot_data["features"] = {"export": True, "reset": False}
+
+    await admin_command(mock_update, mock_context)
+
+    keyboard = mock_update.message.reply_text.call_args.kwargs["reply_markup"]
+    labels = [button.text for button in keyboard.inline_keyboard[1]]
+    assert labels == ["/export: on", "/reset: off"]
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_admin_command_switch_button_names_the_position_a_tap_sets(
+    mock_is_admin, mock_update, mock_context
+):
+    # The payload names the target position, not a flip, so a tap on a
+    # panel someone else has already moved still lands where it says.
+    mock_context.bot_data["log_handler"] = TelegramLogHandler()
+    mock_context.bot_data["features"] = {"export": True}
+
+    await admin_command(mock_update, mock_context)
+
+    keyboard = mock_update.message.reply_text.call_args.kwargs["reply_markup"]
+    button = keyboard.inline_keyboard[1][0]
+    assert button.callback_data == "adm:export:off"
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_admin_callback_writes_the_tapped_position_into_bot_data(
+    mock_is_admin, mock_admin_callback_update, mock_context
+):
+    mock_context.bot_data["log_handler"] = TelegramLogHandler()
+    mock_admin_callback_update.callback_query.data = "adm:export:off"
+
+    await admin_callback(mock_admin_callback_update, mock_context)
+
+    assert mock_context.bot_data["features"]["export"] is False
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_admin_callback_applying_the_same_switch_tap_twice_is_stable(
+    mock_is_admin, mock_admin_callback_update, mock_context
+):
+    # A stale panel tapped twice (once by each of two operators) must not
+    # flip back and forth - the payload names a position, not a toggle.
+    mock_context.bot_data["log_handler"] = TelegramLogHandler()
+    mock_admin_callback_update.callback_query.data = "adm:export:off"
+
+    await admin_callback(mock_admin_callback_update, mock_context)
+    await admin_callback(mock_admin_callback_update, mock_context)
+
+    assert mock_context.bot_data["features"]["export"] is False
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_admin_callback_rejects_a_payload_missing_a_position(
+    mock_is_admin, mock_admin_callback_update, mock_context
+):
+    # Shaped like the step-1 panel's payload, before switches existed.
+    mock_context.bot_data["log_handler"] = TelegramLogHandler()
+    mock_admin_callback_update.callback_query.data = "adm:export"
+
+    await admin_callback(mock_admin_callback_update, mock_context)
+
+    assert "features" not in mock_context.bot_data
 
 
 @patch(
