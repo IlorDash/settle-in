@@ -18,6 +18,7 @@ from src.bot.app import (
     _close_checkpointer,
     _initialize_agents,
     _publish_operator_menu,
+    _publish_public_menu,
     _run,
     _shut_down_cleanly,
     _start_log_mirror,
@@ -153,13 +154,15 @@ async def test_post_init_puts_the_orchestrator_in_bot_data(mock_build):
     # handlers would find nothing there if it were left unregistered.
     #
     # admin_chat_id is pinned to empty so this does not depend on whatever
-    # ADMIN_CHAT_ID happens to be set in the developer's own .env: with one
-    # set, _publish_operator_menu would await a plain MagicMock's
-    # set_my_commands and fail with "object MagicMock can't be used in
-    # 'await' expression" regardless of the orchestrator wiring under test.
+    # ADMIN_CHAT_ID happens to be set in the developer's own .env, and
+    # set_my_commands is a real AsyncMock because the public menu is
+    # published whether or not there is an operator: a plain MagicMock's
+    # would fail with "object MagicMock can't be used in 'await'
+    # expression" regardless of the orchestrator wiring under test.
     with patch("src.bot.app.settings", replace(settings, admin_chat_id="")):
         app = MagicMock()
         app.bot_data = {}
+        app.bot.set_my_commands = AsyncMock()
 
         await _initialize_agents(app)
 
@@ -276,6 +279,49 @@ async def test_stop_log_mirror_survives_a_startup_that_never_started_one():
     await _stop_log_mirror(app)
 
 
+async def test_publish_public_menu_awaits_set_my_commands_once():
+    bot = MagicMock(spec=Bot)
+    bot.set_my_commands = AsyncMock()
+
+    await _publish_public_menu(bot)
+
+    bot.set_my_commands.assert_awaited_once()
+
+
+async def test_publish_public_menu_names_no_scope():
+    # No scope means Telegram's default one, which is what every chat
+    # without a narrower scope of its own falls back to.
+    bot = MagicMock(spec=Bot)
+    bot.set_my_commands = AsyncMock()
+
+    await _publish_public_menu(bot)
+
+    assert "scope" not in bot.set_my_commands.call_args.kwargs
+
+
+async def test_publish_public_menu_offers_no_operator_command():
+    # The property the whole split exists for: an operator command must not
+    # reach the menu every other user sees.
+    bot = MagicMock(spec=Bot)
+    bot.set_my_commands = AsyncMock()
+
+    await _publish_public_menu(bot)
+
+    published = bot.set_my_commands.call_args.args[0]
+    names = [command.command for command in published]
+    assert names == [name for name, _ in PUBLIC_COMMANDS]
+
+
+async def test_publish_public_menu_swallows_a_telegram_error():
+    # Nothing guards this call the way admin_chat_id guards the operator's,
+    # so a Telegram outage at startup would raise straight out of post_init
+    # and turn a cosmetic menu into exit code 1.
+    bot = MagicMock(spec=Bot)
+    bot.set_my_commands = AsyncMock(side_effect=TelegramError("nope"))
+
+    await _publish_public_menu(bot)
+
+
 async def test_publish_operator_menu_sets_no_menu_when_admin_chat_id_is_empty():
     with patch("src.bot.app.settings", replace(settings, admin_chat_id="")):
         bot = MagicMock(spec=Bot)
@@ -348,6 +394,30 @@ async def test_post_init_completes_when_the_operator_menu_cannot_be_set(mock_bui
         await _initialize_agents(app)
 
     assert app.bot_data["orchestrator"] is mock_build.return_value
+
+
+@patch("src.bot.app.build_preference_tidier", MagicMock())
+@patch("src.bot.app.build_translation_chain", MagicMock())
+@patch("src.bot.app.build_rag_chain", MagicMock())
+@patch("src.bot.app.build_orchestrator", MagicMock())
+@patch("src.bot.app._open_checkpointer", MagicMock())
+@patch("src.bot.app._load_retriever", MagicMock())
+@patch("src.bot.app._start_log_mirror", MagicMock())
+async def test_initialize_agents_publishes_both_the_public_and_the_operator_menu():
+    # Each menu's own content and scope are already covered directly against
+    # _publish_public_menu/_publish_operator_menu; this is the one thing
+    # neither of those proves - that post_init actually reaches both calls.
+    # Dropping the new call from _initialize_agents would leave every
+    # non-admin chat without a "/" menu while every test of the function in
+    # isolation stayed green.
+    with patch("src.bot.app.settings", replace(settings, admin_chat_id="99")):
+        app = MagicMock()
+        app.bot_data = {}
+        app.bot.set_my_commands = AsyncMock()
+
+        await _initialize_agents(app)
+
+    assert app.bot.set_my_commands.await_count == 2
 
 
 @patch("src.bot.app._close_checkpointer", new_callable=AsyncMock)

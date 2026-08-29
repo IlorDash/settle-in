@@ -182,6 +182,7 @@ async def _initialize_agents(app) -> None:
     # switch back where the bot ships it.
     app.bot_data["features"] = default_features()
     _start_log_mirror(app)
+    await _publish_public_menu(app.bot)
     await _publish_operator_menu(app.bot)
     # Says at startup whether an announcement would work, rather than leaving
     # it to be discovered by one failing. Logs and lets go, same as the menu.
@@ -208,6 +209,28 @@ def _start_log_mirror(app) -> None:
     app.bot_data["log_handler"] = handler
     app.bot_data["log_mirror"] = asyncio.create_task(mirror_logs(app.bot, handler))
     logger.info("Mirroring logs to chat %s.", settings.admin_chat_id)
+
+
+async def _publish_public_menu(bot: Bot) -> None:
+    """Offer everyone the public commands in their own "/" menu.
+
+    Written to Telegram's default scope, which every chat falls back to when
+    no narrower scope names it - so the admin chat keeps the wider menu
+    _publish_operator_menu gives it, and no other chat is offered an
+    operator command.
+
+    Unconditional, unlike the operator's menu: this one has no ADMIN_CHAT_ID
+    to depend on. A failure is logged and let go for the same reason - a
+    cosmetic menu is not worth failing startup over.
+
+    Args:
+        bot: The bot whose command menu is being set.
+    """
+    commands = [BotCommand(name, description) for name, description in PUBLIC_COMMANDS]
+    try:
+        await bot.set_my_commands(commands)
+    except TelegramError as error:
+        logger.warning("Could not offer the public menu: %s", error)
 
 
 async def _publish_operator_menu(bot: Bot) -> None:
