@@ -23,6 +23,7 @@ from src.bot.app import (
     create_application,
     main,
 )
+from src.bot.middleware import KIND_PHOTO, KIND_TEXT
 from src.config import settings
 
 
@@ -358,6 +359,40 @@ async def test_shut_down_cleanly_stops_the_log_mirror_before_closing_the_checkpo
     await _shut_down_cleanly(app)
 
     assert manager.mock_calls == [call.stop_mirror(app), call.close_checkpointer(app)]
+
+
+def test_create_application_puts_a_daily_quota_in_bot_data():
+    app = create_application()
+
+    assert app.bot_data["daily_quota"] is not None
+
+
+def test_create_application_daily_quota_carries_the_configured_text_limit():
+    app = create_application()
+
+    assert app.bot_data["daily_quota"].limits[KIND_TEXT] == settings.daily_text_limit
+
+
+def test_create_application_daily_quota_carries_the_configured_photo_limit():
+    app = create_application()
+
+    assert app.bot_data["daily_quota"].limits[KIND_PHOTO] == settings.daily_photo_limit
+
+
+def test_create_application_registers_a_limits_command_handler():
+    app = create_application()
+
+    assert "limits" in _registered_command_names(app)
+
+
+def test_limits_is_offered_to_everyone_not_only_the_operator():
+    assert "limits" in {name for name, _ in PUBLIC_COMMANDS}
+
+
+def test_limits_is_not_repeated_in_the_operator_commands():
+    # The operator's menu is the two tuples concatenated, so a command in
+    # both would appear twice in their "/" list.
+    assert "limits" not in {name for name, _ in OPERATOR_COMMANDS}
 
 
 def test_a_startup_error_escaping_run_polling_becomes_system_exit_1():

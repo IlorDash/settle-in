@@ -41,6 +41,10 @@ from src.agents.orchestrator import (
 from src.bot.admin import LOG_LEVELS, is_admin
 from src.bot.feedback import VERDICT_DOWN, VERDICT_UP, record_feedback
 from src.bot.middleware import (
+    KIND_PHOTO,
+    KIND_TEXT,
+    QUOTA_KINDS,
+    DailyQuota,
     ValidationError,
     is_large_upload,
     validate_image_upload,
@@ -175,12 +179,48 @@ LOGLEVEL_SET = "Sending {level} and above to this chat."
 LOGS_EMPTY = "Nothing logged since the bot started."
 LOGS_CAPTION = "The last {count} log records held in memory."
 
+LIMITS_ALLOWANCES = "Daily allowances: {text} questions, {photo} photos per chat."
+LIMITS_SPENT = (
+    "Spent today: {text_spent} questions and {photo_spent} photos "
+    "across {chats} chats."
+)
+LIMITS_STATUS = (
+    LIMITS_ALLOWANCES + "\n" + LIMITS_SPENT + "\n\n"
+    "/limits text <number> - change the question allowance\n"
+    "/limits photo <number> - change the photo allowance"
+)
+LIMITS_BAD_ARGS = (
+    "I could not read that as a change. Name the allowance and a whole "
+    "number:\n"
+    "/limits text 30\n"
+    "/limits photo 5"
+)
+# What an ordinary user sees. Their own figures only - the totals across
+# chats are the operator's business, not theirs.
+LIMITS_PERSONAL = (
+    "Your daily allowance: {text} questions and {photo} photos.\n"
+    "Used today: {text_used} questions and {photo_used} photos.\n\n"
+    "It resets at midnight UTC."
+)
+
 # Prefix marking the operator panel's buttons, kept apart from the other two
 # so each callback handler only ever sees its own payloads.
 ADMIN_PREFIX = "adm"
-ADMIN_PANEL = "Operator panel\n\n" + LOGLEVEL_SET
+# The panel repeats what /limits says, and the spent line is load-bearing
+# rather than decorative: resetting the counters changes nothing else on the
+# panel, so without it Telegram would refuse every redraw as an edit that
+# changes nothing and the operator would never see the reset land.
+ADMIN_PANEL = (
+    "Operator panel\n\n" + LOGLEVEL_SET + "\n" + LIMITS_ALLOWANCES + "\n" + LIMITS_SPENT
+)
 LEVEL_IN_FORCE = "●"
 LEVEL_AVAILABLE = "○"
+
+# The one panel action that is neither a level nor a switch: it does
+# something once rather than moving anything into a position.
+ADMIN_RESET_COUNTERS = "counters"
+RESET_COUNTERS_LABEL = "Reset today's counters"
+COUNTERS_RESET = "Today's counters are back to zero."
 
 # The commands the operator can switch off from the panel. Both rest on:
 # the switch is there for an incident, so a bot nobody has touched works.
@@ -209,10 +249,13 @@ class _PanelState:
     Attributes:
         push_level: The threshold the log handler is pushing at.
         features: Which switchable commands are on, keyed by name.
+        limits_report: The allowances and today's spend, as _limits_report
+            returns them.
     """
 
     push_level: int
     features: dict[str, bool]
+    limits_report: dict[str, int]
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -237,7 +280,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "/help - Show this help message\n"
         "/pref - Set standing preferences (e.g. always reply in Cyrillic)\n"
         "/reset - Forget our conversation and start fresh\n"
-        "/export - Send our recent messages back as a text file\n\n"
+        "/export - Send our recent messages back as a text file\n"
+        "/limits - See your daily allowance and what is left of it\n\n"
         "You can also just type a question and I'll try to help, or send a "
         "photo of a Serbian document and I'll explain it.\n\n"
         "Examples:\n"
@@ -452,6 +496,134 @@ async def logs_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     )
 
 
+async def limits_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /limits: show a chat its allowance, or let the operator move it.
+
+    Unlike /loglevel and /logs this answers everyone, because the allowance
+    is the user's own business: someone turned away at their limit has to be
+    able to see what the limit is and how much of it is left. Only the
+    operator can move it, and only they see the totals across chats.
+
+    The numbers are a guess until the bot has been used, so they are moved
+    from a chat rather than only from the environment. A restart puts them
+    back to DAILY_TEXT_LIMIT and DAILY_PHOTO_LIMIT, so a number worth keeping
+    belongs in .env.
+    """
+    quota = context.bot_data["daily_quota"]
+    chat_id = update.message.chat_id
+    if not is_admin(chat_id):
+        await update.message.reply_text(
+            LIMITS_PERSONAL.format(**_personal_report(quota, chat_id))
+        )
+        return
+
+    await _run_operator_limits(update.message, context, quota)
+
+
+async def _run_operator_limits(
+    message, context: ContextTypes.DEFAULT_TYPE, quota: DailyQuota
+) -> None:
+    """Show the operator's view of the allowances, or move one of them.
+
+    Args:
+        message: The operator's message, to reply to.
+        context: The PTB context, carrying the command's arguments.
+        quota: The quota being read or changed.
+    """
+    if not context.args:
+        await message.reply_text(_limits_status(quota))
+        return
+
+    change = _parse_limit_change(context.args)
+    if change is None:
+        # Said rather than ignored: replying with the unchanged status would
+        # look identical to a change that landed, and a typo in a number is
+        # exactly the mistake this command invites.
+        await message.reply_text(LIMITS_BAD_ARGS)
+        return
+
+    kind, number = change
+    quota.limits[kind] = number
+    await message.reply_text(_limits_status(quota))
+
+
+def _parse_limit_change(args: list[str]) -> tuple[str, int] | None:
+    """Read which allowance /limits was asked to move, and where to.
+
+    Args:
+        args: The words after the command.
+
+    Returns:
+        The kind and its new limit, or None when the command was not a
+        well-formed change - including a bare /limits asking only to look.
+    """
+    if len(args) != 2:
+        return None
+    kind = args[0].lower()
+    # isdigit() also turns away a negative, and lets 0 through: switching a
+    # kind off entirely is a real thing to want during an incident.
+    if kind not in QUOTA_KINDS or not args[1].isdigit():
+        return None
+    return kind, int(args[1])
+
+
+def _limits_report(quota: DailyQuota) -> dict[str, int]:
+    """Gather the numbers both /limits and the operator panel report.
+
+    One reader for both, so the panel cannot drift into saying something
+    different from the command about the same allowances.
+
+    Args:
+        quota: The DailyQuota holding the limits and the counters.
+
+    Returns:
+        The fields LIMITS_ALLOWANCES and LIMITS_SPENT are formatted with.
+    """
+    spent = quota.spent_today()
+    return {
+        "text": quota.limits[KIND_TEXT],
+        "photo": quota.limits[KIND_PHOTO],
+        "text_spent": spent[KIND_TEXT],
+        "photo_spent": spent[KIND_PHOTO],
+        "chats": quota.active_chats(),
+    }
+
+
+def _personal_report(quota: DailyQuota, chat_id: int) -> dict[str, int]:
+    """Gather what one chat is told about its own allowance.
+
+    The companion to _limits_report: same allowances, but this chat's spend
+    rather than everyone's, since what one user has spent is their own
+    business and the totals across chats are the operator's.
+
+    Args:
+        quota: The DailyQuota holding the limits and the counters.
+        chat_id: The chat being told.
+
+    Returns:
+        The fields LIMITS_PERSONAL is formatted with.
+    """
+    used = quota.usage(chat_id)
+    return {
+        "text": quota.limits[KIND_TEXT],
+        "photo": quota.limits[KIND_PHOTO],
+        "text_used": used[KIND_TEXT],
+        "photo_used": used[KIND_PHOTO],
+    }
+
+
+def _limits_status(quota: DailyQuota) -> str:
+    """Render both allowances and what today has actually cost so far.
+
+    Args:
+        quota: The DailyQuota holding the limits and the counters.
+
+    Returns:
+        The message /limits replies with.
+    """
+    return LIMITS_STATUS.format(**_limits_report(quota))
+
+
 async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /admin: show the panel the operator runs the bot from.
 
@@ -531,6 +703,10 @@ def _apply_admin_action(context: ContextTypes.DEFAULT_TYPE, action: str) -> str:
         context.bot_data["log_handler"].push_level = LOG_LEVELS[action]
         return LOGLEVEL_SET.format(level=action.upper())
 
+    if action == ADMIN_RESET_COUNTERS:
+        context.bot_data["daily_quota"].reset()
+        return COUNTERS_RESET
+
     return _set_feature(context, action)
 
 
@@ -542,11 +718,13 @@ def _panel_state(context: ContextTypes.DEFAULT_TYPE) -> _PanelState:
             caller has already found.
 
     Returns:
-        The level being pushed, and the position of every switch.
+        The level being pushed, the position of every switch, and the
+        allowances in force.
     """
     return _PanelState(
         push_level=context.bot_data["log_handler"].push_level,
         features=_feature_states(context),
+        limits_report=_limits_report(context.bot_data["daily_quota"]),
     )
 
 
@@ -559,7 +737,9 @@ def _admin_panel_text(state: _PanelState) -> str:
     Returns:
         The panel's message body.
     """
-    return ADMIN_PANEL.format(level=logging.getLevelName(state.push_level))
+    return ADMIN_PANEL.format(
+        level=logging.getLevelName(state.push_level), **state.limits_report
+    )
 
 
 def _admin_keyboard(state: _PanelState) -> InlineKeyboardMarkup:
@@ -569,14 +749,17 @@ def _admin_keyboard(state: _PanelState) -> InlineKeyboardMarkup:
         state: What the panel is showing.
 
     Returns:
-        Two rows, each button labelled with the state it is in now and
-        carrying the action a tap on it performs.
+        Three rows: the push levels, the switches - each labelled with the
+        state it is in now and carrying the action a tap on it performs -
+        and the one button that does something rather than setting
+        something.
     """
     levels = [
         _admin_button(_level_label(name, state.push_level), name) for name in LOG_LEVELS
     ]
     switches = [_feature_button(name, state.features) for name in FEATURES]
-    return InlineKeyboardMarkup([levels, switches])
+    counters = [_admin_button(RESET_COUNTERS_LABEL, ADMIN_RESET_COUNTERS)]
+    return InlineKeyboardMarkup([levels, switches, counters])
 
 
 def _feature_button(name: str, features: dict[str, bool]) -> InlineKeyboardButton:
@@ -708,15 +891,15 @@ def _parse_admin_action(callback_data: str) -> str | None:
         callback_data: The raw payload from the tapped button.
 
     Returns:
-        The action to carry out - a log level, or a switchable command and
-        the position to put it in - or None if the payload is not one this
-        panel issues.
+        The action to carry out - a log level, the counter reset, or a
+        switchable command and the position to put it in - or None if the
+        payload is not one this panel issues.
     """
     parts = callback_data.split(":", maxsplit=1)
     if len(parts) != 2 or parts[0] != ADMIN_PREFIX:
         return None
     action = parts[1]
-    if action in LOG_LEVELS:
+    if action in LOG_LEVELS or action == ADMIN_RESET_COUNTERS:
         return action
     name, _, position = action.partition(":")
     if name in FEATURES and position in (FEATURE_ON, FEATURE_OFF):
@@ -910,15 +1093,59 @@ async def _reply_with_error(message, error: Exception, request: str) -> None:
     await message.reply_text(failure.reply)
 
 
+def _check_daily_quota(
+    context: ContextTypes.DEFAULT_TYPE, chat_id: int, kind: str
+) -> None:
+    """Refuse a message this chat no longer has the allowance for.
+
+    Spends nothing; `_record_daily_message` does that once the answer has
+    been produced. The operator's own chat is exempt from both, so an
+    incident cannot leave the person fixing it locked out of the bot, and a
+    demo cannot throttle the person giving it. The exemption lives here
+    rather than inside DailyQuota to keep middleware.py free of any import
+    from the rest of src/.
+
+    Args:
+        context: The PTB context, holding the quota in bot_data.
+        chat_id: The chat the message arrived in.
+        kind: KIND_TEXT or KIND_PHOTO.
+
+    Raises:
+        ValidationError: If this chat has spent that kind's allowance.
+    """
+    if is_admin(chat_id):
+        return
+    context.bot_data["daily_quota"].check(chat_id, kind)
+
+
+def _record_daily_message(
+    context: ContextTypes.DEFAULT_TYPE, chat_id: int, kind: str
+) -> None:
+    """Charge one answered message to this chat's daily allowance.
+
+    Args:
+        context: The PTB context, holding the quota in bot_data.
+        chat_id: The chat the message arrived in.
+        kind: KIND_TEXT or KIND_PHOTO.
+    """
+    if is_admin(chat_id):
+        return
+    context.bot_data["daily_quota"].record(chat_id, kind)
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle any non-command text message.
 
-    Validates input, checks rate limit, then routes through the orchestrator.
+    Validates input, checks both limits, then routes through the
+    orchestrator. The two limits answer different questions: the rate limiter
+    caps how fast one user spends, the daily quota how much this chat spends
+    in a day.
     """
     try:
         user_text = validate_message_text(update.message.text)
         rate_limiter = context.bot_data["rate_limiter"]
         rate_limiter.check(update.message.from_user.id)
+        _check_daily_quota(context, update.message.chat_id, KIND_TEXT)
     except ValidationError as e:
         await update.message.reply_text(e.user_message)
         return
@@ -932,6 +1159,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             result = await process_message(
                 orchestrator, user_text, thread_id=update.message.chat_id
             )
+        # Charged here rather than above: the allowance pays for answers, so
+        # a question the model never answered does not come out of it.
+        _record_daily_message(context, update.message.chat_id, KIND_TEXT)
         # Answering as a Telegram reply is load-bearing, not cosmetic: it is
         # how a later button tap finds the question this answered.
         parts = _split_for_telegram(_strip_markdown(result.response))
@@ -1026,6 +1256,9 @@ async def _read_photo_and_reply(message, context) -> None:
         context: The PTB context, holding the orchestrator in bot_data.
     """
     context.bot_data["rate_limiter"].check(message.from_user.id)
+    # Checked here because this is the one point every read passes through:
+    # a large file confirmed with the buttons arrives by a different route.
+    _check_daily_quota(context, message.chat_id, KIND_PHOTO)
     async with show_typing(context.bot, message.chat_id):
         image_url = await _fetch_document_image(message)
         result = await process_document(
@@ -1033,6 +1266,10 @@ async def _read_photo_and_reply(message, context) -> None:
             DocumentTurn(image_url=image_url, caption=message.caption or ""),
             message.chat_id,
         )
+    # Charged only now. A photo allowance is small enough that paying for
+    # failed downloads and model outages would burn a whole day of it on
+    # readings the user never received.
+    _record_daily_message(context, message.chat_id, KIND_PHOTO)
     for part in _split_for_telegram(_strip_markdown(result.response)):
         await message.reply_text(part)
 
@@ -1056,6 +1293,10 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         # Checked before the offer: agreeing to read a file we would then
         # refuse wastes the user's time and makes the question look pointless.
         validate_image_upload(upload.file_size, mime_type)
+        # Checked before the offer as well as inside the read. Tapping "Read
+        # it" clears the keyboard, so a refusal after the tap would take the
+        # offer away with it and leave the sender having to upload again.
+        _check_daily_quota(context, message.chat_id, KIND_PHOTO)
         if message.document and is_large_upload(upload.file_size):
             await message.reply_text(
                 LARGE_FILE_QUESTION.format(megabytes=upload.file_size / (1024 * 1024)),

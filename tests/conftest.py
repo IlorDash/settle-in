@@ -12,7 +12,12 @@ from telegram import (
     User,
 )
 
-from src.bot.middleware import RateLimiter
+from src.bot.middleware import DailyQuota, RateLimiter
+
+# Far above anything a test sends, so the daily allowance never fires by
+# accident in a test about something else. A test about the allowance builds
+# its own DailyQuota with the limit it wants to reach.
+TEST_DAILY_LIMIT = 100
 
 
 @pytest.fixture
@@ -149,11 +154,23 @@ def mock_bot():
 
 
 @pytest.fixture
-def mock_context(mock_orchestrator, mock_bot):
+def daily_quota():
+    """A DailyQuota with allowances no test can reach by accident.
+
+    A test about the allowance itself builds its own with the limit it wants
+    to reach; everything else gets this one so the daily cap never fires in
+    a test that is about something else.
+    """
+    return DailyQuota(text_limit=TEST_DAILY_LIMIT, photo_limit=TEST_DAILY_LIMIT)
+
+
+@pytest.fixture
+def mock_context(mock_orchestrator, mock_bot, daily_quota):
     context = MagicMock()
     context.bot = mock_bot
     context.bot_data = {
         "orchestrator": mock_orchestrator,
         "rate_limiter": RateLimiter(),
+        "daily_quota": daily_quota,
     }
     return context

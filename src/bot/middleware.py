@@ -5,10 +5,33 @@ They protect against invalid input and excessive usage.
 """
 
 import time
+from collections.abc import Iterator
+from dataclasses import dataclass
+from datetime import date, datetime, timezone
 
 MAX_MESSAGE_LENGTH = 1000
 RATE_LIMIT_MESSAGES = 5
 RATE_LIMIT_WINDOW_SECONDS = 60
+
+# The two things a chat can spend in a day. Separate buckets rather than one
+# budget a photo draws more from: a user whose photos are gone can then be
+# told plainly that typed questions still work.
+KIND_TEXT = "text"
+KIND_PHOTO = "photo"
+QUOTA_KINDS = (KIND_TEXT, KIND_PHOTO)
+
+QUOTA_EXHAUSTED = {
+    KIND_TEXT: (
+        "You have used your {limit} questions for today. The allowance "
+        "resets at midnight UTC - I'll be here then."
+    ),
+    KIND_PHOTO: (
+        "You have used your {limit} photos for today. Reading a photo costs "
+        "several times what a typed question does, so it has its own smaller "
+        "allowance - questions still work, and the photos come back at "
+        "midnight UTC."
+    ),
+}
 
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 # Above this an upload is worth asking the sender about before reading. The
@@ -162,3 +185,153 @@ class RateLimiter:
 
         timestamps.append(now)
         self._timestamps[user_id] = timestamps
+
+
+def _utc_today() -> date:
+    """Return the date it is now in UTC.
+
+    A function of its own so a test can move the clock, and so the one place
+    the wall clock is read is named. RateLimiter uses time.monotonic() to be
+    immune to the clock changing at all, but a monotonic counter has no
+    notion of a date, and a daily allowance needs one.
+    """
+    return datetime.now(timezone.utc).date()
+
+
+@dataclass
+class _DayUsage:
+    """What one chat has spent, and the day it spent it on.
+
+    Attributes:
+        day: The UTC date these counts belong to.
+        counts: Messages sent so far today, one entry per kind.
+    """
+
+    day: date
+    counts: dict[str, int]
+
+
+class DailyQuota:
+    """Cap how much a chat may spend in a day, per kind of message.
+
+    The companion to RateLimiter at the other timescale: that one caps how
+    fast a user spends, this one how much. Without it a chat can sit just
+    inside the per-minute window all day and run the OpenAI bill up without
+    limit.
+
+    Counted per chat, and in memory only, the same way RateLimiter is - a
+    restart hands every chat its day back. That is the accepted trade for
+    keeping this a plain object with no file to write, lock, or repair.
+
+    Attributes:
+        limits: How many messages of each kind a chat may send per day.
+            Deliberately a plain mutable attribute: the operator moves these
+            from their chat at runtime, the way they move the log handler's
+            push_level.
+    """
+
+    def __init__(self, text_limit: int, photo_limit: int) -> None:
+        self.limits = {KIND_TEXT: text_limit, KIND_PHOTO: photo_limit}
+        self._used: dict[int, _DayUsage] = {}
+
+    def check(self, chat_id: int, kind: str) -> None:
+        """Say whether a chat may still send this kind of message today.
+
+        Spends nothing, which is the whole reason it is separate from
+        `record`. A photo is checked twice - before the sender is offered
+        the choice, and again before it is read - and charged once, after
+        the model has actually answered. So a failed download, an OpenAI
+        outage, or a declined offer costs a user nothing, and an allowance
+        of 5 photos cannot be burnt by five failures.
+
+        Args:
+            chat_id: The chat the message arrived in.
+            kind: KIND_TEXT or KIND_PHOTO.
+
+        Raises:
+            ValidationError: If this kind's allowance is already spent.
+        """
+        if self.usage(chat_id)[kind] >= self.limits[kind]:
+            raise ValidationError(QUOTA_EXHAUSTED[kind].format(limit=self.limits[kind]))
+
+    def record(self, chat_id: int, kind: str) -> None:
+        """Charge one delivered message to a chat's allowance.
+
+        Called once the work is done and paid for, so what the counters hold
+        is what the bot actually spent rather than what it was asked for.
+
+        Args:
+            chat_id: The chat the message arrived in.
+            kind: KIND_TEXT or KIND_PHOTO.
+        """
+        self._counts_today(chat_id)[kind] += 1
+
+    def usage(self, chat_id: int) -> dict[str, int]:
+        """Report what a chat has spent today, without spending anything.
+
+        Args:
+            chat_id: The chat being asked about.
+
+        Returns:
+            One count per kind; all zero for a chat that has not spoken
+            today, including one whose counters are left over from
+            yesterday.
+        """
+        usage = self._used.get(chat_id)
+        if usage is None or usage.day != _utc_today():
+            return dict.fromkeys(QUOTA_KINDS, 0)
+        return dict(usage.counts)
+
+    def spent_today(self) -> dict[str, int]:
+        """Total what every chat together has spent today.
+
+        The operator needs this to choose the limits at all: the right
+        numbers cannot be guessed from an empty bot, only read off what
+        people actually send.
+
+        Returns:
+            One total per kind, over the chats that have spoken today.
+        """
+        totals = dict.fromkeys(QUOTA_KINDS, 0)
+        for usage in self._today_only():
+            for kind, count in usage.counts.items():
+                totals[kind] += count
+        return totals
+
+    def active_chats(self) -> int:
+        """Count the chats the bot has answered today.
+
+        Returns:
+            How many chats have had at least one message delivered.
+        """
+        return sum(1 for _ in self._today_only())
+
+    def reset(self) -> None:
+        """Give every chat its day back, for the operator's panel button."""
+        self._used.clear()
+
+    def _today_only(self) -> Iterator[_DayUsage]:
+        """Walk the entries that belong to today, skipping yesterday's."""
+        today = _utc_today()
+        return (usage for usage in self._used.values() if usage.day == today)
+
+    def _counts_today(self, chat_id: int) -> dict[str, int]:
+        """Return the counters to charge, starting a fresh day if needed.
+
+        Only `record` calls this, so a chat that is turned away never gets
+        an entry and never counts towards `active_chats`. Yesterday's entry
+        is replaced where it is found rather than swept up on a timer, so a
+        chat that stops talking costs nothing to forget.
+
+        Args:
+            chat_id: The chat the message arrived in.
+
+        Returns:
+            The live counts for today, to be mutated by the caller.
+        """
+        today = _utc_today()
+        usage = self._used.get(chat_id)
+        if usage is None or usage.day != today:
+            usage = _DayUsage(day=today, counts=dict.fromkeys(QUOTA_KINDS, 0))
+            self._used[chat_id] = usage
+        return usage.counts

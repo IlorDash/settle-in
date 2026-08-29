@@ -5,6 +5,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# What one chat may spend in a day before it is turned away. The operator
+# moves both from their chat with /limits; these are where a restart puts
+# them back, so a number that proves right belongs in the environment.
+DEFAULT_DAILY_TEXT_LIMIT = 30
+# Smaller on purpose: the vision model is billed by the pixels it is handed,
+# so a photo costs several times what a text turn costs.
+DEFAULT_DAILY_PHOTO_LIMIT = 5
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -20,6 +28,9 @@ class Settings:
         webhook_url: Public HTTPS URL for webhook mode.
         port: Port number for the webhook server (default 8443).
         admin_chat_id: Chat that receives operator alerts; empty turns them off.
+        daily_text_limit: Text messages one chat may send per day.
+        daily_photo_limit: Photos one chat may send per day; smaller, because
+            a photo costs several times what a text turn costs.
     """
 
     telegram_bot_token: str
@@ -31,6 +42,8 @@ class Settings:
     webhook_url: str
     port: int
     admin_chat_id: str
+    daily_text_limit: int
+    daily_photo_limit: int
 
 
 def load_settings() -> Settings:
@@ -65,6 +78,12 @@ def load_settings() -> Settings:
         webhook_url=os.getenv("WEBHOOK_URL", ""),
         port=int(os.getenv("PORT", "8443")),
         admin_chat_id=os.getenv("ADMIN_CHAT_ID", ""),
+        daily_text_limit=int(
+            os.getenv("DAILY_TEXT_LIMIT", str(DEFAULT_DAILY_TEXT_LIMIT))
+        ),
+        daily_photo_limit=int(
+            os.getenv("DAILY_PHOTO_LIMIT", str(DEFAULT_DAILY_PHOTO_LIMIT))
+        ),
     )
 
 

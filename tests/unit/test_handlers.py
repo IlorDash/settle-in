@@ -33,9 +33,12 @@ from src.bot.handlers import (
     FEEDBACK_LOST,
     FEEDBACK_THANKS,
     LARGE_FILE_CANCELLED,
+    LIMITS_BAD_ARGS,
+    LIMITS_PERSONAL,
     LOGLEVEL_SET,
     LOGLEVEL_USAGE,
     LOGS_EMPTY,
+    RESET_COUNTERS_LABEL,
     RESET_DONE,
     RESET_EMPTY,
     TELEGRAM_MESSAGE_LIMIT,
@@ -43,6 +46,8 @@ from src.bot.handlers import (
     _admin_keyboard,
     _admin_panel_text,
     _export_limit,
+    _limits_report,
+    _limits_status,
     _PanelState,
     _split_for_telegram,
     _strip_markdown,
@@ -57,13 +62,21 @@ from src.bot.handlers import (
     handle_photo,
     handle_unsupported_file,
     help_command,
+    limits_command,
     loglevel_command,
     logs_command,
     pref_command,
     reset_command,
     start_command,
 )
-from src.bot.middleware import MAX_IMAGE_BYTES, RateLimiter
+from src.bot.middleware import (
+    KIND_PHOTO,
+    KIND_TEXT,
+    MAX_IMAGE_BYTES,
+    QUOTA_EXHAUSTED,
+    DailyQuota,
+    RateLimiter,
+)
 
 
 def _api_error(cls, status_code, code=None, error_type=None):
@@ -482,7 +495,7 @@ async def test_handle_message_replies_generic_on_other_bad_request_codes(
 
 
 async def test_handle_message_rejects_when_rate_limited(
-    mock_update, mock_orchestrator, mock_bot
+    mock_update, mock_orchestrator, mock_bot, daily_quota
 ):
     rate_limiter = RateLimiter(max_messages=1, window_seconds=60)
     context = MagicMock()
@@ -490,6 +503,7 @@ async def test_handle_message_rejects_when_rate_limited(
     context.bot_data = {
         "orchestrator": mock_orchestrator,
         "rate_limiter": rate_limiter,
+        "daily_quota": daily_quota,
     }
     mock_update.message.text = "first question"
 
@@ -679,7 +693,7 @@ async def test_handle_photo_does_not_download_an_oversized_image(
 
 
 async def test_handle_photo_is_rate_limited(
-    mock_photo_update, mock_orchestrator, mock_bot
+    mock_photo_update, mock_orchestrator, mock_bot, daily_quota
 ):
     # A vision call costs more than a text one, so the same limit applies.
     context = MagicMock()
@@ -687,6 +701,7 @@ async def test_handle_photo_is_rate_limited(
     context.bot_data = {
         "orchestrator": mock_orchestrator,
         "rate_limiter": RateLimiter(max_messages=1, window_seconds=60),
+        "daily_quota": daily_quota,
     }
 
     await handle_photo(mock_photo_update, context)
@@ -1634,7 +1649,11 @@ async def test_admin_callback_redraws_the_panel_in_place(
 
     await admin_callback(mock_admin_callback_update, mock_context)
 
-    state = _PanelState(push_level=logging.WARNING, features=default_features())
+    state = _PanelState(
+        push_level=logging.WARNING,
+        features=default_features(),
+        limits_report=_limits_report(mock_context.bot_data["daily_quota"]),
+    )
     redraw = mock_admin_callback_update.callback_query.edit_message_text
     redraw.assert_awaited_once_with(
         _admin_panel_text(state), reply_markup=_admin_keyboard(state)
@@ -1850,3 +1869,329 @@ async def test_pref_tidy_shows_the_typing_indicator(mock_update, mock_context):
     mock_context.bot.send_chat_action.assert_awaited_once_with(
         chat_id=mock_update.message.chat_id, action=ChatAction.TYPING
     )
+
+
+def _context_with_quota(mock_orchestrator, mock_bot, quota):
+    """Build a bot_data dict around a DailyQuota a test wants to exhaust."""
+    context = MagicMock()
+    context.bot = mock_bot
+    context.bot_data = {
+        "orchestrator": mock_orchestrator,
+        "rate_limiter": RateLimiter(),
+        "daily_quota": quota,
+    }
+    return context
+
+
+async def test_handle_message_refuses_a_chat_past_the_text_allowance(
+    mock_update, mock_orchestrator, mock_bot
+):
+    context = _context_with_quota(
+        mock_orchestrator, mock_bot, DailyQuota(text_limit=0, photo_limit=5)
+    )
+    mock_update.message.text = "test question"
+
+    await handle_message(mock_update, context)
+
+    reply = mock_update.message.reply_text.call_args[0][0]
+    assert reply == QUOTA_EXHAUSTED[KIND_TEXT].format(limit=0)
+    mock_orchestrator.ainvoke.assert_not_called()
+
+
+async def test_handle_message_records_one_message_on_a_delivered_answer(
+    mock_update, mock_context
+):
+    quota = mock_context.bot_data["daily_quota"]
+    mock_update.message.text = "What is a White Card?"
+
+    await handle_message(mock_update, mock_context)
+
+    assert quota.usage(mock_update.message.chat_id)[KIND_TEXT] == 1
+
+
+async def test_handle_message_records_nothing_when_the_orchestrator_raises(
+    mock_update, mock_context, mock_orchestrator
+):
+    # The allowance pays for answers, not attempts: a failed call must not
+    # burn the chat's daily budget.
+    quota = mock_context.bot_data["daily_quota"]
+    mock_orchestrator.ainvoke = AsyncMock(side_effect=APITimeoutError(request=None))
+    mock_update.message.text = "test question"
+
+    await handle_message(mock_update, mock_context)
+
+    assert quota.usage(mock_update.message.chat_id)[KIND_TEXT] == 0
+
+
+async def test_handle_photo_refuses_a_chat_past_the_photo_allowance(
+    mock_photo_update, mock_orchestrator, mock_bot
+):
+    context = _context_with_quota(
+        mock_orchestrator, mock_bot, DailyQuota(text_limit=5, photo_limit=0)
+    )
+
+    await handle_photo(mock_photo_update, context)
+
+    reply = mock_photo_update.message.reply_text.call_args[0][0]
+    assert reply == QUOTA_EXHAUSTED[KIND_PHOTO].format(limit=0)
+    mock_orchestrator.ainvoke.assert_not_called()
+
+
+async def test_handle_photo_records_nothing_when_the_vision_call_fails(
+    mock_photo_update, mock_context, mock_orchestrator
+):
+    quota = mock_context.bot_data["daily_quota"]
+    mock_orchestrator.ainvoke = AsyncMock(side_effect=APITimeoutError(request=None))
+
+    await handle_photo(mock_photo_update, mock_context)
+
+    assert quota.usage(mock_photo_update.message.chat_id)[KIND_PHOTO] == 0
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_handle_message_serves_the_admin_chat_past_the_text_allowance(
+    mock_is_admin, mock_update, mock_orchestrator, mock_bot
+):
+    context = _context_with_quota(
+        mock_orchestrator, mock_bot, DailyQuota(text_limit=0, photo_limit=0)
+    )
+    mock_update.message.text = "test question"
+
+    await handle_message(mock_update, context)
+
+    reply = mock_update.message.reply_text.call_args[0][0]
+    assert reply == "Test answer from orchestrator."
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_handle_message_records_nothing_for_the_exempt_admin_chat(
+    mock_is_admin, mock_update, mock_orchestrator, mock_bot
+):
+    quota = DailyQuota(text_limit=0, photo_limit=0)
+    context = _context_with_quota(mock_orchestrator, mock_bot, quota)
+    mock_update.message.text = "test question"
+
+    await handle_message(mock_update, context)
+
+    assert quota.usage(mock_update.message.chat_id)[KIND_TEXT] == 0
+
+
+async def test_handle_photo_refuses_a_large_file_before_offering_to_read_it(
+    mock_photo_update, mock_orchestrator, mock_bot
+):
+    # Tapping "Read it" clears the keyboard, so a refusal discovered only
+    # after the tap would take the offer away with it. The allowance has to
+    # be checked, and can refuse, before the buttons are ever sent.
+    _large_document(mock_photo_update)
+    context = _context_with_quota(
+        mock_orchestrator, mock_bot, DailyQuota(text_limit=5, photo_limit=0)
+    )
+
+    await handle_photo(mock_photo_update, context)
+
+    assert mock_photo_update.message.reply_text.call_args.kwargs == {}
+
+
+async def test_confirming_a_large_file_records_it_exactly_once(
+    mock_photo_update, mock_context, mock_orchestrator
+):
+    quota = mock_context.bot_data["daily_quota"]
+    upload = mock_photo_update.message
+    _large_document(mock_photo_update)
+    query = MagicMock()
+    query.data = "doc:read"
+    query.answer = AsyncMock()
+    query.edit_message_reply_markup = AsyncMock()
+    query.message.is_accessible = True
+    query.message.reply_to_message = upload
+    update = MagicMock()
+    update.callback_query = query
+
+    await document_callback(update, mock_context)
+
+    assert quota.usage(upload.chat_id)[KIND_PHOTO] == 1
+
+
+@patch("src.bot.handlers.is_admin", return_value=False)
+async def test_limits_command_shows_a_user_their_own_allowance(
+    mock_is_admin, mock_update, mock_context
+):
+    mock_context.args = []
+    quota = DailyQuota(text_limit=30, photo_limit=5)
+    quota.record(mock_update.message.chat_id, KIND_TEXT)
+    mock_context.bot_data["daily_quota"] = quota
+
+    await limits_command(mock_update, mock_context)
+
+    mock_update.message.reply_text.assert_awaited_once_with(
+        LIMITS_PERSONAL.format(text=30, photo=5, text_used=1, photo_used=0)
+    )
+
+
+@patch("src.bot.handlers.is_admin", return_value=False)
+async def test_limits_command_will_not_move_a_limit_for_an_ordinary_user(
+    mock_is_admin, mock_update, mock_context
+):
+    before = mock_context.bot_data["daily_quota"].limits[KIND_TEXT]
+    mock_context.args = ["text", "999"]
+
+    await limits_command(mock_update, mock_context)
+
+    assert mock_context.bot_data["daily_quota"].limits[KIND_TEXT] == before
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_limits_command_with_no_args_shows_the_status(
+    mock_is_admin, mock_update, mock_context
+):
+    mock_context.args = []
+
+    await limits_command(mock_update, mock_context)
+
+    reply = mock_update.message.reply_text.call_args[0][0]
+    assert reply == _limits_status(mock_context.bot_data["daily_quota"])
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_limits_command_text_moves_the_text_allowance(
+    mock_is_admin, mock_update, mock_context
+):
+    mock_context.args = ["text", "30"]
+
+    await limits_command(mock_update, mock_context)
+
+    assert mock_context.bot_data["daily_quota"].limits[KIND_TEXT] == 30
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_limits_command_photo_moves_the_photo_allowance(
+    mock_is_admin, mock_update, mock_context
+):
+    mock_context.args = ["photo", "5"]
+
+    await limits_command(mock_update, mock_context)
+
+    assert mock_context.bot_data["daily_quota"].limits[KIND_PHOTO] == 5
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_limits_command_with_a_bad_number_replies_limits_bad_args(
+    mock_is_admin, mock_update, mock_context
+):
+    mock_context.args = ["text", "abc"]
+
+    await limits_command(mock_update, mock_context)
+
+    reply = mock_update.message.reply_text.call_args[0][0]
+    assert reply == LIMITS_BAD_ARGS
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_limits_command_with_a_bad_number_changes_nothing(
+    mock_is_admin, mock_update, mock_context
+):
+    quota = mock_context.bot_data["daily_quota"]
+    original = quota.limits[KIND_TEXT]
+    mock_context.args = ["text", "abc"]
+
+    await limits_command(mock_update, mock_context)
+
+    assert quota.limits[KIND_TEXT] == original
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_limits_command_replies_with_the_new_status_after_a_change(
+    mock_is_admin, mock_update, mock_context
+):
+    mock_context.args = ["text", "30"]
+
+    await limits_command(mock_update, mock_context)
+
+    reply = mock_update.message.reply_text.call_args[0][0]
+    assert reply == _limits_status(mock_context.bot_data["daily_quota"])
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_limits_command_with_no_change_replies_with_the_status_only(
+    mock_is_admin, mock_update, mock_context
+):
+    quota = mock_context.bot_data["daily_quota"]
+    mock_context.args = ["text", str(quota.limits[KIND_TEXT])]
+
+    await limits_command(mock_update, mock_context)
+
+    reply = mock_update.message.reply_text.call_args[0][0]
+    assert reply == _limits_status(quota)
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_admin_command_panel_text_states_the_daily_allowances(
+    mock_is_admin, mock_update, mock_context
+):
+    mock_context.bot_data["log_handler"] = TelegramLogHandler()
+    quota = mock_context.bot_data["daily_quota"]
+
+    await admin_command(mock_update, mock_context)
+
+    reply = mock_update.message.reply_text.call_args[0][0]
+    assert f"{quota.limits[KIND_TEXT]} questions" in reply
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_admin_command_panel_text_states_todays_spend(
+    mock_is_admin, mock_update, mock_context
+):
+    mock_context.bot_data["log_handler"] = TelegramLogHandler()
+    quota = mock_context.bot_data["daily_quota"]
+    quota.record(chat_id=999, kind=KIND_TEXT)
+
+    await admin_command(mock_update, mock_context)
+
+    reply = mock_update.message.reply_text.call_args[0][0]
+    assert "Spent today: 1 questions and 0 photos across 1 chats." in reply
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_admin_command_keyboard_has_the_reset_counters_button(
+    mock_is_admin, mock_update, mock_context
+):
+    mock_context.bot_data["log_handler"] = TelegramLogHandler()
+
+    await admin_command(mock_update, mock_context)
+
+    keyboard = mock_update.message.reply_text.call_args.kwargs["reply_markup"]
+    labels = [button.text for row in keyboard.inline_keyboard for button in row]
+    assert RESET_COUNTERS_LABEL in labels
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_admin_callback_counters_tap_zeroes_the_quota(
+    mock_is_admin, mock_admin_callback_update, mock_context
+):
+    mock_context.bot_data["log_handler"] = TelegramLogHandler()
+    quota = mock_context.bot_data["daily_quota"]
+    quota.record(chat_id=1, kind=KIND_TEXT)
+    mock_admin_callback_update.callback_query.data = "adm:counters"
+
+    await admin_callback(mock_admin_callback_update, mock_context)
+
+    assert quota.spent_today() == {KIND_TEXT: 0, KIND_PHOTO: 0}
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_admin_callback_counters_tap_redraws_the_panel_with_the_zeroed_spend(
+    mock_is_admin, mock_admin_callback_update, mock_context
+):
+    # The spend line is what makes the redraw genuinely change the message:
+    # without it, resetting the counters would leave the panel text
+    # identical and Telegram would refuse the edit as "not modified".
+    mock_context.bot_data["log_handler"] = TelegramLogHandler()
+    quota = mock_context.bot_data["daily_quota"]
+    quota.record(chat_id=1, kind=KIND_TEXT)
+    mock_admin_callback_update.callback_query.data = "adm:counters"
+
+    await admin_callback(mock_admin_callback_update, mock_context)
+
+    redraw = mock_admin_callback_update.callback_query.edit_message_text
+    redrawn_text = redraw.call_args.args[0]
+    assert "Spent today: 0 questions and 0 photos across 0 chats." in redrawn_text

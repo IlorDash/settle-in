@@ -35,13 +35,14 @@ from src.bot.handlers import (
     handle_photo,
     handle_unsupported_file,
     help_command,
+    limits_command,
     loglevel_command,
     logs_command,
     pref_command,
     reset_command,
     start_command,
 )
-from src.bot.middleware import RateLimiter
+from src.bot.middleware import DailyQuota, RateLimiter
 from src.config import settings
 from src.knowledge.loader import chunk_documents, load_documents
 from src.knowledge.vectorstore import build_vectorstore, get_retriever, load_vectorstore
@@ -66,7 +67,11 @@ PUBLIC_COMMANDS = (
     ("pref", "Standing preferences for my replies"),
     ("reset", "Forget our conversation"),
     ("export", "Send our recent messages as a file"),
+    ("limits", "Your daily allowance, and what is left of it"),
 )
+# /limits is public: it answers everyone, and only the setting half of it is
+# the operator's. It belongs in one list or the other, never both - the
+# operator's menu is these two concatenated.
 OPERATOR_COMMANDS = (
     ("admin", "Operator panel"),
     ("loglevel", "Which records reach this chat"),
@@ -302,6 +307,13 @@ def create_application():
         .build()
     )
     app.bot_data["rate_limiter"] = RateLimiter()
+    # The slower half of the same job: the rate limiter caps how fast one
+    # user spends, this caps how much a chat spends in a day. Built here
+    # rather than in post_init because it needs no event loop.
+    app.bot_data["daily_quota"] = DailyQuota(
+        text_limit=settings.daily_text_limit,
+        photo_limit=settings.daily_photo_limit,
+    )
 
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("help", help_command))
@@ -310,6 +322,7 @@ def create_application():
     app.add_handler(CommandHandler("export", export_command))
     # Operator commands. They answer only in the admin chat; anywhere else
     # they are silent, so there is nothing to discover by guessing.
+    app.add_handler(CommandHandler("limits", limits_command))
     app.add_handler(CommandHandler("loglevel", loglevel_command))
     app.add_handler(CommandHandler("logs", logs_command))
     app.add_handler(CommandHandler("admin", admin_command))

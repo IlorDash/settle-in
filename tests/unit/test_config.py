@@ -2,7 +2,11 @@ from unittest.mock import patch
 
 import pytest
 
-from src.config import load_settings
+from src.config import (
+    DEFAULT_DAILY_PHOTO_LIMIT,
+    DEFAULT_DAILY_TEXT_LIMIT,
+    load_settings,
+)
 
 
 @patch.dict(
@@ -105,3 +109,53 @@ def test_load_settings_reads_admin_chat_id_from_env():
     settings = load_settings()
 
     assert settings.admin_chat_id == "123456"
+
+
+@patch.dict(
+    "os.environ",
+    {"TELEGRAM_BOT_TOKEN": "test-token", "OPENAI_API_KEY": "test-key"},
+    clear=True,
+)
+def test_load_settings_daily_text_limit_defaults_to_the_default_constant():
+    settings = load_settings()
+
+    assert settings.daily_text_limit == DEFAULT_DAILY_TEXT_LIMIT
+
+
+@patch.dict(
+    "os.environ",
+    {"TELEGRAM_BOT_TOKEN": "test-token", "OPENAI_API_KEY": "test-key"},
+    clear=True,
+)
+def test_load_settings_daily_photo_limit_defaults_to_the_default_constant():
+    settings = load_settings()
+
+    assert settings.daily_photo_limit == DEFAULT_DAILY_PHOTO_LIMIT
+
+
+@patch.dict(
+    "os.environ",
+    {
+        "TELEGRAM_BOT_TOKEN": "test-token",
+        "OPENAI_API_KEY": "test-key",
+        "DAILY_TEXT_LIMIT": "50",
+    },
+)
+def test_load_settings_reads_daily_text_limit_from_env_as_an_int():
+    settings = load_settings()
+
+    assert settings.daily_text_limit == 50
+
+
+@patch.dict(
+    "os.environ",
+    {
+        "TELEGRAM_BOT_TOKEN": "test-token",
+        "OPENAI_API_KEY": "test-key",
+        "DAILY_PHOTO_LIMIT": "10",
+    },
+)
+def test_load_settings_reads_daily_photo_limit_from_env_as_an_int():
+    settings = load_settings()
+
+    assert settings.daily_photo_limit == 10
