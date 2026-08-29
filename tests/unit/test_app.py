@@ -5,23 +5,30 @@ from dataclasses import replace
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
-from telegram import Bot, BotCommandScopeChat
+from telegram import Bot, BotCommandScopeChat, Update
 from telegram.error import TelegramError
-from telegram.ext import CommandHandler
+from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
 
 import src.bot.app  # noqa: F401  (imported for its logging configuration)
 from src.bot.app import (
+    HANDLED_UPDATES,
     OPERATOR_COMMANDS,
     PUBLIC_COMMANDS,
     StartupError,
     _close_checkpointer,
     _initialize_agents,
     _publish_operator_menu,
+    _run,
     _shut_down_cleanly,
     _start_log_mirror,
     _stop_log_mirror,
     create_application,
     main,
+)
+from src.bot.handlers import (
+    ANNOUNCEMENT_PREFIX,
+    announcement_callback,
+    handle_edited_message,
 )
 from src.bot.middleware import KIND_PHOTO, KIND_TEXT
 from src.config import settings
@@ -393,6 +400,112 @@ def test_limits_is_not_repeated_in_the_operator_commands():
     # The operator's menu is the two tuples concatenated, so a command in
     # both would appear twice in their "/" list.
     assert "limits" not in {name for name, _ in OPERATOR_COMMANDS}
+
+
+def test_create_application_registers_the_edited_message_handler_first():
+    # Order is load-bearing: python-telegram-bot runs only the first handler
+    # in a group that matches an update, and every handler below this one
+    # reads update.message, which an edit update leaves as None.
+    app = create_application()
+
+    first = app.handlers[0][0]
+
+    assert isinstance(first, MessageHandler) and first.callback is handle_edited_message
+
+
+def test_handled_updates_includes_ordinary_messages():
+    # Commands and the text/photo/file handlers all key off Update.MESSAGE.
+    assert Update.MESSAGE in HANDLED_UPDATES
+
+
+def test_handled_updates_includes_edited_messages():
+    # handle_edited_message is registered to answer Update.EDITED_MESSAGE;
+    # without it in the allow list Telegram would never deliver the edit.
+    assert Update.EDITED_MESSAGE in HANDLED_UPDATES
+
+
+def test_handled_updates_includes_callback_queries():
+    # The feedback, large-file, operator-panel and announcement keyboards
+    # all arrive as Update.CALLBACK_QUERY.
+    assert Update.CALLBACK_QUERY in HANDLED_UPDATES
+
+
+def test_handled_updates_excludes_channel_posts():
+    # The bot is an administrator of the announcements channel, so Telegram
+    # sends every post made there as Update.CHANNEL_POST. Left in the allow
+    # list, the operator's own post in their channel would reach
+    # handle_message as ordinary text.
+    assert Update.CHANNEL_POST not in HANDLED_UPDATES
+
+
+def test_handled_updates_excludes_edited_channel_posts():
+    # Same hole as a fresh channel post, but for an edit of one.
+    assert Update.EDITED_CHANNEL_POST not in HANDLED_UPDATES
+
+
+def test_run_polls_with_the_handled_updates_allow_list():
+    with patch("src.bot.app.settings", replace(settings, bot_mode="polling")):
+        app = MagicMock()
+
+        _run(app)
+
+        app.run_polling.assert_called_once_with(allowed_updates=HANDLED_UPDATES)
+
+
+def test_run_serves_a_webhook_with_the_handled_updates_allow_list():
+    with patch(
+        "src.bot.app.settings",
+        replace(settings, bot_mode="webhook", webhook_url="https://example.com/hook"),
+    ):
+        app = MagicMock()
+
+        _run(app)
+
+        assert app.run_webhook.call_args.kwargs["allowed_updates"] == HANDLED_UPDATES
+
+
+def test_create_application_registers_the_announcement_callback_handler():
+    app = create_application()
+    handlers = [
+        handler
+        for group in app.handlers.values()
+        for handler in group
+        if isinstance(handler, CallbackQueryHandler)
+        and handler.callback is announcement_callback
+    ]
+
+    assert handlers[0].pattern.pattern == f"^{ANNOUNCEMENT_PREFIX}:"
+
+
+@patch("src.bot.app.build_preference_tidier", MagicMock())
+@patch("src.bot.app.build_translation_chain", MagicMock())
+@patch("src.bot.app.build_rag_chain", MagicMock())
+@patch("src.bot.app.build_orchestrator")
+@patch("src.bot.app._open_checkpointer", MagicMock())
+@patch("src.bot.app._load_retriever", MagicMock())
+@patch("src.bot.app._start_log_mirror", MagicMock())
+async def test_post_init_completes_when_the_channel_probe_fails(mock_build):
+    # check_channel_access already swallows TelegramError itself; this
+    # guards the wiring one level up - a probe that could not reach the
+    # channel must not stop the rest of post_init from finishing.
+    with (
+        patch(
+            "src.bot.app.settings",
+            replace(settings, admin_chat_id="", announcement_channel="settlein_news"),
+        ),
+        patch(
+            "src.bot.channel.settings",
+            replace(settings, admin_chat_id="", announcement_channel="settlein_news"),
+        ),
+    ):
+        app = MagicMock()
+        app.bot_data = {}
+        app.bot.set_my_commands = AsyncMock()
+        app.bot.get_chat_member = AsyncMock(side_effect=TelegramError("nope"))
+
+        await _initialize_agents(app)
+
+    assert app.bot_data["orchestrator"] is mock_build.return_value
 
 
 def test_a_startup_error_escaping_run_polling_becomes_system_exit_1():

@@ -116,6 +116,17 @@ def test_load_settings_reads_admin_chat_id_from_env():
     {"TELEGRAM_BOT_TOKEN": "test-token", "OPENAI_API_KEY": "test-key"},
     clear=True,
 )
+def test_load_settings_announcement_channel_defaults_to_empty():
+    settings = load_settings()
+
+    assert settings.announcement_channel == ""
+
+
+@patch.dict(
+    "os.environ",
+    {"TELEGRAM_BOT_TOKEN": "test-token", "OPENAI_API_KEY": "test-key"},
+    clear=True,
+)
 def test_load_settings_daily_text_limit_defaults_to_the_default_constant():
     settings = load_settings()
 

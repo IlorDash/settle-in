@@ -1,4 +1,5 @@
-from unittest.mock import AsyncMock, MagicMock
+from dataclasses import replace
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from telegram import (
@@ -13,11 +14,26 @@ from telegram import (
 )
 
 from src.bot.middleware import DailyQuota, RateLimiter
+from src.config import settings
 
 # Far above anything a test sends, so the daily allowance never fires by
 # accident in a test about something else. A test about the allowance builds
 # its own DailyQuota with the limit it wants to reach.
 TEST_DAILY_LIMIT = 100
+
+
+@pytest.fixture(autouse=True)
+def announcement_channel_off():
+    """Keep the suite independent of the developer's own .env.
+
+    `load_dotenv()` runs at import, so a real ANNOUNCEMENT_CHANNEL would have
+    every test that reaches post_init try to reach Telegram - the same trap
+    ADMIN_CHAT_ID already sprang once, and one that fails on the machine that
+    has the variable set and nowhere else. A test that wants a channel
+    patches `src.bot.channel.settings` itself, which lands on top of this.
+    """
+    with patch("src.bot.channel.settings", replace(settings, announcement_channel="")):
+        yield
 
 
 @pytest.fixture
@@ -94,6 +110,49 @@ def mock_admin_callback_update(mock_chat):
 
     update = MagicMock(spec=Update)
     update.callback_query = query
+    return update
+
+
+@pytest.fixture
+def mock_announcement_callback_update(mock_chat):
+    """An Update carrying a tap on the "announce this?" keyboard.
+
+    Built the same way as `mock_admin_callback_update`: the chat lives on
+    `message.chat`, not the `chat_id` shortcut, since a stale offer arrives
+    as an InaccessibleMessage that carries a chat but none of the shortcuts
+    Message defines on top of it.
+    """
+    message = MagicMock(spec=Message)
+    message.chat = mock_chat
+    message.reply_text = AsyncMock()
+
+    query = MagicMock(spec=CallbackQuery)
+    query.data = "ann:send"
+    query.message = message
+    query.answer = AsyncMock()
+    query.edit_message_reply_markup = AsyncMock()
+
+    update = MagicMock(spec=Update)
+    update.callback_query = query
+    return update
+
+
+@pytest.fixture
+def mock_edited_message_update():
+    """An Update carrying an edit of an earlier message, not a new one.
+
+    Built the same way as `mock_admin_callback_update` /
+    `mock_announcement_callback_update`: Telegram delivers an edit as an
+    update carrying `edited_message` and leaving `message` as None, so
+    `.message` is left unset here too - a handler that reads it by mistake
+    fails the test instead of silently passing.
+    """
+    edited = MagicMock(spec=Message)
+    edited.reply_text = AsyncMock()
+
+    update = MagicMock(spec=Update)
+    update.message = None
+    update.edited_message = edited
     return update
 
 

@@ -39,6 +39,7 @@ from src.agents.orchestrator import (
     tidy_preferences,
 )
 from src.bot.admin import LOG_LEVELS, is_admin
+from src.bot.channel import channel_link, post_announcement
 from src.bot.feedback import VERDICT_DOWN, VERDICT_UP, record_feedback
 from src.bot.middleware import (
     KIND_PHOTO,
@@ -203,8 +204,34 @@ LIMITS_PERSONAL = (
     "It resets at midnight UTC."
 )
 
-# Prefix marking the operator panel's buttons, kept apart from the other two
-# so each callback handler only ever sees its own payloads.
+# Prefix marking the "announce this?" buttons, kept apart from the other
+# three so each callback handler only ever sees its own payloads.
+ANNOUNCEMENT_PREFIX = "ann"
+ANNOUNCEMENT_SEND = "send"
+ANNOUNCEMENT_SKIP = "skip"
+ANNOUNCEMENT_SEND_LABEL = "Tell everyone"
+ANNOUNCEMENT_SKIP_LABEL = "Not now"
+ANNOUNCEMENT_SENT = "Posted to the announcements channel."
+ANNOUNCEMENT_SKIPPED = "Nothing posted."
+# One message read by everyone, so it cannot carry a reader's own spend the
+# way a mailing to each chat could. It points at the command that can.
+ANNOUNCEMENT_LIMITS = (
+    "Daily allowances have changed.\n\n"
+    "Each chat can now ask {text} questions and send {photo} photos per day. "
+    "The count resets at midnight UTC.\n\n"
+    "Send /limits to the bot to see how much of yours is left today."
+)
+
+# Where users are told the announcements are. Appended to /start and /help
+# only when a channel is configured, since an invitation to nowhere is worse
+# than no invitation.
+CHANNEL_INVITATION = (
+    "\n\nNews about the bot - allowance changes, planned downtime, new "
+    "features - is posted at {link}. Subscribe there to hear it."
+)
+
+# Prefix marking the operator panel's buttons, kept apart from the other
+# three so each callback handler only ever sees its own payloads.
 ADMIN_PREFIX = "adm"
 # The panel repeats what /limits says, and the spent line is load-bearing
 # rather than decorative: resetting the counters changes nothing else on the
@@ -241,6 +268,11 @@ UNSUPPORTED_FILE = (
     "of the page instead."
 )
 
+EDITED_MESSAGE_NOTICE = (
+    "I only see a message as it was first sent, so editing one does not "
+    "reach me. Send it again as a new message and I'll act on it."
+)
+
 
 @dataclass(frozen=True)
 class _PanelState:
@@ -258,6 +290,25 @@ class _PanelState:
     limits_report: dict[str, int]
 
 
+def _with_channel_invitation(text: str) -> str:
+    """Add the announcements channel to a message, when there is one.
+
+    The channel is opt-in - nothing reaches a user who has not subscribed -
+    so the two commands that introduce the bot are where its address belongs.
+
+    Args:
+        text: The message about to be sent.
+
+    Returns:
+        The same message with the invitation appended, or unchanged when no
+        channel is configured.
+    """
+    link = channel_link()
+    if link is None:
+        return text
+    return text + CHANNEL_INVITATION.format(link=link)
+
+
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle the /start command. Sends a welcome message with bot capabilities."""
     welcome_text = (
@@ -269,7 +320,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         "Just send me a message with your question, or use /help "
         "to see available commands."
     )
-    await update.message.reply_text(welcome_text)
+    await update.message.reply_text(_with_channel_invitation(welcome_text))
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -289,7 +340,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         '- "Translate: Dobro jutro, kako ste?"\n'
         "- A photo of a bill, with or without a caption asking about it"
     )
-    await update.message.reply_text(help_text)
+    await update.message.reply_text(_with_channel_invitation(help_text))
 
 
 PREF_USAGE = (
@@ -544,7 +595,12 @@ async def _run_operator_limits(
 
     kind, number = change
     quota.limits[kind] = number
-    await message.reply_text(_limits_status(quota))
+    # Offered rather than posted outright: several numbers get tried in a
+    # row, and announcing each one would tell subscribers about allowances
+    # the operator has already moved past.
+    await message.reply_text(
+        _limits_status(quota), reply_markup=_announcement_keyboard()
+    )
 
 
 def _parse_limit_change(args: list[str]) -> tuple[str, int] | None:
@@ -622,6 +678,96 @@ def _limits_status(quota: DailyQuota) -> str:
         The message /limits replies with.
     """
     return LIMITS_STATUS.format(**_limits_report(quota))
+
+
+async def announcement_callback(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
+    """Publish a change to the allowances, or drop the offer to.
+
+    Stateless like the other three keyboards, but for a different reason.
+    The panel's buttons carry the position a tap puts a switch in, so a tap
+    on a stale panel lands where the button said. This one carries nothing
+    and reads the allowances at the moment it is tapped: a button that sets
+    something should honour what it promised, while a button that publishes
+    something must not announce a number already moved past.
+    """
+    query = update.callback_query
+    action = _parse_announcement_action(query.data)
+    # Its own guard, not the "/" menu's scoping - that is presentation only.
+    if not _is_admin_tap(query) or action is None:
+        await query.answer()
+        return
+
+    # Clearing the buttons doubles as a lock, the way it does for a large
+    # file: Telegram refuses the edit once they are gone, which is the only
+    # sign a second tap got here first, and the same news must not be posted
+    # to the channel twice.
+    if not await _hide_keyboard(query):
+        await query.answer()
+        return
+
+    if action == ANNOUNCEMENT_SKIP:
+        await query.answer(ANNOUNCEMENT_SKIPPED)
+        return
+
+    quota = context.bot_data["daily_quota"]
+    reason = await post_announcement(
+        context.bot, ANNOUNCEMENT_LIMITS.format(**_limits_report(quota))
+    )
+    if reason is None:
+        await query.answer(ANNOUNCEMENT_SENT)
+        return
+
+    # Said in the chat rather than as a toast: a toast is easy to miss, and
+    # an announcement that did not go out is the one case here the operator
+    # has to do something about.
+    await query.answer()
+    await query.message.reply_text(reason)
+
+
+def _announcement_keyboard() -> InlineKeyboardMarkup | None:
+    """Offer to tell subscribers what just changed.
+
+    Returns:
+        The two buttons, or None when no channel is configured - an offer to
+        publish somewhere that does not exist is worse than no offer.
+    """
+    if channel_link() is None:
+        return None
+    buttons = [
+        InlineKeyboardButton(
+            ANNOUNCEMENT_SEND_LABEL,
+            callback_data=f"{ANNOUNCEMENT_PREFIX}:{ANNOUNCEMENT_SEND}",
+        ),
+        InlineKeyboardButton(
+            ANNOUNCEMENT_SKIP_LABEL,
+            callback_data=f"{ANNOUNCEMENT_PREFIX}:{ANNOUNCEMENT_SKIP}",
+        ),
+    ]
+    return InlineKeyboardMarkup([buttons])
+
+
+def _parse_announcement_action(callback_data: str) -> str | None:
+    """Read which of the two announcement buttons was tapped.
+
+    Buttons outlive deploys: an offer sent before this format existed is
+    still tappable in the chat history, so an unknown payload is rejected
+    rather than acted on - and acting on this one publishes to a channel.
+
+    Args:
+        callback_data: The raw payload from the tapped button.
+
+    Returns:
+        ANNOUNCEMENT_SEND, ANNOUNCEMENT_SKIP, or None when the payload is not
+        one this keyboard issues.
+    """
+    prefix, _, action = callback_data.partition(":")
+    if prefix != ANNOUNCEMENT_PREFIX:
+        return None
+    if action not in (ANNOUNCEMENT_SEND, ANNOUNCEMENT_SKIP):
+        return None
+    return action
 
 
 async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -1380,6 +1526,25 @@ async def handle_unsupported_file(
     )
 
 
+async def handle_edited_message(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
+    """Say that an edit was noticed and not acted on, rather than going quiet.
+
+    Telegram delivers an edit as an update of its own, carrying
+    `edited_message` and leaving `message` as None - and python-telegram-bot
+    matches handlers against `effective_message`, which is the edit. Every
+    handler here reads `update.message`, so without this one taking the edit
+    first they all run with nothing to read.
+
+    Acting on the edit instead was the alternative, and it is the worse one:
+    the up arrow on Telegram Desktop reopens the last message, so a
+    half-typed correction would re-run a command, and an edited question
+    would be answered a second time and charged to the day's allowance again.
+    """
+    await update.edited_message.reply_text(EDITED_MESSAGE_NOTICE)
+
+
 def _parse_feedback(callback_data: str) -> tuple[str, str] | None:
     """Split a button payload into its verdict and intent.
 
@@ -1447,9 +1612,10 @@ def _rated_question(query: CallbackQuery) -> str | None:
 async def _hide_keyboard(query: CallbackQuery) -> bool:
     """Remove the buttons after a tap, tolerating a message that cannot change.
 
-    Shared by both button features: once a choice is made, its buttons go.
-    The result also says whether this call was the one that removed them,
-    which is how a second tap on the same keyboard is recognised.
+    Shared by the feedback, large-file and announcement buttons: once a
+    choice is made, its buttons go. The result also says whether this call
+    was the one that removed them, which is how a second tap on the same
+    keyboard is recognised.
 
     Telegram rejects the edit when the keyboard is already gone, and
     python-telegram-bot raises outright when the message is inaccessible.

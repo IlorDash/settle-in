@@ -31,6 +31,8 @@ class Settings:
         daily_text_limit: Text messages one chat may send per day.
         daily_photo_limit: Photos one chat may send per day; smaller, because
             a photo costs several times what a text turn costs.
+        announcement_channel: Public channel the bot posts announcements to,
+            as its @username; empty turns announcements off.
     """
 
     telegram_bot_token: str
@@ -44,6 +46,7 @@ class Settings:
     admin_chat_id: str
     daily_text_limit: int
     daily_photo_limit: int
+    announcement_channel: str
 
 
 def load_settings() -> Settings:
@@ -84,6 +87,7 @@ def load_settings() -> Settings:
         daily_photo_limit=int(
             os.getenv("DAILY_PHOTO_LIMIT", str(DEFAULT_DAILY_PHOTO_LIMIT))
         ),
+        announcement_channel=os.getenv("ANNOUNCEMENT_CHANNEL", ""),
     )
 
 

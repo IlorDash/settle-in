@@ -6,7 +6,7 @@ from pathlib import Path
 import aiosqlite
 from langchain_core.vectorstores import VectorStoreRetriever
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-from telegram import Bot, BotCommand, BotCommandScopeChat
+from telegram import Bot, BotCommand, BotCommandScopeChat, Update
 from telegram.error import TelegramError
 from telegram.ext import (
     ApplicationBuilder,
@@ -20,17 +20,21 @@ from src.agents.orchestrator import build_orchestrator, build_preference_tidier
 from src.agents.rag_agent import build_rag_chain
 from src.agents.translation_agent import build_translation_chain
 from src.bot.admin import TelegramLogHandler, mirror_logs
+from src.bot.channel import check_channel_access
 from src.bot.handlers import (
     ADMIN_PREFIX,
+    ANNOUNCEMENT_PREFIX,
     CALLBACK_PREFIX,
     DOCUMENT_PREFIX,
     admin_callback,
     admin_command,
+    announcement_callback,
     default_features,
     document_callback,
     error_handler,
     export_command,
     feedback_callback,
+    handle_edited_message,
     handle_message,
     handle_photo,
     handle_unsupported_file,
@@ -80,6 +84,14 @@ OPERATOR_COMMANDS = (
 # Published once, at startup: the menu lists what the bot has, not what it
 # will do right now, so it still offers /export and /reset while the panel
 # has one of them switched off. The command itself says when it is off.
+
+# The only updates this bot acts on, named rather than left to Telegram's
+# default of "everything". Being an administrator of the announcements
+# channel means Telegram sends every post made there, and a channel post
+# carries no `message` - it would reach handle_message as ordinary text,
+# crash on the missing attribute, and on a good day cost an answer to a post
+# the operator wrote for the channel and not for the bot.
+HANDLED_UPDATES = [Update.MESSAGE, Update.EDITED_MESSAGE, Update.CALLBACK_QUERY]
 
 
 def _open_checkpointer() -> AsyncSqliteSaver:
@@ -171,6 +183,9 @@ async def _initialize_agents(app) -> None:
     app.bot_data["features"] = default_features()
     _start_log_mirror(app)
     await _publish_operator_menu(app.bot)
+    # Says at startup whether an announcement would work, rather than leaving
+    # it to be discovered by one failing. Logs and lets go, same as the menu.
+    await check_channel_access(app.bot)
     logger.info("Orchestrator initialized with RAG and translation agents.")
 
 
@@ -315,6 +330,11 @@ def create_application():
         photo_limit=settings.daily_photo_limit,
     )
 
+    # First, so it takes an edit before any handler below can run with the
+    # None `message` that an edit update carries.
+    app.add_handler(
+        MessageHandler(filters.UpdateType.EDITED_MESSAGE, handle_edited_message)
+    )
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("pref", pref_command))
@@ -334,6 +354,9 @@ def create_application():
         CallbackQueryHandler(document_callback, pattern=f"^{DOCUMENT_PREFIX}:")
     )
     app.add_handler(CallbackQueryHandler(admin_callback, pattern=f"^{ADMIN_PREFIX}:"))
+    app.add_handler(
+        CallbackQueryHandler(announcement_callback, pattern=f"^{ANNOUNCEMENT_PREFIX}:")
+    )
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     # Modality picks the agent here: an image never reaches intent
     # classification. Document.IMAGE covers a photo sent as an uncompressed
@@ -383,11 +406,12 @@ def _run(app) -> None:
             port=settings.port,
             url_path="/webhook",
             webhook_url=settings.webhook_url,
+            allowed_updates=HANDLED_UPDATES,
         )
         return
 
     logger.info("Bot is polling for updates... Press Ctrl+C to stop.")
-    app.run_polling()
+    app.run_polling(allowed_updates=HANDLED_UPDATES)
 
 
 if __name__ == "__main__":

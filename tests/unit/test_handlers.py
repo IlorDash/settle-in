@@ -1,4 +1,5 @@
 import logging
+from dataclasses import replace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from langchain_core.messages import AIMessage, HumanMessage
@@ -18,6 +19,7 @@ from telegram.error import BadRequest, TelegramError
 
 from src.bot.admin import TelegramLogHandler
 from src.bot.handlers import (
+    EDITED_MESSAGE_NOTICE,
     ERROR_CONNECTION,
     ERROR_GENERIC,
     ERROR_NEEDS_OPERATOR,
@@ -53,11 +55,13 @@ from src.bot.handlers import (
     _strip_markdown,
     admin_callback,
     admin_command,
+    announcement_callback,
     default_features,
     document_callback,
     error_handler,
     export_command,
     feedback_callback,
+    handle_edited_message,
     handle_message,
     handle_photo,
     handle_unsupported_file,
@@ -77,6 +81,7 @@ from src.bot.middleware import (
     DailyQuota,
     RateLimiter,
 )
+from src.config import settings
 
 
 def _api_error(cls, status_code, code=None, error_type=None):
@@ -130,6 +135,52 @@ async def test_help_command_lists_pref_command(mock_update, mock_context):
 
     reply_text = mock_update.message.reply_text.call_args[0][0]
     assert "/pref" in reply_text
+
+
+async def test_start_command_includes_the_channel_link_when_configured(
+    mock_update, mock_context
+):
+    with patch(
+        "src.bot.channel.settings",
+        replace(settings, announcement_channel="settlein_news"),
+    ):
+        await start_command(mock_update, mock_context)
+
+    reply_text = mock_update.message.reply_text.call_args[0][0]
+    assert "https://t.me/settlein_news" in reply_text
+
+
+async def test_start_command_says_nothing_about_a_channel_when_unset(
+    mock_update, mock_context
+):
+    with patch("src.bot.channel.settings", replace(settings, announcement_channel="")):
+        await start_command(mock_update, mock_context)
+
+    reply_text = mock_update.message.reply_text.call_args[0][0]
+    assert "t.me" not in reply_text
+
+
+async def test_help_command_includes_the_channel_link_when_configured(
+    mock_update, mock_context
+):
+    with patch(
+        "src.bot.channel.settings",
+        replace(settings, announcement_channel="settlein_news"),
+    ):
+        await help_command(mock_update, mock_context)
+
+    reply_text = mock_update.message.reply_text.call_args[0][0]
+    assert "https://t.me/settlein_news" in reply_text
+
+
+async def test_help_command_says_nothing_about_a_channel_when_unset(
+    mock_update, mock_context
+):
+    with patch("src.bot.channel.settings", replace(settings, announcement_channel="")):
+        await help_command(mock_update, mock_context)
+
+    reply_text = mock_update.message.reply_text.call_args[0][0]
+    assert "t.me" not in reply_text
 
 
 @patch("src.bot.handlers.get_preferences", return_value=["Reply in Cyrillic."])
@@ -755,6 +806,17 @@ async def test_unsupported_file_copes_with_a_nameless_upload(mock_update, mock_c
 
     reply = mock_update.message.reply_text.call_args[0][0]
     assert reply == UNSUPPORTED_FILE.format(kind="that kind of")
+
+
+async def test_edited_message_is_answered_with_the_notice(mock_edited_message_update):
+    # Reads update.edited_message, not update.message: Telegram leaves
+    # update.message as None on an edit, so a handler that read the wrong
+    # attribute would crash here with AttributeError on `None.reply_text`.
+    await handle_edited_message(mock_edited_message_update, MagicMock())
+
+    mock_edited_message_update.edited_message.reply_text.assert_awaited_once_with(
+        EDITED_MESSAGE_NOTICE
+    )
 
 
 @patch("src.bot.handlers.record_feedback")
@@ -2122,6 +2184,222 @@ async def test_limits_command_with_no_change_replies_with_the_status_only(
 
     reply = mock_update.message.reply_text.call_args[0][0]
     assert reply == _limits_status(quota)
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_limits_command_replies_with_the_announcement_keyboard_when_configured(
+    mock_is_admin, mock_update, mock_context
+):
+    mock_context.args = ["text", "10"]
+
+    with patch(
+        "src.bot.channel.settings",
+        replace(settings, announcement_channel="settlein_news"),
+    ):
+        await limits_command(mock_update, mock_context)
+
+    keyboard = mock_update.message.reply_text.call_args.kwargs["reply_markup"]
+    assert keyboard is not None
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_limits_command_replies_with_no_keyboard_when_no_channel_is_configured(
+    mock_is_admin, mock_update, mock_context
+):
+    mock_context.args = ["text", "10"]
+
+    with patch("src.bot.channel.settings", replace(settings, announcement_channel="")):
+        await limits_command(mock_update, mock_context)
+
+    assert mock_update.message.reply_text.call_args.kwargs["reply_markup"] is None
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_limits_command_with_no_args_carries_no_keyboard(
+    mock_is_admin, mock_update, mock_context
+):
+    mock_context.args = []
+
+    with patch(
+        "src.bot.channel.settings",
+        replace(settings, announcement_channel="settlein_news"),
+    ):
+        await limits_command(mock_update, mock_context)
+
+    assert "reply_markup" not in mock_update.message.reply_text.call_args.kwargs
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_limits_command_with_a_bad_number_carries_no_keyboard(
+    mock_is_admin, mock_update, mock_context
+):
+    mock_context.args = ["text", "abc"]
+
+    with patch(
+        "src.bot.channel.settings",
+        replace(settings, announcement_channel="settlein_news"),
+    ):
+        await limits_command(mock_update, mock_context)
+
+    assert "reply_markup" not in mock_update.message.reply_text.call_args.kwargs
+
+
+@patch("src.bot.handlers.post_announcement")
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_announcement_callback_send_reads_the_limit_at_the_moment_of_the_tap(
+    mock_is_admin,
+    mock_post_announcement,
+    mock_update,
+    mock_context,
+    mock_announcement_callback_update,
+):
+    # Several numbers get tried in a row before the operator settles on one
+    # and taps "Tell everyone" - the announcement must speak the last number,
+    # not whichever one was showing when the keyboard was first offered.
+    mock_post_announcement.return_value = None
+    for number in (10, 20, 30):
+        mock_context.args = ["text", str(number)]
+        await limits_command(mock_update, mock_context)
+    mock_announcement_callback_update.callback_query.data = "ann:send"
+
+    await announcement_callback(mock_announcement_callback_update, mock_context)
+
+    text = mock_post_announcement.call_args.args[1]
+    assert "ask 30 questions" in text
+
+
+@patch("src.bot.handlers.post_announcement")
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_announcement_callback_send_does_not_speak_a_number_moved_past(
+    mock_is_admin,
+    mock_post_announcement,
+    mock_update,
+    mock_context,
+    mock_announcement_callback_update,
+):
+    mock_post_announcement.return_value = None
+    for number in (10, 20, 30):
+        mock_context.args = ["text", str(number)]
+        await limits_command(mock_update, mock_context)
+    mock_announcement_callback_update.callback_query.data = "ann:send"
+
+    await announcement_callback(mock_announcement_callback_update, mock_context)
+
+    text = mock_post_announcement.call_args.args[1]
+    assert "ask 10 questions" not in text
+
+
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_announcement_callback_skip_clears_the_keyboard(
+    mock_is_admin, mock_announcement_callback_update, mock_context
+):
+    mock_announcement_callback_update.callback_query.data = "ann:skip"
+
+    await announcement_callback(mock_announcement_callback_update, mock_context)
+
+    query = mock_announcement_callback_update.callback_query
+    query.edit_message_reply_markup.assert_awaited_once_with(None)
+
+
+@patch("src.bot.handlers.post_announcement")
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_announcement_callback_skip_posts_nothing(
+    mock_is_admin,
+    mock_post_announcement,
+    mock_announcement_callback_update,
+    mock_context,
+):
+    mock_announcement_callback_update.callback_query.data = "ann:skip"
+
+    await announcement_callback(mock_announcement_callback_update, mock_context)
+
+    mock_post_announcement.assert_not_awaited()
+
+
+@patch("src.bot.handlers.post_announcement")
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_announcement_callback_replies_with_the_reason_when_the_post_fails(
+    mock_is_admin,
+    mock_post_announcement,
+    mock_announcement_callback_update,
+    mock_context,
+):
+    mock_post_announcement.return_value = "I am not an administrator of @settlein_news."
+    mock_announcement_callback_update.callback_query.data = "ann:send"
+
+    await announcement_callback(mock_announcement_callback_update, mock_context)
+
+    query = mock_announcement_callback_update.callback_query
+    query.message.reply_text.assert_awaited_once_with(
+        "I am not an administrator of @settlein_news."
+    )
+
+
+@patch("src.bot.handlers.post_announcement")
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_announcement_callback_posts_nothing_when_the_keyboard_is_already_gone(
+    mock_is_admin,
+    mock_post_announcement,
+    mock_announcement_callback_update,
+    mock_context,
+):
+    # The double-tap lock: a second tap arrives after the first has already
+    # cleared the buttons, so the edit fails and nothing gets posted twice.
+    mock_announcement_callback_update.callback_query.edit_message_reply_markup = (
+        AsyncMock(side_effect=BadRequest("message is not modified"))
+    )
+    mock_announcement_callback_update.callback_query.data = "ann:send"
+
+    await announcement_callback(mock_announcement_callback_update, mock_context)
+
+    mock_post_announcement.assert_not_awaited()
+
+
+@patch("src.bot.handlers.post_announcement")
+@patch("src.bot.handlers.is_admin", return_value=False)
+async def test_announcement_callback_from_outside_the_admin_chat_posts_nothing(
+    mock_is_admin,
+    mock_post_announcement,
+    mock_announcement_callback_update,
+    mock_context,
+):
+    mock_announcement_callback_update.callback_query.data = "ann:send"
+
+    await announcement_callback(mock_announcement_callback_update, mock_context)
+
+    mock_post_announcement.assert_not_awaited()
+
+
+@patch("src.bot.handlers.post_announcement")
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_announcement_callback_ignores_an_unknown_payload(
+    mock_is_admin,
+    mock_post_announcement,
+    mock_announcement_callback_update,
+    mock_context,
+):
+    mock_announcement_callback_update.callback_query.data = "ann:bogus"
+
+    await announcement_callback(mock_announcement_callback_update, mock_context)
+
+    mock_post_announcement.assert_not_awaited()
+
+
+@patch("src.bot.handlers.post_announcement")
+@patch("src.bot.handlers.is_admin", return_value=True)
+async def test_announcement_callback_ignores_a_payload_from_an_older_deploy(
+    mock_is_admin,
+    mock_post_announcement,
+    mock_announcement_callback_update,
+    mock_context,
+):
+    # Buttons outlive deploys: a payload shaped differently than this
+    # release issues must be rejected, not acted on.
+    mock_announcement_callback_update.callback_query.data = "ann:old:format"
+
+    await announcement_callback(mock_announcement_callback_update, mock_context)
+
+    mock_post_announcement.assert_not_awaited()
 
 
 @patch("src.bot.handlers.is_admin", return_value=True)
