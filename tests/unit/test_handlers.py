@@ -137,7 +137,7 @@ async def test_help_command_lists_pref_command(mock_update, mock_context):
     assert "/pref" in reply_text
 
 
-async def test_start_command_includes_the_channel_link_when_configured(
+async def test_start_command_includes_the_channel_name_when_configured(
     mock_update, mock_context
 ):
     with patch(
@@ -147,7 +147,7 @@ async def test_start_command_includes_the_channel_link_when_configured(
         await start_command(mock_update, mock_context)
 
     reply_text = mock_update.message.reply_text.call_args[0][0]
-    assert "https://t.me/settlein_news" in reply_text
+    assert "@settlein_news" in reply_text
 
 
 async def test_start_command_says_nothing_about_a_channel_when_unset(
@@ -160,7 +160,7 @@ async def test_start_command_says_nothing_about_a_channel_when_unset(
     assert "t.me" not in reply_text
 
 
-async def test_help_command_includes_the_channel_link_when_configured(
+async def test_help_command_includes_the_channel_name_when_configured(
     mock_update, mock_context
 ):
     with patch(
@@ -170,7 +170,7 @@ async def test_help_command_includes_the_channel_link_when_configured(
         await help_command(mock_update, mock_context)
 
     reply_text = mock_update.message.reply_text.call_args[0][0]
-    assert "https://t.me/settlein_news" in reply_text
+    assert "@settlein_news" in reply_text
 
 
 async def test_help_command_says_nothing_about_a_channel_when_unset(

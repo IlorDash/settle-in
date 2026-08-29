@@ -39,7 +39,7 @@ from src.agents.orchestrator import (
     tidy_preferences,
 )
 from src.bot.admin import LOG_LEVELS, is_admin
-from src.bot.channel import channel_link, post_announcement
+from src.bot.channel import channel_name, post_announcement
 from src.bot.feedback import VERDICT_DOWN, VERDICT_UP, record_feedback
 from src.bot.middleware import (
     KIND_PHOTO,
@@ -303,10 +303,10 @@ def _with_channel_invitation(text: str) -> str:
         The same message with the invitation appended, or unchanged when no
         channel is configured.
     """
-    link = channel_link()
-    if link is None:
+    name = channel_name()
+    if name is None:
         return text
-    return text + CHANNEL_INVITATION.format(link=link)
+    return text + CHANNEL_INVITATION.format(link=name)
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -733,7 +733,7 @@ def _announcement_keyboard() -> InlineKeyboardMarkup | None:
         The two buttons, or None when no channel is configured - an offer to
         publish somewhere that does not exist is worse than no offer.
     """
-    if channel_link() is None:
+    if channel_name() is None:
         return None
     buttons = [
         InlineKeyboardButton(

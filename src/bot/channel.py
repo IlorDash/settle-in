@@ -58,18 +58,6 @@ def channel_name() -> str | None:
     return f"@{configured.lstrip('@')}"
 
 
-def channel_link() -> str | None:
-    """Give the address users open to subscribe to the announcements.
-
-    Returns:
-        The https://t.me/... URL, or None when no channel is configured.
-    """
-    name = channel_name()
-    if name is None:
-        return None
-    return CHANNEL_LINK.format(name=name.lstrip("@"))
-
-
 async def post_announcement(bot: Bot, text: str) -> str | None:
     """Publish one announcement, and say in words when it could not be.
 

@@ -11,7 +11,6 @@ from src.bot.channel import (
     NOT_ADMINISTRATOR,
     NOT_CONFIGURED,
     POST_FAILED,
-    channel_link,
     channel_name,
     check_channel_access,
     post_announcement,
@@ -45,19 +44,6 @@ def test_channel_name_is_none_when_the_setting_is_whitespace():
         "src.bot.channel.settings", replace(settings, announcement_channel="   ")
     ):
         assert channel_name() is None
-
-
-def test_channel_link_gives_the_t_me_url():
-    with patch(
-        "src.bot.channel.settings",
-        replace(settings, announcement_channel="settlein_news"),
-    ):
-        assert channel_link() == "https://t.me/settlein_news"
-
-
-def test_channel_link_is_none_when_unset():
-    with patch("src.bot.channel.settings", replace(settings, announcement_channel="")):
-        assert channel_link() is None
 
 
 async def test_post_announcement_returns_none_on_success():
