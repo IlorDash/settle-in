@@ -1,0 +1,41 @@
+id,language,kind,document,query,expected_fact
+1,en,plain,01_white_card_registration.txt,just landed in belgrade. do i have to register my address somewhere or does the landlord do it?,Within 24 hours; the landlord or accommodation provider is legally obliged
+2,ru,overlap,01_white_card_registration.txt,хозяин квартиры говорит что ему надо что-то нести в полицию для моей регистрации - что именно?,Паспорт иностранца; личная карта арендодателя; договор аренды или подтверждение собственности; изява станодавца
+3,sr,plain,01_white_card_registration.txt,zasto svi traze beli karton pre bilo cega drugog?,Bez njega se ne može podneti zahtev za boravak; otvoriti bankovni račun ni prijaviti se za zdravstveno osiguranje
+4,en,plain,01_white_card_registration.txt,i got the white card - does that mean im allowed to stay here now?,No - it only proves the address was reported to the police
+5,en,plain,02_temporary_residence_permit.txt,how long is the wait for the single permit now? heard it used to take forever,19 days; down from 70
+6,en,plain,02_temporary_residence_permit.txt,im married to a serbian citizen. how much does the residence permit cost me?,11350 RSD
+7,ru,plain,02_temporary_residence_permit.txt,боравак заканчивается через пару месяцев - когда уже можно подавать на продление?,Не ранее чем за 60 дней до истечения
+8,sr,plain,02_temporary_residence_permit.txt,predao sam zahtev za boravak i dobio neku potvrdu sa brojem - sta mi to znaci?,Potvrda o pokrenutom postupku; sadrži EBS broj stranca
+9,en,plain,03_opening_bank_account.txt,ive been here almost a year now. does anything change with my bank account after that?,After one year; the bank closes the non-resident account and opens a resident one
+10,ru,overlap,03_opening_bank_account.txt,что взять с собой в банк чтобы открыть счет? я тут недавно,Паспорт; подтверждение адреса (белый картон или договор аренды); банковские анкеты
+11,sr,plain,03_opening_bank_account.txt,koja banka ima najvise bankomata kod nas?,OTP banka; 294 bankomata i 155 filijala
+12,en,overlap,03_opening_bank_account.txt,bank asked me for a pib. is that normal or do they ask everyone?,Freelancers and business owners
+13,en,plain,04_health_insurance.txt,dom zdravlja gave me an appointment in two months. can i just go private and get the money back?,Ask for written confirmation; see a private specialist and claim reimbursement from RFZO
+14,ru,plain,04_health_insurance.txt,сколько стоит сделать здравствену картицу и какое заявление там заполняют?,Около 400 RSD на человека; форма MA
+15,sr,plain,04_health_insurance.txt,dolazi mi rodjaka iz nemacke - da li joj ovde vazi njena zdravstvena kartica?,Nemačka je među zemljama sa bilateralnim sporazumom; koristi se evropska kartica zdravstvenog osiguranja
+16,en,overlap,04_health_insurance.txt,applying for boravak and they want proof of insurance. what actually counts as proof?,RFZO confirmation; a private policy valid in Serbia; or international cover valid in Serbia
+17,en,plain,05_tax_registration_pib.txt,im freelancing here. when do i actually have to file? is it every three months?,1-30 April; 1-30 July; 1-30 October; 1-30 January
+18,ru,plain,05_tax_registration_pib.txt,сколько в итоге фрилансер отдает налогов и взносов?,20% налог на доход; 24% пенсионные; 10.3% медицинские
+19,sr,plain,05_tax_registration_pib.txt,treba li mi radna dozvola ako hocu da radim kao frilenser?,Ne; dovoljan je EBS broj ili PIB
+20,en,overlap,05_tax_registration_pib.txt,im doing visa runs every 90 days and working remotely. do i owe tax here?,Yes - earning income in Serbia can create tax obligations regardless of visa status
+21,en,plain,06_utility_bills_payments.txt,why is there heating on my infostan bill in july?,Heating is charged year-round at about 119 RSD per m² per month
+22,ru,plain,06_utility_bills_payments.txt,оплатил счет а деньги не зачли. говорят из-за позива на брой - что это такое?,Уникальный номер плательщика; без него платёж не зачислят на нужный счёт
+23,sr,plain,06_utility_bills_payments.txt,isplati li se platiti infostan ranije u mesecu?,Popust oko 5-10% ako se plati pre 15. u mesecu
+24,ru,plain,06_utility_bills_payments.txt,где дешевле всего заплатить за коммуналку наличными?,На почте; комиссия от 65 RSD за платёж
+25,en,plain,07_visa_regime_entry.txt,can i stay the full 90 days and then just come back a week later?,No - the 90 days are cumulative within any rolling 180-day period
+26,ru,plain,07_visa_regime_entry.txt,что за DTA такое и с какого времени оно вообще работает?,Электронная виза с QR-кодом; введена 23 апреля 2025
+27,sr,plain,07_visa_regime_entry.txt,gde ljudi idu na viza-ran iz beograda?,Bosna i Hercegovina; Severna Makedonija; Mađarska; Rumunija; Bugarska
+28,en,plain,08_egovernment_digital_services.txt,is the welcome to serbia site in english or serbian only?,Serbian in Cyrillic and Latin; English; Russian; Chinese
+29,ru,plain,08_egovernment_digital_services.txt,после обновления винды епорези перестал открываться. что делать?,Использовать SmartBox 2.0.0 или вход через eID
+30,sr,plain,08_egovernment_digital_services.txt,hocu da otvorim firmu - sta se sve radi preko apr sajta?,Registracija privrednog društva; registracija preduzetnika; registar stvarnih vlasnika; provera statusa
+31,en,none,none,how do i swap my foreign driving licence for a serbian one?,Not in the corpus - the agent should decline
+32,ru,none,none,какие документы нужны чтобы отдать ребенка в сербскую школу?,Not in the corpus - the agent should decline
+33,sr,none,none,koliko traje postupak za srpsko drzavljanstvo?,Not in the corpus - the agent should decline
+34,en,none,none,what shots does my dog need to cross into serbia?,Not in the corpus - the agent should decline
+35,ru,none,none,где в белграде найти курсы сербского для иностранцев?,Not in the corpus - the agent should decline
+36,en,none,none,can i get married here as a foreigner? what do i need,Not in the corpus - the agent should decline
+37,sr,none,none,kolika je kazna za prekoracenje brzine?,Not in the corpus - the agent should decline
+38,ru,none,none,какая сейчас минималка в сербии?,Not in the corpus - the agent should decline
+39,en,none,none,thinking of buying a flat here as a foreigner - what tax do i pay on the purchase?,Not in the corpus - the agent should decline
+40,sr,none,none,kako da prijavim kradju policiji i dobijem zapisnik?,Not in the corpus - the agent should decline

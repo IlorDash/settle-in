@@ -1,0 +1,159 @@
+{
+  "machine": {
+    "label": "ноутбук, Windows 10",
+    "system": "Windows",
+    "release": "10",
+    "processor": "AMD64",
+    "python": "3.12.10"
+  },
+  "settings": {
+    "model": "gpt-4o-mini",
+    "confidence_threshold": 0.6,
+    "checkpointer": null,
+    "note": "no conversation behind any message, so the knowledge chain does not buy the extra call that rewrites a follow-up"
+  },
+  "messages_sent": 180,
+  "paths": {
+    "knowledge_question": {
+      "n": 30,
+      "latency": {
+        "mean_ms": 1217.766309993264,
+        "median_ms": 1027.0033999695443,
+        "p95_ms": 1862.6325000077486,
+        "min_ms": 711.9467000011355,
+        "max_ms": 2175.3177999635227
+      },
+      "stages": {
+        "escalation_ms": 72.35031333596756,
+        "retrieval_ms": 274.505946666856,
+        "generation_ms": 855.7966366565475,
+        "other_ms": 15.113413333892822,
+        "local_classifier_ms": 1.4309766644146293,
+        "note": "the three model and retriever spans are measured by callbacks; other_ms is what they leave over, and holds the local classifier and LangGraph's own dispatch. local_classifier_ms times the same deterministic call outside the graph, as a proxy for its share of other_ms."
+      },
+      "escalated": 3,
+      "labelled_as_another_path": [
+        {
+          "text": "How do you say I can't make it today, maybe tomorrow in Serbian",
+          "labelled": "translation"
+        },
+        {
+          "text": "How do you say Is there a pharmacy nearby in Serbian",
+          "labelled": "translation"
+        },
+        {
+          "text": "Какой фильм можно включить вечером, без скуки",
+          "labelled": "out_of_scope"
+        }
+      ],
+      "cost": {
+        "models": [
+          "gpt-4o-mini-2024-07-18"
+        ],
+        "input_tokens_mean": 862.0,
+        "output_tokens_mean": 39.0,
+        "usd_per_message": 0.0001527,
+        "usd_per_10_message_conversation": 0.001527
+      }
+    },
+    "out_of_scope": {
+      "n": 32,
+      "latency": {
+        "mean_ms": 5.80632187302399,
+        "median_ms": 5.451900011394173,
+        "p95_ms": 8.244399970863014,
+        "min_ms": 3.7982999929226935,
+        "max_ms": 10.030300007201731
+      },
+      "stages": {
+        "escalation_ms": 0.0,
+        "retrieval_ms": 0.0,
+        "generation_ms": 0.0,
+        "other_ms": 5.80632187302399,
+        "local_classifier_ms": 0.7696812517679064,
+        "note": "the three model and retriever spans are measured by callbacks; other_ms is what they leave over, and holds the local classifier and LangGraph's own dispatch. local_classifier_ms times the same deterministic call outside the graph, as a proxy for its share of other_ms."
+      },
+      "escalated": 0,
+      "labelled_as_another_path": [
+        {
+          "text": "Сколько сейчас делают boravak по времени в Белграде?",
+          "labelled": "knowledge_question"
+        },
+        {
+          "text": "Can my landlord make the beli karton online or do we have to go in person?",
+          "labelled": "knowledge_question"
+        },
+        {
+          "text": "Для boravak обязательно нужна белая карта или иногда без нее проходит?",
+          "labelled": "knowledge_question"
+        },
+        {
+          "text": "How do you say Do you know what time the store opens in Serbian",
+          "labelled": "translation"
+        },
+        {
+          "text": "How do you say My phone died so I didn't see your message in Serbian",
+          "labelled": "translation"
+        }
+      ],
+      "cost": {
+        "models": [],
+        "input_tokens_mean": 0.0,
+        "output_tokens_mean": 0.0,
+        "usd_per_message": 0.0,
+        "usd_per_10_message_conversation": 0.0
+      }
+    },
+    "translation": {
+      "n": 28,
+      "latency": {
+        "mean_ms": 743.7923642844128,
+        "median_ms": 688.4352000197396,
+        "p95_ms": 1332.451399997808,
+        "min_ms": 575.9074999950826,
+        "max_ms": 1443.4010999975726
+      },
+      "stages": {
+        "escalation_ms": 53.14177856988473,
+        "retrieval_ms": 0.0,
+        "generation_ms": 681.7273000030712,
+        "other_ms": 8.923285711456888,
+        "local_classifier_ms": 0.7941035790801314,
+        "note": "the three model and retriever spans are measured by callbacks; other_ms is what they leave over, and holds the local classifier and LangGraph's own dispatch. local_classifier_ms times the same deterministic call outside the graph, as a proxy for its share of other_ms."
+      },
+      "escalated": 2,
+      "labelled_as_another_path": [
+        {
+          "text": "Хочу сделать пасту с грибами, сливки сюда ок или будет тяжело?",
+          "labelled": "out_of_scope"
+        },
+        {
+          "text": "Я сейчас понял шутку только через минуту",
+          "labelled": "out_of_scope"
+        }
+      ],
+      "cost": {
+        "models": [
+          "gpt-4o-2024-08-06",
+          "gpt-4o-mini-2024-07-18"
+        ],
+        "input_tokens_mean": 346.10714285714283,
+        "output_tokens_mean": 11.25,
+        "usd_per_message": 0.0009496517857142857,
+        "usd_per_10_message_conversation": 0.009496517857142856
+      }
+    }
+  },
+  "sequential_overall": {
+    "mean_ms": 639.3886422188693,
+    "p95_ms": 1790.603400033433
+  },
+  "cost_of_this_run_usd": 0.06990585,
+  "burst": {
+    "size": 5,
+    "n": 90,
+    "mean_ms": 1252.925999992941,
+    "median_ms": 798.7435999675654,
+    "p95_ms": 2601.5111999586225
+  }
+}

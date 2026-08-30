@@ -1,0 +1,208 @@
+{
+  "n": 450,
+  "local": {
+    "accuracy": 0.82,
+    "per_class": {
+      "knowledge_question": {
+        "precision": 0.7919,
+        "recall": 0.9133,
+        "f1": 0.8483,
+        "support": 150
+      },
+      "translation": {
+        "precision": 0.8828,
+        "recall": 0.7533,
+        "f1": 0.8129,
+        "support": 150
+      },
+      "out_of_scope": {
+        "precision": 0.7987,
+        "recall": 0.7933,
+        "f1": 0.796,
+        "support": 150
+      }
+    },
+    "confusion": {
+      "knowledge_question": {
+        "knowledge_question": 137,
+        "translation": 2,
+        "out_of_scope": 11
+      },
+      "translation": {
+        "knowledge_question": 18,
+        "translation": 113,
+        "out_of_scope": 19
+      },
+      "out_of_scope": {
+        "knowledge_question": 18,
+        "translation": 13,
+        "out_of_scope": 119
+      }
+    },
+    "by_language": {
+      "en": {
+        "accuracy": 0.775,
+        "n": 200
+      },
+      "ru": {
+        "accuracy": 0.87,
+        "n": 200
+      },
+      "sr": {
+        "accuracy": 0.8,
+        "n": 50
+      }
+    },
+    "latency": {
+      "mean_ms": 0.44,
+      "p95_ms": 0.77,
+      "n": 450
+    }
+  },
+  "llm": {
+    "accuracy": 0.9267,
+    "per_class": {
+      "knowledge_question": {
+        "precision": 0.9933,
+        "recall": 0.9867,
+        "f1": 0.99,
+        "support": 150
+      },
+      "translation": {
+        "precision": 0.9149,
+        "recall": 0.86,
+        "f1": 0.8866,
+        "support": 150
+      },
+      "out_of_scope": {
+        "precision": 0.875,
+        "recall": 0.9333,
+        "f1": 0.9032,
+        "support": 150
+      }
+    },
+    "confusion": {
+      "knowledge_question": {
+        "knowledge_question": 148,
+        "translation": 2,
+        "out_of_scope": 0
+      },
+      "translation": {
+        "knowledge_question": 1,
+        "translation": 129,
+        "out_of_scope": 20
+      },
+      "out_of_scope": {
+        "knowledge_question": 0,
+        "translation": 10,
+        "out_of_scope": 140
+      }
+    },
+    "by_language": {
+      "en": {
+        "accuracy": 1.0,
+        "n": 200
+      },
+      "ru": {
+        "accuracy": 0.94,
+        "n": 200
+      },
+      "sr": {
+        "accuracy": 0.58,
+        "n": 50
+      }
+    },
+    "latency": {
+      "mean_ms": 764.23,
+      "p95_ms": 1068.9,
+      "n": 450
+    }
+  },
+  "cost": {
+    "model": "gpt-4o-mini",
+    "priced": true,
+    "input_tokens_mean": 164.7,
+    "output_tokens_mean": 2.0,
+    "usd_per_1000": 0.0259,
+    "usd_for_this_run": 0.0117
+  },
+  "sweep": [
+    {
+      "threshold": 0.0,
+      "escalated": 0,
+      "escalated_share": 0.0,
+      "accuracy": 0.82,
+      "deployed": false
+    },
+    {
+      "threshold": 0.1,
+      "escalated": 0,
+      "escalated_share": 0.0,
+      "accuracy": 0.82,
+      "deployed": false
+    },
+    {
+      "threshold": 0.2,
+      "escalated": 0,
+      "escalated_share": 0.0,
+      "accuracy": 0.82,
+      "deployed": false
+    },
+    {
+      "threshold": 0.3,
+      "escalated": 0,
+      "escalated_share": 0.0,
+      "accuracy": 0.82,
+      "deployed": false
+    },
+    {
+      "threshold": 0.4,
+      "escalated": 1,
+      "escalated_share": 0.0022,
+      "accuracy": 0.82,
+      "deployed": false
+    },
+    {
+      "threshold": 0.5,
+      "escalated": 10,
+      "escalated_share": 0.0222,
+      "accuracy": 0.8267,
+      "deployed": false
+    },
+    {
+      "threshold": 0.6,
+      "escalated": 36,
+      "escalated_share": 0.08,
+      "accuracy": 0.8489,
+      "deployed": true
+    },
+    {
+      "threshold": 0.7,
+      "escalated": 62,
+      "escalated_share": 0.1378,
+      "accuracy": 0.8844,
+      "deployed": false
+    },
+    {
+      "threshold": 0.8,
+      "escalated": 105,
+      "escalated_share": 0.2333,
+      "accuracy": 0.9111,
+      "deployed": false
+    },
+    {
+      "threshold": 0.9,
+      "escalated": 153,
+      "escalated_share": 0.34,
+      "accuracy": 0.9133,
+      "deployed": false
+    },
+    {
+      "threshold": 1.0,
+      "escalated": 450,
+      "escalated_share": 1.0,
+      "accuracy": 0.9267,
+      "deployed": false
+    }
+  ]
+}

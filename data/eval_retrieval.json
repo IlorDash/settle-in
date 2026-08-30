@@ -1,0 +1,678 @@
+{
+  "n": 40,
+  "n_answerable": 30,
+  "n_unanswerable": 10,
+  "settings": {
+    "embedding_model": "text-embedding-3-small",
+    "k": 4,
+    "llm_model": "gpt-4o-mini"
+  },
+  "c1": {
+    "hit_rate": 1.0,
+    "hits": 30,
+    "hit_at_1": 0.9333333333333333,
+    "mean_rank_of_hit": 1.1666666666666667,
+    "misses": [],
+    "by_language": {
+      "en": {
+        "n": 13,
+        "hit_rate": 1.0
+      },
+      "ru": {
+        "n": 9,
+        "hit_rate": 1.0
+      },
+      "sr": {
+        "n": 8,
+        "hit_rate": 1.0
+      }
+    },
+    "by_kind": {
+      "overlap": {
+        "n": 5,
+        "hit_rate": 1.0
+      },
+      "plain": {
+        "n": 25,
+        "hit_rate": 1.0
+      }
+    },
+    "by_document": {
+      "01_white_card_registration.txt": {
+        "n": 4,
+        "hits": 4
+      },
+      "02_temporary_residence_permit.txt": {
+        "n": 4,
+        "hits": 4
+      },
+      "03_opening_bank_account.txt": {
+        "n": 4,
+        "hits": 4
+      },
+      "04_health_insurance.txt": {
+        "n": 4,
+        "hits": 4
+      },
+      "05_tax_registration_pib.txt": {
+        "n": 4,
+        "hits": 4
+      },
+      "06_utility_bills_payments.txt": {
+        "n": 4,
+        "hits": 4
+      },
+      "07_visa_regime_entry.txt": {
+        "n": 3,
+        "hits": 3
+      },
+      "08_egovernment_digital_services.txt": {
+        "n": 3,
+        "hits": 3
+      }
+    }
+  },
+  "per_query": [
+    {
+      "id": 1,
+      "language": "en",
+      "kind": "plain",
+      "expected": "01_white_card_registration.txt",
+      "retrieved": [
+        "01_white_card_registration.txt",
+        "01_white_card_registration.txt",
+        "07_visa_regime_entry.txt",
+        "02_temporary_residence_permit.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 2,
+      "language": "ru",
+      "kind": "overlap",
+      "expected": "01_white_card_registration.txt",
+      "retrieved": [
+        "01_white_card_registration.txt",
+        "01_white_card_registration.txt",
+        "01_white_card_registration.txt",
+        "01_white_card_registration.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 3,
+      "language": "sr",
+      "kind": "plain",
+      "expected": "01_white_card_registration.txt",
+      "retrieved": [
+        "01_white_card_registration.txt",
+        "06_utility_bills_payments.txt",
+        "04_health_insurance.txt",
+        "01_white_card_registration.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 4,
+      "language": "en",
+      "kind": "plain",
+      "expected": "01_white_card_registration.txt",
+      "retrieved": [
+        "01_white_card_registration.txt",
+        "01_white_card_registration.txt",
+        "01_white_card_registration.txt",
+        "02_temporary_residence_permit.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 5,
+      "language": "en",
+      "kind": "plain",
+      "expected": "02_temporary_residence_permit.txt",
+      "retrieved": [
+        "02_temporary_residence_permit.txt",
+        "02_temporary_residence_permit.txt",
+        "02_temporary_residence_permit.txt",
+        "08_egovernment_digital_services.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 6,
+      "language": "en",
+      "kind": "plain",
+      "expected": "02_temporary_residence_permit.txt",
+      "retrieved": [
+        "02_temporary_residence_permit.txt",
+        "02_temporary_residence_permit.txt",
+        "02_temporary_residence_permit.txt",
+        "02_temporary_residence_permit.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 7,
+      "language": "ru",
+      "kind": "plain",
+      "expected": "02_temporary_residence_permit.txt",
+      "retrieved": [
+        "02_temporary_residence_permit.txt",
+        "02_temporary_residence_permit.txt",
+        "07_visa_regime_entry.txt",
+        "07_visa_regime_entry.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 8,
+      "language": "sr",
+      "kind": "plain",
+      "expected": "02_temporary_residence_permit.txt",
+      "retrieved": [
+        "01_white_card_registration.txt",
+        "01_white_card_registration.txt",
+        "01_white_card_registration.txt",
+        "02_temporary_residence_permit.txt"
+      ],
+      "rank": 4,
+      "declined": false
+    },
+    {
+      "id": 9,
+      "language": "en",
+      "kind": "plain",
+      "expected": "03_opening_bank_account.txt",
+      "retrieved": [
+        "03_opening_bank_account.txt",
+        "03_opening_bank_account.txt",
+        "03_opening_bank_account.txt",
+        "03_opening_bank_account.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 10,
+      "language": "ru",
+      "kind": "overlap",
+      "expected": "03_opening_bank_account.txt",
+      "retrieved": [
+        "03_opening_bank_account.txt",
+        "03_opening_bank_account.txt",
+        "03_opening_bank_account.txt",
+        "03_opening_bank_account.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 11,
+      "language": "sr",
+      "kind": "plain",
+      "expected": "03_opening_bank_account.txt",
+      "retrieved": [
+        "03_opening_bank_account.txt",
+        "03_opening_bank_account.txt",
+        "03_opening_bank_account.txt",
+        "03_opening_bank_account.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 12,
+      "language": "en",
+      "kind": "overlap",
+      "expected": "03_opening_bank_account.txt",
+      "retrieved": [
+        "05_tax_registration_pib.txt",
+        "05_tax_registration_pib.txt",
+        "03_opening_bank_account.txt",
+        "03_opening_bank_account.txt"
+      ],
+      "rank": 3,
+      "declined": false
+    },
+    {
+      "id": 13,
+      "language": "en",
+      "kind": "plain",
+      "expected": "04_health_insurance.txt",
+      "retrieved": [
+        "04_health_insurance.txt",
+        "04_health_insurance.txt",
+        "04_health_insurance.txt",
+        "04_health_insurance.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 14,
+      "language": "ru",
+      "kind": "plain",
+      "expected": "04_health_insurance.txt",
+      "retrieved": [
+        "04_health_insurance.txt",
+        "04_health_insurance.txt",
+        "01_white_card_registration.txt",
+        "04_health_insurance.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 15,
+      "language": "sr",
+      "kind": "plain",
+      "expected": "04_health_insurance.txt",
+      "retrieved": [
+        "04_health_insurance.txt",
+        "04_health_insurance.txt",
+        "01_white_card_registration.txt",
+        "04_health_insurance.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 16,
+      "language": "en",
+      "kind": "overlap",
+      "expected": "04_health_insurance.txt",
+      "retrieved": [
+        "04_health_insurance.txt",
+        "02_temporary_residence_permit.txt",
+        "02_temporary_residence_permit.txt",
+        "04_health_insurance.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 17,
+      "language": "en",
+      "kind": "plain",
+      "expected": "05_tax_registration_pib.txt",
+      "retrieved": [
+        "05_tax_registration_pib.txt",
+        "05_tax_registration_pib.txt",
+        "05_tax_registration_pib.txt",
+        "05_tax_registration_pib.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 18,
+      "language": "ru",
+      "kind": "plain",
+      "expected": "05_tax_registration_pib.txt",
+      "retrieved": [
+        "05_tax_registration_pib.txt",
+        "05_tax_registration_pib.txt",
+        "05_tax_registration_pib.txt",
+        "05_tax_registration_pib.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 19,
+      "language": "sr",
+      "kind": "plain",
+      "expected": "05_tax_registration_pib.txt",
+      "retrieved": [
+        "05_tax_registration_pib.txt",
+        "04_health_insurance.txt",
+        "02_temporary_residence_permit.txt",
+        "05_tax_registration_pib.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 20,
+      "language": "en",
+      "kind": "overlap",
+      "expected": "05_tax_registration_pib.txt",
+      "retrieved": [
+        "05_tax_registration_pib.txt",
+        "05_tax_registration_pib.txt",
+        "05_tax_registration_pib.txt",
+        "05_tax_registration_pib.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 21,
+      "language": "en",
+      "kind": "plain",
+      "expected": "06_utility_bills_payments.txt",
+      "retrieved": [
+        "06_utility_bills_payments.txt",
+        "06_utility_bills_payments.txt",
+        "06_utility_bills_payments.txt",
+        "06_utility_bills_payments.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 22,
+      "language": "ru",
+      "kind": "plain",
+      "expected": "06_utility_bills_payments.txt",
+      "retrieved": [
+        "06_utility_bills_payments.txt",
+        "06_utility_bills_payments.txt",
+        "03_opening_bank_account.txt",
+        "06_utility_bills_payments.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 23,
+      "language": "sr",
+      "kind": "plain",
+      "expected": "06_utility_bills_payments.txt",
+      "retrieved": [
+        "06_utility_bills_payments.txt",
+        "06_utility_bills_payments.txt",
+        "06_utility_bills_payments.txt",
+        "06_utility_bills_payments.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 24,
+      "language": "ru",
+      "kind": "plain",
+      "expected": "06_utility_bills_payments.txt",
+      "retrieved": [
+        "06_utility_bills_payments.txt",
+        "06_utility_bills_payments.txt",
+        "06_utility_bills_payments.txt",
+        "06_utility_bills_payments.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 25,
+      "language": "en",
+      "kind": "plain",
+      "expected": "07_visa_regime_entry.txt",
+      "retrieved": [
+        "07_visa_regime_entry.txt",
+        "07_visa_regime_entry.txt",
+        "02_temporary_residence_permit.txt",
+        "02_temporary_residence_permit.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 26,
+      "language": "ru",
+      "kind": "plain",
+      "expected": "07_visa_regime_entry.txt",
+      "retrieved": [
+        "07_visa_regime_entry.txt",
+        "08_egovernment_digital_services.txt",
+        "02_temporary_residence_permit.txt",
+        "01_white_card_registration.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 27,
+      "language": "sr",
+      "kind": "plain",
+      "expected": "07_visa_regime_entry.txt",
+      "retrieved": [
+        "07_visa_regime_entry.txt",
+        "07_visa_regime_entry.txt",
+        "07_visa_regime_entry.txt",
+        "07_visa_regime_entry.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 28,
+      "language": "en",
+      "kind": "plain",
+      "expected": "08_egovernment_digital_services.txt",
+      "retrieved": [
+        "08_egovernment_digital_services.txt",
+        "07_visa_regime_entry.txt",
+        "08_egovernment_digital_services.txt",
+        "08_egovernment_digital_services.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 29,
+      "language": "ru",
+      "kind": "plain",
+      "expected": "08_egovernment_digital_services.txt",
+      "retrieved": [
+        "08_egovernment_digital_services.txt",
+        "08_egovernment_digital_services.txt",
+        "08_egovernment_digital_services.txt",
+        "08_egovernment_digital_services.txt"
+      ],
+      "rank": 1,
+      "declined": true
+    },
+    {
+      "id": 30,
+      "language": "sr",
+      "kind": "plain",
+      "expected": "08_egovernment_digital_services.txt",
+      "retrieved": [
+        "08_egovernment_digital_services.txt",
+        "08_egovernment_digital_services.txt",
+        "08_egovernment_digital_services.txt",
+        "05_tax_registration_pib.txt"
+      ],
+      "rank": 1,
+      "declined": false
+    },
+    {
+      "id": 31,
+      "language": "en",
+      "kind": "none",
+      "expected": "none",
+      "retrieved": [
+        "02_temporary_residence_permit.txt",
+        "02_temporary_residence_permit.txt",
+        "01_white_card_registration.txt",
+        "03_opening_bank_account.txt"
+      ],
+      "rank": null,
+      "declined": true
+    },
+    {
+      "id": 32,
+      "language": "ru",
+      "kind": "none",
+      "expected": "none",
+      "retrieved": [
+        "02_temporary_residence_permit.txt",
+        "07_visa_regime_entry.txt",
+        "02_temporary_residence_permit.txt",
+        "07_visa_regime_entry.txt"
+      ],
+      "rank": null,
+      "declined": true
+    },
+    {
+      "id": 33,
+      "language": "sr",
+      "kind": "none",
+      "expected": "none",
+      "retrieved": [
+        "02_temporary_residence_permit.txt",
+        "02_temporary_residence_permit.txt",
+        "02_temporary_residence_permit.txt",
+        "07_visa_regime_entry.txt"
+      ],
+      "rank": null,
+      "declined": true
+    },
+    {
+      "id": 34,
+      "language": "en",
+      "kind": "none",
+      "expected": "none",
+      "retrieved": [
+        "07_visa_regime_entry.txt",
+        "07_visa_regime_entry.txt",
+        "04_health_insurance.txt",
+        "04_health_insurance.txt"
+      ],
+      "rank": null,
+      "declined": true
+    },
+    {
+      "id": 35,
+      "language": "ru",
+      "kind": "none",
+      "expected": "none",
+      "retrieved": [
+        "07_visa_regime_entry.txt",
+        "07_visa_regime_entry.txt",
+        "08_egovernment_digital_services.txt",
+        "03_opening_bank_account.txt"
+      ],
+      "rank": null,
+      "declined": true
+    },
+    {
+      "id": 36,
+      "language": "en",
+      "kind": "none",
+      "expected": "none",
+      "retrieved": [
+        "02_temporary_residence_permit.txt",
+        "01_white_card_registration.txt",
+        "02_temporary_residence_permit.txt",
+        "02_temporary_residence_permit.txt"
+      ],
+      "rank": null,
+      "declined": true
+    },
+    {
+      "id": 37,
+      "language": "sr",
+      "kind": "none",
+      "expected": "none",
+      "retrieved": [
+        "07_visa_regime_entry.txt",
+        "02_temporary_residence_permit.txt",
+        "07_visa_regime_entry.txt",
+        "06_utility_bills_payments.txt"
+      ],
+      "rank": null,
+      "declined": true
+    },
+    {
+      "id": 38,
+      "language": "ru",
+      "kind": "none",
+      "expected": "none",
+      "retrieved": [
+        "03_opening_bank_account.txt",
+        "03_opening_bank_account.txt",
+        "03_opening_bank_account.txt",
+        "06_utility_bills_payments.txt"
+      ],
+      "rank": null,
+      "declined": true
+    },
+    {
+      "id": 39,
+      "language": "en",
+      "kind": "none",
+      "expected": "none",
+      "retrieved": [
+        "05_tax_registration_pib.txt",
+        "05_tax_registration_pib.txt",
+        "05_tax_registration_pib.txt",
+        "05_tax_registration_pib.txt"
+      ],
+      "rank": null,
+      "declined": true
+    },
+    {
+      "id": 40,
+      "language": "sr",
+      "kind": "none",
+      "expected": "none",
+      "retrieved": [
+        "01_white_card_registration.txt",
+        "05_tax_registration_pib.txt",
+        "04_health_insurance.txt",
+        "06_utility_bills_payments.txt"
+      ],
+      "rank": null,
+      "declined": true
+    }
+  ],
+  "retrieval_latency": {
+    "mean_ms": 179.2943450054736,
+    "p95_ms": 288.39060000609607,
+    "note": "embedding the query over the network plus the search in Chroma. The round trip dominates, so this is a figure about the connection as much as the store, and the first query of a run carries the connection setup."
+  },
+  "c2": {
+    "declines_on_answerable": 1,
+    "decline_rate_on_answerable": 0.03333333333333333,
+    "declines_on_unanswerable": 10,
+    "decline_rate_on_unanswerable": 1.0,
+    "declined_although_the_document_was_retrieved": 1,
+    "declined_on_answerable": [
+      {
+        "id": 29,
+        "query": "после обновления винды епорези перестал открываться. что делать?",
+        "expected_fact": "Использовать SmartBox 2.0.0 или вход через eID",
+        "retrieved": [
+          "08_egovernment_digital_services.txt@427",
+          "08_egovernment_digital_services.txt@2555",
+          "08_egovernment_digital_services.txt@5199",
+          "08_egovernment_digital_services.txt@0"
+        ]
+      }
+    ],
+    "answered_although_nothing_was_stored": [],
+    "declines_not_in_the_english_wording": [
+      32
+    ]
+  },
+  "generation_latency": {
+    "mean_ms": 1164.0649699955247,
+    "p95_ms": 1856.6626000101678,
+    "note": "the whole chain, question in to answer out, wall clock on the machine named in the journal entry. The chain does its own retrieval, so this figure contains a search of its own and is not additive with retrieval_latency, which is a separate call made to score C1."
+  },
+  "cost": {
+    "answers_bought_this_run": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "usd_for_this_run": 0.0,
+    "note": "the answers only. Embedding each query is billed separately at the embedding model's rate and is well under a cent for this set, and the retriever reports no token count for it."
+  }
+}

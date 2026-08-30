@@ -1,0 +1,451 @@
+text,intent,language
+Сколько сейчас делают boravak по времени в Белграде?,knowledge_question,ru
+На какой срок обычно дают первый boravak?,knowledge_question,ru
+"Можно податься на продление boravak заранее, до окончания текущего?",knowledge_question,ru
+"Если договор аренды не у нотариуса, boravak примут или нет?",knowledge_question,ru
+Для boravak обязательно нужна белая карта или иногда без нее проходит?,knowledge_question,ru
+"Если я живу у знакомых, как лучше сделать beli karton?",knowledge_question,ru
+Beli karton нужно делать заново после каждого въезда в Сербию?,knowledge_question,ru
+За сколько дней после прилета нужно оформить beli karton?,knowledge_question,ru
+"Если сменил адрес в Сербии, нужно новый beli karton делать?",knowledge_question,ru
+В каком банке сейчас проще всего открыть счет иностранцу?,knowledge_question,ru
+Для открытия счета уже нужен boravak или можно без него?,knowledge_question,ru
+Какие банки в Сербии открывают счет по загранпаспорту?,knowledge_question,ru
+Сколько обычно стоит обслуживание счета в сербском банке?,knowledge_question,ru
+Можно ли открыть счет без трудового договора?,knowledge_question,ru
+Какое медстрахование подходит для boravak?,knowledge_question,ru
+Где в Сербии проще оформить zdravstveno osiguranje иностранцу?,knowledge_question,ru
+Частная страховка для boravak подходит или нужна только государственная?,knowledge_question,ru
+Когда нужен PIB и как его получить?,knowledge_question,ru
+"Если я фрилансер, мне обязательно оформлять PIB?",knowledge_question,ru
+Какие налоги платит иностранец с boravak если работает удаленно?,knowledge_question,ru
+Как оформить eUprava без сербской личной карты?,knowledge_question,ru
+Через eUprava можно записаться на подачу документов на boravak?,knowledge_question,ru
+Счета за струю и воду можно платить онлайн без сербской карты?,knowledge_question,ru
+Сколько дней можно находиться в Сербии без визы после визарана?,knowledge_question,ru
+"Если boravak еще в процессе, можно выезжать из Сербии или лучше не надо?",knowledge_question,ru
+"Если я снял квартиру, белый картон делает хозяин или я сам могу подать?",knowledge_question,ru
+За сколько дней после приезда нужно сделать белый картон?,knowledge_question,ru
+"Если живу в апартах неделю, потом переезжаю в квартиру, нужен новый белый картон?",knowledge_question,ru
+Для продления boravak нужна новая справка из банка или старая подойдет?,knowledge_question,ru
+"Можно подать на boravak без трудового договора, если основание ИП?",knowledge_question,ru
+Сколько обычно делают boravak в Белграде сейчас?,knowledge_question,ru
+"Если boravak еще не готов, можно ли выезжать из Сербии и вернуться?",knowledge_question,ru
+На какой срок сейчас дают prvi boravak?,knowledge_question,ru
+Для boravak обязательно делать zdravstveno osiguranje в Сербии или подойдет иностранная страховка?,knowledge_question,ru
+"Если поменял адрес в Сербии, boravak надо менять сразу?",knowledge_question,ru
+Можно ли открыть счет в банке только по паспорту без boravak?,knowledge_question,ru
+Какие банки сейчас нормально открывают счет иностранцам из России?,knowledge_question,ru
+Для открытия счета нужен beli karton или достаточно prijava adrese?,knowledge_question,ru
+Можно ли открыть и dinarski и devizni racun сразу?,knowledge_question,ru
+Сколько обычно занимает открытие счета в банке?,knowledge_question,ru
+"Если работаю как pausalac, PIB присваивается автоматически или надо отдельно получать?",knowledge_question,ru
+Где быстрее оформить PIB сейчас?,knowledge_question,ru
+"Нужен ли PIB физлицу, если просто сдаю квартиру или получаю переводы?",knowledge_question,ru
+Как проверить онлайн есть ли у меня долг по налогам?,knowledge_question,ru
+Можно ли платить налоги как preduzetnik через eUprava?,knowledge_question,ru
+Как переоформить счет за struju на себя после аренды квартиры?,knowledge_question,ru
+"Если коммуналка приходит на имя хозяина, это нормально для boravak?",knowledge_question,ru
+"Сколько дней можно находиться в Сербии без визы, если были уже недавние въезды?",knowledge_question,ru
+Через eUprava можно записаться на подачу на boravak или только лично?,knowledge_question,ru
+Для boravak сначала нужен beli karton или можно подать без него?,knowledge_question,ru
+Сколько сейчас обычно делают boravak после подачи?,knowledge_question,ru
+"Если я сменил адрес в Сербии, надо заново делать beli karton?",knowledge_question,ru
+Beli karton делает хозяин квартиры или я сам тоже могу?,knowledge_question,ru
+Для открытия счета в банке хватит паспорта и boravak?,knowledge_question,ru
+Какие банки сейчас нормально открывают счет иностранцам без лишних проблем?,knowledge_question,ru
+Для медицинской страховки здесь обязательно иметь boravak?,knowledge_question,ru
+Какую страховку обычно берут для подачи на boravak?,knowledge_question,ru
+"Если работаю как pausalac, мне обязательно нужен PIB?",knowledge_question,ru
+PIB дают автоматически при регистрации или надо отдельно получать?,knowledge_question,ru
+"Какие налоги платят в Сербии, если работаешь как preduzetnik?",knowledge_question,ru
+Можно ли платить коммуналку онлайн без сербской карты?,knowledge_question,ru
+Где обычно смотреть счета за struja и infostan?,knowledge_question,ru
+"Если арендодатель не дает договор, можно ли без него податься на boravak?",knowledge_question,ru
+"Сколько дней можно находиться в Сербии без визы, чтобы не нарушить режим?",knowledge_question,ru
+Visa run сейчас нормально работает или могут быть вопросы на границе?,knowledge_question,ru
+"Если подал на boravak, можно ли выезжать из страны пока ждешь решение?",knowledge_question,ru
+Как зарегистрироваться на euprava иностранцу?,knowledge_question,ru
+Через euprava можно записаться на подачу документов в mup?,knowledge_question,ru
+Для белого картона есть какой-то срок после въезда?,knowledge_question,ru
+"Если живу в apartman, хозяин обязан сделать мне beli karton?",knowledge_question,ru
+Для банка нужен местный номер телефона или можно без него?,knowledge_question,ru
+"Если boravak уже есть, ИНН или что-то вроде него тоже нужно оформлять?",knowledge_question,ru
+Для продления boravak надо снова показывать выписку из банка или достаточно действующего трудового договора?,knowledge_question,ru
+"Если хозяин квартиры сделал meni beli karton, где потом можно проверить, что он реально зарегистрирован в системе?",knowledge_question,ru
+Без PIB можно открыть счет в банке как физлицо или его обычно просят уже на этапе подачи заявления?,knowledge_question,ru
+Do I need a beli karton if I am staying with a friend for a week?,knowledge_question,en
+How many days after arrival do I have to register for the white card?,knowledge_question,en
+Can my landlord make the beli karton online or do we have to go in person?,knowledge_question,en
+What documents do I need to apply for boravak for the first time?,knowledge_question,en
+How long does it usually take to get boravak approved in Serbia?,knowledge_question,en
+Can I leave Serbia while my boravak application is still being processed?,knowledge_question,en
+Do I need health insurance from a Serbian company for boravak?,knowledge_question,en
+Is travel insurance enough for a temporary residence permit application?,knowledge_question,en
+Can I open a bank account before I get my boravak card?,knowledge_question,en
+Which banks open accounts for foreigners with just a passport?,knowledge_question,en
+Do I need a Serbian phone number to open a bank account?,knowledge_question,en
+Can I get a dinar account and a euro account at the same bank?,knowledge_question,en
+How do I get state health insurance after receiving boravak?,knowledge_question,en
+Can I use private health insurance instead of state insurance in Serbia?,knowledge_question,en
+Do freelancers in Serbia need a PIB to pay taxes?,knowledge_question,en
+How do I check if I need to register as an entrepreneur for my income?,knowledge_question,en
+Where do I apply for a PIB as a foreigner in Serbia?,knowledge_question,en
+Can I pay taxes online through eUprava or another portal?,knowledge_question,en
+How do I register on eUprava if I am a foreign citizen?,knowledge_question,en
+Do utility bills have to be in my name for boravak renewal?,knowledge_question,en
+Is a rental contract enough if the electricity bill is in the landlord’s name?,knowledge_question,en
+How many days can I stay in Serbia without boravak under the visa-free regime?,knowledge_question,en
+Does a visa run reset the 90 days for Serbia?,knowledge_question,en
+Can I book an appointment for immigration police online?,knowledge_question,en
+How do I check the status of my boravak application online?,knowledge_question,en
+Do I need a beli karton if I stay with a friend and not in a hotel?,knowledge_question,en
+Can I open a bank account in Serbia before I get boravak?,knowledge_question,en
+Which banks in Serbia open accounts for foreigners most easily?,knowledge_question,en
+What documents do I need to open a bank account as a foreigner here?,knowledge_question,en
+Is private health insurance enough for boravak or do I need Serbian insurance?,knowledge_question,en
+Where can I buy health insurance that is accepted for boravak?,knowledge_question,en
+Do I need to get a PIB if I work as a freelancer in Serbia?,knowledge_question,en
+How do I apply for a PIB as a foreign citizen?,knowledge_question,en
+Do I have to pay taxes in Serbia if I receive money from abroad?,knowledge_question,en
+Can I pay utility bills without having a Serbian bank account?,knowledge_question,en
+How do I check whose name the electricity bill is under?,knowledge_question,en
+What is the deadline for registering my address after entering Serbia?,knowledge_question,en
+"If I leave Serbia and come back, do I need a new beli karton?",knowledge_question,en
+How does the visa-free 30-day rule work exactly?,knowledge_question,en
+Does a visa run reset my allowed stay in Serbia?,knowledge_question,en
+Can I apply for boravak while I am in Serbia on a visa-free entry?,knowledge_question,en
+What is the easiest way to book an appointment for boravak?,knowledge_question,en
+Can I submit boravak documents through eUprava or only in person?,knowledge_question,en
+How do I make an account on eUprava as a foreigner?,knowledge_question,en
+Do I need a Serbian phone number to use eUprava?,knowledge_question,en
+Can someone else pick up my boravak card for me?,knowledge_question,en
+What happens if my beli karton was not registered on time?,knowledge_question,en
+Can I use my rental agreement as proof of address for the bank?,knowledge_question,en
+Do I need a beli karton if I am staying in an Airbnb for 10 days?,knowledge_question,en
+"If I change apartments in Belgrade, do I need a new beli karton?",knowledge_question,en
+What documents do I need to apply for boravak in Serbia?,knowledge_question,en
+Can I apply for temporary residence without a work contract?,knowledge_question,en
+How long does boravak usually take to be approved?,knowledge_question,en
+Can I travel outside Serbia while my boravak application is being processed?,knowledge_question,en
+Do I need health insurance before I submit boravak papers?,knowledge_question,en
+Is private health insurance enough for boravak?,knowledge_question,en
+Can I open a bank account with just a passport and beli karton?,knowledge_question,en
+Which banks open accounts for foreigners without boravak?,knowledge_question,en
+How do I get a PIB as a foreigner in Serbia?,knowledge_question,en
+Do I need a PIB if I work remotely for a foreign company?,knowledge_question,en
+Where do I check if I owe any taxes in Serbia?,knowledge_question,en
+How do I put electricity and internet bills in my name?,knowledge_question,en
+Do overstays cause problems later when applying for boravak?,knowledge_question,en
+How many visa-free days do I get in Serbia as a Russian citizen?,knowledge_question,en
+Does a visa run reset the 30-day registration requirement?,knowledge_question,en
+Can foreigners use eUprava without an ID card?,knowledge_question,en
+Can I book a police appointment for boravak through eUprava?,knowledge_question,en
+How long does it usually take to get boravak after submitting the documents,knowledge_question,en
+Which health insurance is accepted for a boravak application,knowledge_question,en
+Do I need a PIB if I work as a freelancer and get paid from abroad,knowledge_question,en
+How can I put utility bills in my name if I am renting an apartment,knowledge_question,en
+How many days can I stay in Serbia without a visa after I leave and come back,knowledge_question,en
+Can I use eUprava without a Serbian ID card or local phone number,knowledge_question,en
+"Do I need a white card before applying for boravak, or can I submit the application first?",knowledge_question,en
+"Can I open a bank account in Serbia with just my passport and white card, or do I need boravak too?",knowledge_question,en
+"Переведи на сербский Я немного опоздаю, буду через 15 минут",translation,ru
+Как будет по-сербски Можно сегодня после работы созвониться?,translation,ru
+Переведи на сербский Я оставил ключи у соседа,translation,ru
+Как сказать по-сербски У меня завтра весь день свободен,translation,ru
+"Переведи на сербский Мы уже подъезжаем, жди нас у входа",translation,ru
+"Как будет на сербском Я не смогу прийти, у меня температура",translation,ru
+Переведи на сербский Ты случайно не видел мою зарядку?,translation,ru
+Как по-сербски Мне нужно перенести встречу на понедельник,translation,ru
+"Переведи на сербский Я пока не решил, но скажу вечером",translation,ru
+Как сказать по-сербски Тут можно платить картой?,translation,ru
+Переведи на сербский Я заберу документы на следующей неделе,translation,ru
+"Как будет по-сербски Если что изменится, я тебе напишу",translation,ru
+Переведи на русский Javi mi kad stignes kuci,translation,ru
+Что значит Nisam jos siguran za vikend,translation,ru
+Переведи на русский Mozemo da pomerimo termin za sutra,translation,ru
+"Что это значит Izvini sto kasnim, guzva je",translation,ru
+Переведи на русский Koliko dugo ces ostati tamo,translation,ru
+Что значит Treba mi jos malo vremena,translation,ru
+Переведи на русский Da li ti odgovara da dodjes ranije,translation,ru
+Что значит Poslao sam ti poruku jutros,translation,ru
+Переведи на русский Nemoj da zaboravis pasoš,translation,ru
+Что значит Auto mi je ostalo kod majstora,translation,ru
+"Переведи на русский Ako hoces, mogu da te sacekam",translation,ru
+Что это значит Danas mi bas nije dan,translation,ru
+Переведи на русский Gde da ostavim paket ako te nema,translation,ru
+Как будет по-сербски Можно перенести встречу на понедельник?,translation,ru
+"Переведи на сербский Я уже у входа, можешь спускаться",translation,ru
+Как сказать по-сербски У меня сегодня не получится прийти,translation,ru
+"Переведи на сербский Напиши мне, когда освободишься",translation,ru
+Как будет по-сербски Я забыл дома зарядку от ноутбука,translation,ru
+Переведи на сербский Мы можем начать чуть позже?,translation,ru
+Как сказать по-сербски Я не понял последнее сообщение,translation,ru
+Переведи на сербский Завтра весь день буду занят,translation,ru
+"Как будет по-сербски Спасибо, тогда до связи",translation,ru
+"Переведи на сербский Я сейчас в центре, могу быстро подъехать",translation,ru
+"Как сказать по-сербски Ты не знаешь, где здесь ближайшая аптека?",translation,ru
+Переведи на русский Mozemo da se cujemo kasnije,translation,ru
+Что значит Kasnicu malo zbog guzve,translation,ru
+Переведи на русский Da li ti odgovara u utorak ujutru,translation,ru
+Что значит Zaboravio sam da ti kazem ranije,translation,ru
+"Переведи на русский Ako hoces, mogu da ponesem i to",translation,ru
+"Что значит Videcemo jos, nije hitno",translation,ru
+Переведи на русский Danas sam ceo dan van kuce,translation,ru
+Что значит Treba mi jos pola sata,translation,ru
+Переведи на русский Nemoj da cekas mene,translation,ru
+Что значит Jesi li poneo dokumenta sa sobom,translation,ru
+Переведи на русский Bilo bi bolje da dodjes ranije,translation,ru
+Что значит Moram da pomerim trening za subotu,translation,ru
+Как будет по-сербски У меня сегодня совсем нет энергии играть,translation,ru
+"Переведи на сербский Я немного опоздаю, но уже еду",translation,ru
+Prevedi na ruski Molim vas donesite pasos kada budete dolazili,translation,sr
+Kako se kaze na engleskom Racun ce vam biti poslat elektronski,translation,sr
+"Prevedi na ruski Danas ne mogu da stignem, javicu vam sutra",translation,sr
+Kako ovo ide na engleski Da li imate slobodan termin posle 18h,translation,sr
+Prevedi na ruski Treba mi potvrda o uplati za ambasadu,translation,sr
+Kako se kaze na engleskom Kasnicu deset minuta,translation,sr
+Prevedi na ruski Dokument je spreman za preuzimanje,translation,sr
+Kako ovo kaze na engleskom Da li mogu da platim karticom,translation,sr
+Prevedi na ruski Nisam uspeo da vas dobijem telefonom,translation,sr
+Kako se kaze na engleskom Posaljite mi adresu jos jednom,translation,sr
+Prevedi na ruski U petak radim od kuce,translation,sr
+Kako ovo ide na engleski Javicemo vam cim stigne paket,translation,sr
+Prevedi na ruski Mozemo da pomerimo sastanak za ponedeljak,translation,sr
+Kako se kaze na engleskom Treba mi racun na firmu,translation,sr
+Vas zahtev za privremeni boravak je u obradi,translation,sr
+Obavestavamo vas da je rok za uplatu istekao,translation,sr
+"Postovani, potrebno je da dopunite dokumentaciju u roku od 8 dana",translation,sr
+Vasa kartica je privremeno blokirana zbog sumnjive aktivnosti,translation,sr
+Molimo vas da izmirite dugovanje za elektricnu energiju,translation,sr
+Termin za predaju biometrijskih podataka je zakazan za 14. maj,translation,sr
+Racun za infostan za ovaj mesec iznosi 7420 dinara,translation,sr
+Vasa posiljka je predata kurirskoj sluzbi i bice isporucena sutra,translation,sr
+"Banka trenutno radi na odrzavanju sistema, placanja mogu kasniti",translation,sr
+Obavestavamo vas da je vas zahtev za kredit odbijen,translation,sr
+Prevedi na ruski Molim vas da dodjete 15 minuta ranije zbog registracije,translation,sr
+Mozes na ruski Treba mi potvrda o uplati za prethodni mesec,translation,sr
+Prevedi na engleski Da li imate slobodan termin u ponedeljak ujutru,translation,sr
+Kako ovo ide na ruskom Zaboravio sam pasos kod kuce,translation,sr
+Prevedi na engleski Javicu vam cim budem znao tacno vreme,translation,sr
+"Kako se kaze na ruskom Ne mogu danas, ajde sutra",translation,sr
+Prevedi na engleski Posaljite mi adresu tacno gde da dodjem,translation,sr
+Kako ovo na ruski Moram da produzim ugovor jos mesec dana,translation,sr
+Prevedi na engleski Da li mogu da platim karticom,translation,sr
+Kako se kaze na ruskom Nisam razumeo sta treba da donesem,translation,sr
+Prevedi na engleski Bicemo tamo oko sedam uvece,translation,sr
+"Kako ovo na ruski Hvala, sve mi odgovara",translation,sr
+Vas zahtev za privremeni boravak je u obradi. O daljim koracima bicete obavesteni putem mejla,translation,sr
+Obavestavamo vas da je rok za dostavu dokumentacije 5 radnih dana od prijema poruke,translation,sr
+"Postovani, vasa rata za kredit dospeva na naplatu 12.05. Molimo obezbedite sredstva na racunu",translation,sr
+Racun za elektricnu energiju za mart nije izmiren. Molimo da uplatu izvrsite u najkracem roku,translation,sr
+Vasa kartica je privremeno blokirana zbog sumnjive transakcije. Pozovite korisnicki centar,translation,sr
+Termin za preuzimanje biometrijske kartice zakazan je za cetvrtak u 9:40,translation,sr
+"Evidentirana je promena adrese stanovanja. Ako podaci nisu tacni, prijavite gresku",translation,sr
+"Postovani, stanje na vasem racunu je ispod dozvoljenog minimuma",translation,sr
+Voda ce biti iskljucena sutra od 9 do 14 zbog radova na mrezi,translation,sr
+Molimo korisnike da ocitano stanje brojila dostave do kraja meseca,translation,sr
+"Zahtev za otvaranje racuna je prihvacen, ali nedostaje potvrda o zaposlenju",translation,sr
+"Podsetnik: prijava boravka istice za 30 dana, obnovu pokrenite na vreme",translation,sr
+Prevedi na ruski Ovo je poslednji rok za uplatu racuna za struju,translation,sr
+"Postovani, vas zahtev za produzenje boravka je primljen i bice obradjen u roku od 30 dana",translation,sr
+"How do you say I can't make it today, maybe tomorrow in Serbian",translation,en
+"What does Nema problema, javljam ti se kasnije mean",translation,en
+How do you say Do you know what time the store opens in Serbian,translation,en
+"What does Jos sam na putu, stizem uskoro mean",translation,en
+How do you say My phone died so I didn't see your message in Serbian,translation,en
+What does Mozemo posle rucka ako ti odgovara mean,translation,en
+How do you say Is there a pharmacy nearby in Serbian,translation,en
+"What does Nisam siguran, moram da proverim mean",translation,en
+How do you say I left the keys on the table in Serbian,translation,en
+What does Hvala puno na pomoci mean,translation,en
+How do you say We are waiting for the bus now in Serbian,translation,en
+What does Videcemo sutra kako stoje stvari mean,translation,en
+How do you say Can you send me the address again in Serbian,translation,en
+What does Kasnicu malo zbog guzve mean,translation,en
+How do you say I forgot to bring cash in Serbian,translation,en
+"What does Ako zavrsim ranije, doci cu mean",translation,en
+How do you say Which platform does the train leave from in Serbian,translation,en
+"What does Ne radi kartica, samo kes mean",translation,en
+How do you say I need to reschedule our meeting in Serbian,translation,en
+What does Bilo je bas naporno danas mean,translation,en
+How do you say The internet is not working in my apartment in Serbian,translation,en
+What does Cekam te ispred ulaza mean,translation,en
+How do you say We can split the bill in Serbian,translation,en
+What does Javi mi kad stignes kuci mean,translation,en
+How do you say I think I took the wrong bus in Serbian,translation,en
+How do you say I am already on the way in Serbian,translation,en
+"What does Nema problema, javi mi kad stignes mean",translation,en
+How do you say Can we move it to Monday in Serbian,translation,en
+What does Moram malo da kasnim danas mean,translation,en
+How do you say I forgot my charger at home in Serbian,translation,en
+What does Jesi li poneo dokumenta mean,translation,en
+How do you say Is there anything I need to bring in Serbian,translation,en
+What does Bice sve gotovo do sutra mean,translation,en
+How do you say I am waiting near the entrance in Serbian,translation,en
+What does Hajde da se cujemo posle mean,translation,en
+How do you say The internet is not working again in Serbian,translation,en
+"What does Ne mogu sada, u guzvi sam mean",translation,en
+How do you say I need to leave a bit earlier today in Serbian,translation,en
+How do you say I did not sleep well last night in Serbian,translation,en
+"What does Sve je u redu, samo polako mean",translation,en
+How do you say Should I call you when I arrive in Serbian,translation,en
+What does Gde tacno treba da dodjem mean,translation,en
+How do you say I think I left my keys there in Serbian,translation,en
+What does Danas mi bas ne ide mean,translation,en
+How do you say We can meet in front of the building in Serbian,translation,en
+What does Zaboravio sam da ti odgovorim mean,translation,en
+How do you say I am not sure if I can make it tomorrow in Serbian,translation,en
+What does Poslacu ti poruku cim budem znao mean,translation,en
+How do you say Tell me if something changes in Serbian,translation,en
+How do you say I might be a little late today in Serbian,translation,en
+Жара сегодня,out_of_scope,ru
+Дождь с утра и весь день лень,out_of_scope,ru
+"Смотрел матч вчера, концовка вообще огонь",out_of_scope,ru
+"Как думаешь, 17 на 8 это 136?",out_of_scope,ru
+Нормально,out_of_scope,ru
+"Хочу сделать пасту с грибами, сливки сюда ок или будет тяжело?",out_of_scope,ru
+"Какой фильм можно включить вечером, без скуки",out_of_scope,ru
+Кстати да,out_of_scope,ru
+"Телефон начал быстро разряжаться, это уже батарея умирает?",out_of_scope,ru
+"Если в рецепте 300 грамм муки, то половина это 150 же",out_of_scope,ru
+Ок,out_of_scope,ru
+"Сегодня ветер какой то дикий, окно свистит",out_of_scope,ru
+Ты бы взял наушники вкладыши или большие для дома?,out_of_scope,ru
+Я сейчас понял шутку только через минуту,out_of_scope,ru
+Кофе без сахара уже даже нравится,out_of_scope,ru
+Странно,out_of_scope,ru
+"Если команда ведет 2:0, это еще вообще не значит ничего",out_of_scope,ru
+Думаю пожарить картошку с луком и яйцом,out_of_scope,ru
+"Какой ужастик можно посмотреть, но не совсем трэш",out_of_scope,ru
+Да ну,out_of_scope,ru
+У меня ноутбук иногда шумит просто на пустом месте,out_of_scope,ru
+"Солнца нет, а все равно душно",out_of_scope,ru
+Я посчитал и вроде 48 делить на 6 это 8,out_of_scope,ru
+Ахаха,out_of_scope,ru
+Иногда самые простые фильмы заходят лучше всего,out_of_scope,ru
+Погода жесть сегодня,out_of_scope,ru
+Дождь к вечеру будет?,out_of_scope,ru
+"Ветер сильный, кепку чуть не сдуло",out_of_scope,ru
+"Посоветуй фильм на вечер, без супергероев",out_of_scope,ru
+Этот матч был огонь,out_of_scope,ru
+"Яичница опять прилипла к сковороде, что я делаю не так",out_of_scope,ru
+"Если 17 умножить на 8, сколько будет?",out_of_scope,ru
+Ха,out_of_scope,ru
+Смешно,out_of_scope,ru
+Какой самый нормальный недорогой пауэрбанк сейчас?,out_of_scope,ru
+"Телефон за ночь сел на 20 процентов, это уже батарее конец?",out_of_scope,ru
+Я вчера впервые сделал суп и он получился слишком соленый,out_of_scope,ru
+Есть быстрый рецепт пасты без сливок?,out_of_scope,ru
+Не понял,out_of_scope,ru
+Кто сейчас реально лучше играет в защите?,out_of_scope,ru
+"Мне нужен маленький ноутбук, чтобы не шумел и долго держал заряд",out_of_scope,ru
+"Какой ужастик посмотреть, но не совсем тупой",out_of_scope,ru
+Сегодня небо красивое было,out_of_scope,ru
+"Если скидка 15 процентов от 2400, сколько это?",out_of_scope,ru
+Лол,out_of_scope,ru
+Ты знаешь нормальный анекдот без кринжа?,out_of_scope,ru
+"Я думал этот фильм будет скучный, а он затянул",out_of_scope,ru
+"Чайник странно шумит, это вообще нормально?",out_of_scope,ru
+Дождь с утра льет без остановки,out_of_scope,ru
+Как думаешь завтра похолодает?,out_of_scope,ru
+Ветер жесть,out_of_scope,ru
+Я сегодня бегал и вообще не зашло,out_of_scope,ru
+Счет 47 плюс 38 это 85?,out_of_scope,ru
+Какой фильм можно глянуть вечером без напряга?,out_of_scope,ru
+Ты видел новый трейлер?,out_of_scope,ru
+"Паста получилась слишком соленая, чем это можно спасти?",out_of_scope,ru
+Омлет развалился,out_of_scope,ru
+Если разделить 144 на 12 будет 12 да?,out_of_scope,ru
+Какой недорогой фитнес браслет сейчас нормальный?,out_of_scope,ru
+Телефон опять быстро садится,out_of_scope,ru
+Я правильно посчитал 19 умножить на 6 это 114?,out_of_scope,ru
+"Шутка так себе, но я все равно засмеялся",out_of_scope,ru
+Посоветуй комедию на один раз,out_of_scope,ru
+Сегодня мяч вообще не летел куда надо,out_of_scope,ru
+Без шансов,out_of_scope,ru
+"На улице вроде солнце, а холодно",out_of_scope,ru
+"Я рис сварил, а он как каша получился",out_of_scope,ru
+"Если у меня было 500 и я потратил 185, осталось 315?",out_of_scope,ru
+Наушники с шумодавом реально так сильно отличаются?,out_of_scope,ru
+Погода жесть,out_of_scope,ru
+"Вчера посмотрел матч, концовка вообще сумасшедшая",out_of_scope,ru
+"Если жарить картошку с грибами, лук лучше сначала или вместе кидать?",out_of_scope,ru
+Сколько будет 17 процентов от 240?,out_of_scope,ru
+Норм шутка была,out_of_scope,ru
+Стоит брать беспроводные наушники под фильмы и музыку или переплата?,out_of_scope,ru
+Rain again today,out_of_scope,en
+Too hot,out_of_scope,en
+Nice,out_of_scope,en
+What a game last night,out_of_scope,en
+I think the second set was much better than the first,out_of_scope,en
+Can we do 17 plus 28 quickly,out_of_scope,en
+Is 144 divided by 12 just 12,out_of_scope,en
+My pasta came out too soft today,out_of_scope,en
+I added too much salt to the soup,out_of_scope,en
+Do you fry mushrooms first or onions first,out_of_scope,en
+That joke was actually good,out_of_scope,en
+Send another one,out_of_scope,en
+No way,out_of_scope,en
+I watched that film yesterday and the ending was weird,out_of_scope,en
+The first half was slow but then it got really good,out_of_scope,en
+Do you think this phone is worth buying now,out_of_scope,en
+Battery looks decent but the camera seems weak,out_of_scope,en
+My laptop fan is too loud again,out_of_scope,en
+Maybe I need a smaller keyboard,out_of_scope,en
+All good,out_of_scope,en
+I will go for a walk if the wind calms down,out_of_scope,en
+Is it normal that 0.1 plus 0.2 looks strange in some apps,out_of_scope,en
+That actor always plays the same guy,out_of_scope,en
+I made pancakes and somehow burned only one side,out_of_scope,en
+Sounds good,out_of_scope,en
+Too hot today,out_of_scope,en
+Rain again,out_of_scope,en
+Cloudy but ok,out_of_scope,en
+Lol,out_of_scope,en
+Did you watch the game last night,out_of_scope,en
+I ran 5 km today and my legs are dead,out_of_scope,en
+I think my backhand is finally getting more stable,out_of_scope,en
+Can you remind me what 17 times 6 is,out_of_scope,en
+I always mess up 8 times 7 for some reason,out_of_scope,en
+I tried to make pasta and added way too much salt,out_of_scope,en
+Do you know a simple sauce for chicken and rice,out_of_scope,en
+That film was good but the ending was weird,out_of_scope,en
+I started the new series and now I cant stop,out_of_scope,en
+Is the new phone actually better or just more expensive,out_of_scope,en
+My headphones die so fast now,out_of_scope,en
+I need a small power bank for travel,out_of_scope,en
+What weather app do you use,out_of_scope,en
+I laughed at the dumbest joke today,out_of_scope,en
+Why do goalkeepers always look slightly offended,out_of_scope,en
+If I leave at 7 do you think I can make it by 8,out_of_scope,en
+I need an easy breakfast that takes 5 minutes,out_of_scope,en
+The coffee was strong enough to wake up the whole street,out_of_scope,en
+I think 120 divided by 8 is 15 right,out_of_scope,en
+Too hot outside,out_of_scope,en
+"Crazy game today, that last goal was unreal",out_of_scope,en
+"I ran 5k today, not fast but better than last time",out_of_scope,en
+Do you think 17 times 6 is 102 or am I half asleep,out_of_scope,en
+I made pasta and somehow used too much salt again,out_of_scope,en
+Maybe add more garlic,out_of_scope,en
+"That pan is useless, everything sticks to it",out_of_scope,en
+I watched that film everyone talks about and honestly it was just ok,out_of_scope,en
+The ending was good though,out_of_scope,en
+"Which is better for photos, Pixel or iPhone",out_of_scope,en
+My headphones keep disconnecting for no reason,out_of_scope,en
+Battery is dead,out_of_scope,en
+That joke was so bad it became funny,out_of_scope,en
+"If a train leaves at 8:10 and arrives at 9:45, that is 1 hour 35 minutes right",out_of_scope,en
+I forgot the actor's name but his face is in every movie,out_of_scope,en
+"Cold wind today but sunny, weird combo",out_of_scope,en
+"I tried making pancakes, first two looked terrible and then it worked",out_of_scope,en
+No idea,out_of_scope,en
+That match was painful to watch,out_of_scope,en
+"Can you recommend a simple sci fi movie, not too long",out_of_scope,en
+"I need a cheap mouse, nothing fancy",out_of_scope,en
+Perfect,out_of_scope,en
+I am hungry again after dinner somehow,out_of_scope,en
+Rain all day here and somehow still warm,out_of_scope,en
+"Did you watch the match last night, or was it not worth it",out_of_scope,en
+"If I have 3 pans and cook 2 omelets in each, that is 6 total right",out_of_scope,en
+"That joke was terrible but I still laughed, also is that new phone camera actually good for night photos or just marketing",out_of_scope,en
