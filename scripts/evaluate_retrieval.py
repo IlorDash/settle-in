@@ -46,7 +46,7 @@ import re
 import statistics
 import time
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from scripts.evaluate_system import PRICE_PER_MILLION, UsageRecorder
 from src.agents.rag_agent import LLM_MODEL, build_rag_chain
@@ -243,6 +243,30 @@ def cache_key(query: Query, passages: list[Passage]) -> str:
     return hashlib.sha256(material.encode("utf-8")).hexdigest()[:16]
 
 
+def basename(source: str) -> str:
+    r"""Reduce a chunk's stored source path to a file name, on any platform.
+
+    Args:
+        source: The `source` metadata Chroma stored when the index was built.
+
+    Returns:
+        The file name at the end of it.
+
+    Chroma keeps this string exactly as the machine that built the index
+    wrote it, so an index built on Windows carries a source such as
+    `data\knowledge_base\01_white_card_registration.txt` into whatever
+    reads it later. `pathlib.Path` resolves against the platform it runs
+    on, and a PosixPath does not treat a backslash as a separator: on the
+    Raspberry Pi every source came back whole, matched no expected
+    document, and C1 scored 0.0000 on retrieval that was in fact perfect.
+    Normalising here keeps the score a property of the index rather than
+    of the machine reading it. The bot is unaffected either way, since
+    `src/agents/rag_agent.py` never reads this metadata, so the defect
+    lived wholly in the instrument.
+    """
+    return PurePosixPath(str(source).replace("\\", "/")).name
+
+
 def looks_like_a_decline(answer: str) -> bool:
     """Say whether an answer is the agent declining to answer.
 
@@ -295,7 +319,7 @@ def retrieve(retriever, query: Query) -> tuple[list[Passage], float]:
     elapsed = (time.perf_counter() - started) * 1000
     passages = [
         Passage(
-            source=Path(document.metadata.get("source", "?")).name,
+            source=basename(document.metadata.get("source", "?")),
             start_index=int(document.metadata.get("start_index", -1)),
             text=document.page_content,
         )
