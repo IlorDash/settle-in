@@ -65,6 +65,10 @@ PRICE_PER_MILLION = {
     # The translation agent runs on the larger model, so anything pricing a
     # whole conversation has to know both. Group B never calls it.
     "gpt-4o": {"input": 2.50, "output": 10.00},
+    # The document agent's vision model. Input is billed at the same rate as
+    # gpt-4o, and output at $15.00 - the two figures Chapter 4 quotes beside
+    # Table 7 as the reason the answering step is kept off this model.
+    "gpt-5.4": {"input": 2.50, "output": 15.00},
 }
 
 # The sweep runs at every tenth, and CONFIDENCE_THRESHOLD is added so the
