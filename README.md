@@ -200,7 +200,9 @@ docker run --env-file .env settlein-bot
 
 ## Deployment
 
-The bot is deployed on [Railway](https://railway.app) using Docker with webhook mode.
+The bot ships as a single Docker container and runs on any host that can serve
+it a public HTTPS URL. Everything below is host-agnostic: what a deployment has
+to supply is the environment variables and a persistent disk.
 
 ### Environment Variables
 
@@ -219,15 +221,15 @@ The bot is deployed on [Railway](https://railway.app) using Docker with webhook 
 | `DAILY_PHOTO_LIMIT` | No | `5` | Photos one chat may send per day |
 | `ANNOUNCEMENT_CHANNEL` | No | `""` | Public channel for announcements, as its `@username`; empty turns them off |
 
-### Persistent storage (required on Railway)
+### Persistent storage (required)
 
 A container's filesystem is recreated on every deploy. The bot writes three
 things that must outlive it: the vector store, the collected feedback, and each
-chat's history and preferences. Without a volume, every deploy erases all three
-and the knowledge base is re-embedded from scratch, which costs money.
+chat's history and preferences. Without a persistent disk, every deploy erases
+all three and the knowledge base is re-embedded from scratch, which costs money.
 
-Attach a Railway **Volume**, mount it at `/data`, and point the three path
-variables into it:
+Mount a volume — whatever the host calls one — at `/data`, and point the three
+path variables into it:
 
 ```
 CHROMA_PERSIST_DIR=/data/chroma_db
@@ -247,7 +249,7 @@ container and the data disappears at the next deploy exactly as before.
 ### Polling vs Webhook
 
 - **Polling** (local development): the bot asks Telegram "any new messages?" every few seconds. No public URL needed.
-- **Webhook** (production): Telegram pushes messages to the bot's HTTPS endpoint. Faster and more efficient. Requires a public URL with TLS — Railway provides this automatically.
+- **Webhook** (production): Telegram pushes messages to the bot's HTTPS endpoint. Faster and more efficient. Requires a public URL with TLS, which most container hosts terminate for you.
 
 ## Operating the Bot
 
