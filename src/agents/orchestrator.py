@@ -44,7 +44,7 @@ MODALITY_DOCUMENT = "document"
 # The image is never stored, so the chat log keeps a note of it instead.
 DOCUMENT_HISTORY_NOTE = "[photo of a document]"
 
-CONFIDENCE_THRESHOLD = 0.6
+CONFIDENCE_THRESHOLD = 0.8  # Set according to accuracy research
 MAX_HISTORY_MESSAGES = 6
 MAX_STORED_MESSAGES = 200
 MAX_STORED_PREFERENCES = 20
