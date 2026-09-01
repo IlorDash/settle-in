@@ -15,6 +15,9 @@ Built with Python, LangChain, LangGraph, and ChromaDB.
 - **Chat export** — `/export` sends the recent messages back as a text file, which is how a bug gets reported with the bot's exact wording instead of a retyped approximation
 - **Feedback buttons** — 👍/👎 under each answer, recorded with the predicted intent as labelled data for retraining the classifier
 - **Input protection** — message validation, per-user rate limiting, and graceful error handling for LLM timeouts and API failures, with a catch-all handler so even an unexpected crash gets a reply rather than silence
+- **Daily allowances** — each chat gets a separate daily budget for text and for photos, since a photo costs several times a text turn. `/limits` shows a user their own spend and lets the operator move either number without a redeploy
+- **Operator tools** — with an admin chat configured, serious failures are pushed there as they happen, `/logs` sends the recent log records back as a file, and `/admin` is a panel of switches: move the alert threshold, turn `/export` or `/reset` off during an incident, reset today's counters
+- **Announcements channel** — `/start` and `/help` point users at a public channel, and a limit change offers to publish the new allowances there in one tap
 
 ## Architecture
 
@@ -52,11 +55,15 @@ The orchestrator is built as a LangGraph StateGraph with intent-based routing:
 
 ![Orchestrator Graph](assets/orchestrator_graph.png)
 
-The multimodal agent is deliberately **not** a node in this graph. Routing to it
-happens one level earlier, in the Telegram handler layer, because an image
-carries no text for `classify_intent` to work on. Keeping it outside also keeps
-photos out of the graph's state, where a base64 image would be written into
-every saved checkpoint. Regenerate the diagram with
+A photo never reaches `classify_intent`: a conditional entry edge reads the
+modality Telegram already states in the update and sends the photo straight to
+the document node. Modality is free and certain, while an intent costs an
+inference and can be wrong — and the text classifier has no text to read on an
+image anyway. The photo itself travels as LangGraph *runtime context* rather
+than graph state, because every state field is written to the checkpointer: a
+10 MB base64 image would be copied into the chat's SQLite file on every upload
+and stay there. What outlives the turn is the transcript, which is text and
+belongs in the log. Regenerate the diagram with
 `python -m scripts.visualize_graph`.
 
 ## Project Structure
@@ -66,16 +73,20 @@ settle-in/
 ├── src/
 │   ├── bot/
 │   │   ├── app.py              # Bot entry point, webhook/polling startup
-│   │   ├── handlers.py         # /start, /help, /pref, /reset, /export, messages, photos
+│   │   ├── handlers.py         # Commands, messages, photos, button taps
+│   │   ├── admin.py            # Operator log mirror behind /loglevel and /logs
+│   │   ├── channel.py          # Posts to the announcements channel
 │   │   ├── feedback.py         # Appends thumbs up/down to a JSONL store
 │   │   ├── transcript.py       # Renders stored messages as readable text
-│   │   └── middleware.py       # Input validation, image checks, rate limiting
+│   │   ├── typing_indicator.py # Keeps "typing…" up while an agent works
+│   │   └── middleware.py       # Validation, image checks, rate limit, daily quota
 │   ├── agents/
 │   │   ├── orchestrator.py     # LangGraph intent router, memory, preferences
 │   │   ├── intent_classifier.py# Loads the trained classifier artifact
 │   │   ├── rag_agent.py        # Knowledge retrieval chain
 │   │   ├── multimodal_agent.py # Reads a photographed document
-│   │   └── translation_agent.py
+│   │   ├── translation_agent.py
+│   │   └── artifacts/          # The trained intent classifier (.joblib)
 │   ├── knowledge/
 │   │   ├── loader.py           # Document loading and text chunking
 │   │   └── vectorstore.py      # ChromaDB setup and retriever
@@ -83,6 +94,9 @@ settle-in/
 ├── scripts/
 │   ├── chat.py                 # Local CLI harness, no Telegram needed
 │   ├── probe_vision.py         # Measures what the vision model can read
+│   ├── generate_intent_data.py # Builds the classifier's training set
+│   ├── validate_on_real.py     # Scores the classifier on real messages
+│   ├── visualize_graph.py      # Redraws the orchestrator diagram
 │   └── train_intent_classifier.py
 ├── data/
 │   ├── knowledge_base/         # 8 text documents on Serbian procedures
@@ -90,9 +104,10 @@ settle-in/
 │   └── checkpoints.sqlite      # Chat history and /pref rules (created on first use)
 ├── tests/
 │   ├── conftest.py             # Shared fixtures (mock Telegram, mock orchestrator)
-│   ├── unit/                   # 113 unit tests
-│   ├── integration/            # 27 integration tests
-│   └── evals/                  # 10 opt-in tests that call the real OpenAI API
+│   ├── assets/                 # Real bills plus their verified values
+│   ├── unit/                   # 391 unit tests
+│   ├── integration/            # 40 integration tests
+│   └── evals/                  # 26 opt-in tests that call the real OpenAI API
 ├── Dockerfile
 ├── pyproject.toml
 └── .env.example
@@ -121,9 +136,9 @@ git clone https://github.com/yourusername/settle-in.git
 cd settle-in
 
 # Create virtual environment
-python -m venv venv
-venv\Scripts\activate        # Windows
-# source venv/bin/activate   # Linux/Mac
+python -m venv .venv
+.venv\Scripts\activate       # Windows
+# source .venv/bin/activate  # Linux/Mac
 
 # Install dependencies
 pip install -e ".[dev]"
@@ -199,6 +214,10 @@ The bot is deployed on [Railway](https://railway.app) using Docker with webhook 
 | `CHROMA_PERSIST_DIR` | No | `./data/chroma_db` | Path where ChromaDB stores vector data |
 | `FEEDBACK_PATH` | No | `./data/feedback.jsonl` | File collecting thumbs up/down verdicts |
 | `CHECKPOINT_PATH` | No | `./data/checkpoints.sqlite` | File holding chat history and `/pref` rules |
+| `ADMIN_CHAT_ID` | No | `""` | Chat receiving operator alerts and the `/admin` panel; empty turns them off |
+| `DAILY_TEXT_LIMIT` | No | `30` | Text messages one chat may send per day |
+| `DAILY_PHOTO_LIMIT` | No | `5` | Photos one chat may send per day |
+| `ANNOUNCEMENT_CHANNEL` | No | `""` | Public channel for announcements, as its `@username`; empty turns them off |
 
 ### Persistent storage (required on Railway)
 
@@ -230,9 +249,39 @@ container and the data disappears at the next deploy exactly as before.
 - **Polling** (local development): the bot asks Telegram "any new messages?" every few seconds. No public URL needed.
 - **Webhook** (production): Telegram pushes messages to the bot's HTTPS endpoint. Faster and more efficient. Requires a public URL with TLS — Railway provides this automatically.
 
+## Operating the Bot
+
+Set `ADMIN_CHAT_ID` to your own chat id and that chat becomes the operator
+console. Message the bot from it once before setting the variable, or Telegram
+refuses to deliver anything there.
+
+| Command | Who | What it does |
+| ------- | --- | ------------ |
+| `/limits` | everyone | A user sees their own allowance and what they have spent today; from the operator's chat it also shows the totals and `/limits text 50` moves a number |
+| `/admin` | operator | A panel of switches: the alert threshold, `/export` and `/reset` on or off, and a button that resets today's counters |
+| `/loglevel warning\|error` | operator | Moves what gets pushed to the operator's chat as it happens |
+| `/logs` | operator | Sends the recent log records back as a file |
+
+Everything the panel holds is deliberately **not** persisted: a restart puts
+every switch back where the bot ships it, which is the one reliable way out of
+a bad incident state. Allowances re-seed from `DAILY_TEXT_LIMIT` and
+`DAILY_PHOTO_LIMIT`, so a number that proves right belongs in the environment
+rather than in the running process.
+
+The operator commands are silent in any other chat — they do not reply at all,
+rather than announcing that they exist.
+
+### Announcements
+
+Set `ANNOUNCEMENT_CHANNEL` to a public channel's `@username` and add the bot to
+it as an administrator. `/start` and `/help` then point users at the channel,
+and a `/limits` change offers to publish the new allowances there in one tap.
+The bot only ever posts; the operator writes in the channel by hand. Left
+empty, none of this appears anywhere.
+
 ## Testing
 
-140 tests (113 unit + 27 integration) at 90% code coverage, plus 10 opt-in evals.
+431 tests (391 unit + 40 integration) at 97% code coverage, plus 26 opt-in evals.
 
 ```bash
 # Run all tests (free and offline — evals are excluded)
@@ -250,4 +299,4 @@ pytest -m eval tests/evals -v
 
 **Unit tests** verify each function in isolation by mocking external dependencies (OpenAI API, Telegram API, ChromaDB). **Integration tests** verify that components work together — for example, that a user message flows correctly through the orchestrator to the right agent.
 
-**Evals** are a third tier that exists because the first two mock the language model, and so are blind to what it actually replies. They send real requests to check things no mocked test can see: that an explicit "in Latin" request overrides a saved Cyrillic preference, that the agent never hands back the untranslated source word, and that a bare follow-up is resolved from conversation history. Because they cost money, a pytest marker excludes them from every ordinary run and `-m eval` opts back in.
+**Evals** are a third tier that exists because the first two mock the language model, and so are blind to what it actually replies. They send real requests to check things no mocked test can see: that an explicit "in Latin" request overrides a saved Cyrillic preference and that the agent never hands back the untranslated source word; that the vision model actually reads three real utility bills, scored against figures verified from each bill's own arithmetic; and that a follow-up question still retrieves the right knowledge-base file after being rewritten against the conversation. Because they cost money, a pytest marker excludes them from every ordinary run and `-m eval` opts back in.
