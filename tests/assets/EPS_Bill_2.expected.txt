@@ -1,0 +1,44 @@
+# EPS electricity bill, January 2016 (Subotica). One value per line, exactly
+# as printed. The customer's name and street are redacted on the image, so
+# nothing personal appears here.
+#
+# Verified against the bill's own arithmetic:
+#   A + B    7.917,24 + 0,01 = 7.917,25
+#
+# This bill is the easy case on purpose: large print, flat scan, few dense
+# tables. If the model misses values here, the problem is not table density.
+
+# header
+ЈАНУАР 2016
+2751078377
+01/2016
+17.02.2016
+
+# billing period
+05.01.2016
+04.02.2016
+
+# consumption
+1.432
+9230
+
+# the two comparison percentages under the chart, printed with a leading
+# plus and a decimal point rather than the comma used elsewhere
++12.58
++214.04
+
+# money
+7.917,24
+0,01
+7.917,25
+310,80
+2.724,23
+
+# deadline and contacts
+29.02.2016
+0800/220-021
+450658
+
+# footer identifiers
+108057105
+20924195

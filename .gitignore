@@ -1,5 +1,5 @@
 # Python
-venv/
+.venv/
 __pycache__/
 *.pyc
 *.pyo
@@ -21,3 +21,8 @@ data/chroma_db/
 # OS
 .DS_Store
 Thumbs.db
+
+# App
+data/feedback.jsonl
+# The trailing * also covers the -wal and -shm files SQLite writes in WAL mode.
+data/checkpoints.sqlite*

@@ -11,7 +11,7 @@ from unittest.mock import MagicMock
 
 from src.agents.orchestrator import build_orchestrator
 
-OUTPUT_PNG_PATH = "docs/orchestrator_graph.png"
+OUTPUT_PNG_PATH = "assets/orchestrator_graph.png"
 mock_rag_chain = MagicMock()
 mock_translation_chain = MagicMock()
 

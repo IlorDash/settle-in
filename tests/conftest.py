@@ -1,9 +1,39 @@
-from unittest.mock import AsyncMock, MagicMock
+from dataclasses import replace
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from telegram import Chat, Message, Update, User
+from telegram import (
+    Bot,
+    CallbackQuery,
+    Chat,
+    File,
+    Message,
+    PhotoSize,
+    Update,
+    User,
+)
 
-from src.bot.middleware import RateLimiter
+from src.bot.middleware import DailyQuota, RateLimiter
+from src.config import settings
+
+# Far above anything a test sends, so the daily allowance never fires by
+# accident in a test about something else. A test about the allowance builds
+# its own DailyQuota with the limit it wants to reach.
+TEST_DAILY_LIMIT = 100
+
+
+@pytest.fixture(autouse=True)
+def announcement_channel_off():
+    """Keep the suite independent of the developer's own .env.
+
+    `load_dotenv()` runs at import, so a real ANNOUNCEMENT_CHANNEL would have
+    every test that reaches post_init try to reach Telegram - the same trap
+    ADMIN_CHAT_ID already sprang once, and one that fails on the machine that
+    has the variable set and nowhere else. A test that wants a channel
+    patches `src.bot.channel.settings` itself, which lands on top of this.
+    """
+    with patch("src.bot.channel.settings", replace(settings, announcement_channel="")):
+        yield
 
 
 @pytest.fixture
@@ -29,7 +59,128 @@ def mock_update(mock_user, mock_chat):
     update.message = MagicMock(spec=Message)
     update.message.from_user = mock_user
     update.message.chat = mock_chat
+    update.message.chat_id = mock_chat.id
     update.message.reply_text = AsyncMock()
+    return update
+
+
+@pytest.fixture
+def mock_callback_update(mock_user):
+    """An Update carrying a feedback button tap on an answer.
+
+    The tapped message is the bot's answer, and its reply_to_message is the
+    question that produced it — the chain the handler reads instead of
+    keeping state between the answer and the tap.
+    """
+    question = MagicMock(spec=Message)
+    question.text = "What is a White Card?"
+
+    answer = MagicMock(spec=Message)
+    answer.reply_to_message = question
+
+    query = MagicMock(spec=CallbackQuery)
+    query.data = "fb:up:knowledge_question"
+    query.from_user = mock_user
+    query.message = answer
+    query.answer = AsyncMock()
+    query.edit_message_reply_markup = AsyncMock()
+
+    update = MagicMock(spec=Update)
+    update.callback_query = query
+    return update
+
+
+@pytest.fixture
+def mock_admin_callback_update(mock_chat):
+    """An Update carrying a tap on the operator panel.
+
+    `_is_admin_tap` reads the chat off `message.chat`, not the `chat_id`
+    shortcut, since a stale panel arrives as an InaccessibleMessage that
+    carries a chat but none of the shortcuts Message defines on top of it -
+    so the mock is built the same way rather than setting `chat_id` directly.
+    """
+    message = MagicMock(spec=Message)
+    message.chat = mock_chat
+
+    query = MagicMock(spec=CallbackQuery)
+    query.data = "adm:warning"
+    query.message = message
+    query.answer = AsyncMock()
+    query.edit_message_text = AsyncMock()
+
+    update = MagicMock(spec=Update)
+    update.callback_query = query
+    return update
+
+
+@pytest.fixture
+def mock_announcement_callback_update(mock_chat):
+    """An Update carrying a tap on the "announce this?" keyboard.
+
+    Built the same way as `mock_admin_callback_update`: the chat lives on
+    `message.chat`, not the `chat_id` shortcut, since a stale offer arrives
+    as an InaccessibleMessage that carries a chat but none of the shortcuts
+    Message defines on top of it.
+    """
+    message = MagicMock(spec=Message)
+    message.chat = mock_chat
+    message.reply_text = AsyncMock()
+
+    query = MagicMock(spec=CallbackQuery)
+    query.data = "ann:send"
+    query.message = message
+    query.answer = AsyncMock()
+    query.edit_message_reply_markup = AsyncMock()
+
+    update = MagicMock(spec=Update)
+    update.callback_query = query
+    return update
+
+
+@pytest.fixture
+def mock_edited_message_update():
+    """An Update carrying an edit of an earlier message, not a new one.
+
+    Built the same way as `mock_admin_callback_update` /
+    `mock_announcement_callback_update`: Telegram delivers an edit as an
+    update carrying `edited_message` and leaving `message` as None, so
+    `.message` is left unset here too - a handler that reads it by mistake
+    fails the test instead of silently passing.
+    """
+    edited = MagicMock(spec=Message)
+    edited.reply_text = AsyncMock()
+
+    update = MagicMock(spec=Update)
+    update.message = None
+    update.edited_message = edited
+    return update
+
+
+@pytest.fixture
+def mock_photo_update(mock_user, mock_chat):
+    """An Update carrying a photographed document, ready to be downloaded.
+
+    Telegram sends a photo at several sizes and the handler takes the last;
+    the file behind it yields its bytes through download_as_bytearray.
+    """
+    telegram_file = MagicMock(spec=File)
+    telegram_file.download_as_bytearray = AsyncMock(return_value=bytearray(b"jpegdata"))
+
+    photo = MagicMock(spec=PhotoSize)
+    photo.file_size = 120_000
+    photo.get_file = AsyncMock(return_value=telegram_file)
+
+    message = MagicMock(spec=Message)
+    message.photo = [photo]
+    message.document = None
+    message.caption = None
+    message.from_user = mock_user
+    message.chat = mock_chat
+    message.chat_id = mock_chat.id
+    message.reply_text = AsyncMock()
+
+    update = MagicMock(spec=Update)
+    update.message = message
     return update
 
 
@@ -43,14 +194,42 @@ def mock_orchestrator():
             "agent_response": "Test answer from orchestrator.",
         }
     )
+    # The preference helpers read the checkpointer for real, so the snapshot
+    # has to hold a plain dict — a bare MagicMock is not iterable.
+    orchestrator.get_state.return_value.values = {}
     return orchestrator
 
 
 @pytest.fixture
-def mock_context(mock_orchestrator):
+def mock_bot():
+    """The Bot handlers reach through `context.bot`.
+
+    send_chat_action has to be awaitable: every path that waits on a model
+    shows the typing indicator, and a plain MagicMock cannot be awaited.
+    """
+    bot = MagicMock(spec=Bot)
+    bot.send_chat_action = AsyncMock()
+    return bot
+
+
+@pytest.fixture
+def daily_quota():
+    """A DailyQuota with allowances no test can reach by accident.
+
+    A test about the allowance itself builds its own with the limit it wants
+    to reach; everything else gets this one so the daily cap never fires in
+    a test that is about something else.
+    """
+    return DailyQuota(text_limit=TEST_DAILY_LIMIT, photo_limit=TEST_DAILY_LIMIT)
+
+
+@pytest.fixture
+def mock_context(mock_orchestrator, mock_bot, daily_quota):
     context = MagicMock()
+    context.bot = mock_bot
     context.bot_data = {
         "orchestrator": mock_orchestrator,
         "rate_limiter": RateLimiter(),
+        "daily_quota": daily_quota,
     }
     return context

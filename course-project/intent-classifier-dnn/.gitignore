@@ -1,0 +1,15 @@
+# Dedicated virtual environment for this course project
+.venv/
+
+# Downloaded dataset (not committed — get it from Kaggle, see README)
+data/*
+!data/.gitkeep
+
+# Trained model artifacts
+models/*
+!models/.gitkeep
+
+# Notebook / Python noise
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
